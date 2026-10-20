@@ -1,0 +1,21 @@
+[versions]
+google-java-format = "1.36.1"
+groovy = "5.0.8"
+jacoco = "0.8.15"
+jspecify = "1.0.1"
+junit = "6.1.3"
+pitest = "1.30.1"
+pitest-junit5-plugin = "1.2.3"
+spock = "2.5-groovy-5.0"
+spring-boot = "4.1.1"
+
+[libraries]
+groovy-bom = { module = "org.apache.groovy:groovy-bom", version.ref = "groovy" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+spock-bom = { module = "org.spockframework:spock-bom", version.ref = "spock" }
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+
+# Gradle plugins used by the convention plugins in build-logic
+pitest-gradle-plugin = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version = "1.19.0" }
+spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version = "8.9.0" }
