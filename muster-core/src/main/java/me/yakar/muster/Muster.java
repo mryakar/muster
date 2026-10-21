@@ -152,8 +152,8 @@ public final class Muster {
    *
    * <p>The rules bind to the class of the input at run time: an input declared as an interface
    * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
-   * first check, logs the bound rules at {@code DEBUG}, and keeps it for as long as the Muster is
-   * used.
+   * first check, and keeps it for as long as the Muster is used. It logs the bound rules at {@code
+   * DEBUG}, or a warning if no rule binds, since that usually means a rule was not registered.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
@@ -176,7 +176,16 @@ public final class Muster {
           }
         });
     RuleChain<Object> chain = compose(type, included);
-    LOGGER.log(Level.DEBUG, () -> "Rules bound to " + type.getTypeName() + ": " + chain.ruleIds());
+    if (included.isEmpty()) {
+      LOGGER.log(
+          Level.WARNING,
+          "No rule binds to "
+              + type.getTypeName()
+              + "; check that its rules are registered, enabled and accept it");
+    } else {
+      LOGGER.log(
+          Level.DEBUG, () -> "Rules bound to " + type.getTypeName() + ": " + chain.ruleIds());
+    }
     return chain;
   }
 
