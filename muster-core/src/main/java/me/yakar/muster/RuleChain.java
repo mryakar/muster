@@ -92,6 +92,7 @@ public final class RuleChain<I> {
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
    *     returns {@code null}
+   * @throws IllegalStateException if a rule reports a violation under another rule's id
    */
   public void check(I input) {
     requireNonNull(input, "input");
@@ -118,6 +119,16 @@ public final class RuleChain<I> {
         throw new NullPointerException("rule '" + rule.id() + "' returned null");
       }
       if (result instanceof RuleResult.Failed failed) {
+        for (var violation : failed.violations()) {
+          if (!violation.ruleId().equals(rule.id())) {
+            throw new IllegalStateException(
+                "rule '"
+                    + rule.id()
+                    + "' reported a violation of rule '"
+                    + violation.ruleId()
+                    + "'; build violations from the RuleContext the rule receives");
+          }
+        }
         violations.addAll(failed.violations());
         if (mode == CheckMode.FAIL_FAST) {
           break;
