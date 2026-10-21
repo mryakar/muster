@@ -15,31 +15,59 @@
  */
 package me.yakar.muster.rule;
 
+import static java.util.Objects.requireNonNull;
 import static me.yakar.muster.rule.Checks.requireNonBlank;
 
+import java.security.Principal;
+import java.util.Locale;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
+
 /**
- * What a rule knows about the call it checks, besides its input.
+ * What a rule knows about the call it checks, besides its input: who makes the call and in which
+ * locale.
  *
  * <p>Each rule receives its own context. Rules create their violations through it, so every
  * violation carries the id of the rule that reported it.
+ *
+ * <p>The context holds what differs from call to call. What stays the same, such as a {@link
+ * java.time.Clock} or a repository, is a dependency of the rule: take it in the constructor, and a
+ * test can pass a fixed clock.
  */
 public final class RuleContext {
 
   private final String ruleId;
+  private final @Nullable Principal caller;
+  private final Locale locale;
 
-  private RuleContext(String ruleId) {
-    this.ruleId = requireNonBlank(ruleId, "ruleId");
+  private RuleContext(Builder builder) {
+    ruleId = builder.ruleId;
+    caller = builder.caller;
+    locale = builder.locale;
   }
 
   /**
-   * Creates a context for the rule with the given id. Use it to test a rule on its own.
+   * Creates a context for the rule with the given id, with no caller and the root locale. Use it to
+   * test a rule on its own.
    *
    * @param ruleId the id of the rule being checked
    * @return the context
    * @throws IllegalArgumentException if {@code ruleId} is blank
    */
   public static RuleContext forRule(String ruleId) {
-    return new RuleContext(ruleId);
+    return builder(ruleId).build();
+  }
+
+  /**
+   * Starts a context for the rule with the given id. Unless set, the context has no caller and the
+   * root locale.
+   *
+   * @param ruleId the id of the rule being checked
+   * @return a builder for the context
+   * @throws IllegalArgumentException if {@code ruleId} is blank
+   */
+  public static Builder builder(String ruleId) {
+    return new Builder(ruleId);
   }
 
   /**
@@ -49,6 +77,26 @@ public final class RuleContext {
    */
   public String ruleId() {
     return ruleId;
+  }
+
+  /**
+   * Returns who makes the call. Integrations pass their own principal type, such as Spring
+   * Security's {@code Authentication}; cast to it when the rule needs more than the name.
+   *
+   * @return the caller, or empty for an anonymous or system call
+   */
+  public Optional<Principal> caller() {
+    return Optional.ofNullable(caller);
+  }
+
+  /**
+   * Returns the locale of the call. Messages are resolved elsewhere; use the locale for business
+   * logic that depends on it, such as comparing names without regard to case.
+   *
+   * @return the locale
+   */
+  public Locale locale() {
+    return locale;
   }
 
   /**
@@ -70,5 +118,49 @@ public final class RuleContext {
    */
   public Violation.Builder violation(String code) {
     return new Violation.Builder(ruleId, code);
+  }
+
+  /** Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}. */
+  public static final class Builder {
+
+    private final String ruleId;
+    private @Nullable Principal caller;
+    private Locale locale = Locale.ROOT;
+
+    private Builder(String ruleId) {
+      this.ruleId = requireNonBlank(ruleId, "ruleId");
+    }
+
+    /**
+     * Sets who makes the call.
+     *
+     * @param caller the caller
+     * @return this builder
+     */
+    public Builder caller(Principal caller) {
+      this.caller = requireNonNull(caller, "caller");
+      return this;
+    }
+
+    /**
+     * Sets the locale of the call.
+     *
+     * @param locale the locale
+     * @return this builder
+     */
+    public Builder locale(Locale locale) {
+      this.locale = requireNonNull(locale, "locale");
+      return this;
+    }
+
+    /**
+     * Builds the context. The builder can be used again; later changes do not affect contexts
+     * already built.
+     *
+     * @return the context
+     */
+    public RuleContext build() {
+      return new RuleContext(this);
+    }
   }
 }

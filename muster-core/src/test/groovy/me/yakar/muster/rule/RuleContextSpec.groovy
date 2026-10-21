@@ -15,27 +15,98 @@
  */
 package me.yakar.muster.rule
 
+import java.security.Principal
 import spock.lang.Specification
 
 class RuleContextSpec extends Specification {
+
+  def amo = { 'amo' } as Principal
 
   def 'a context knows the rule it belongs to'() {
     expect:
     RuleContext.forRule('task.ready').ruleId() == 'task.ready'
   }
 
+  def 'a context for testing a rule has no caller and the root locale'() {
+    given:
+    def context = RuleContext.forRule('task.ready')
+
+    expect:
+    context.caller().empty
+    context.locale() == Locale.ROOT
+  }
+
+  def 'a context knows who makes the call and in which locale'() {
+    given:
+    def context = RuleContext.builder('request.owner-only').caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+
+    expect:
+    context.ruleId() == 'request.owner-only'
+    context.caller().get().is(amo)
+    context.locale() == Locale.forLanguageTag('tr-TR')
+  }
+
+  def 'a context built without a caller or a locale has the defaults'() {
+    given:
+    def context = RuleContext.builder('task.ready').build()
+
+    expect:
+    context.ruleId() == 'task.ready'
+    context.caller().empty
+    context.locale() == Locale.ROOT
+  }
+
+  def 'a context does not change when its builder is used again'() {
+    given:
+    def builder = RuleContext.builder('request.owner-only')
+    def anonymous = builder.build()
+
+    when:
+    def known = builder.caller(amo).locale(Locale.GERMANY).build()
+
+    then:
+    anonymous.caller().empty
+    anonymous.locale() == Locale.ROOT
+    known.caller().get().is(amo)
+    known.locale() == Locale.GERMANY
+  }
+
+  def 'violations from a built context carry its rule id'() {
+    expect:
+    RuleContext.builder('request.owner-only').caller(amo).build().violation('request.not-owner').build().ruleId() == 'request.owner-only'
+  }
+
+  def 'a context rejects a null caller or locale'() {
+    when:
+    set(RuleContext.builder('task.ready'))
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == message
+
+    where:
+    set << [
+      { it.caller(null) },
+      { it.locale(null) }
+    ]
+    message << ['caller', 'locale']
+  }
+
   def 'a rule id must not be blank'() {
     when:
-    RuleContext.forRule(ruleId)
+    RuleContext."$factory"(ruleId)
 
     then:
     def e = thrown(exception)
     e.message == message
 
     where:
-    ruleId || exception                | message
-    '' || IllegalArgumentException | 'ruleId must not be blank'
-    ' ' || IllegalArgumentException | 'ruleId must not be blank'
-    null || NullPointerException     | 'ruleId'
+    factory   | ruleId || exception                | message
+    'forRule' | '' || IllegalArgumentException | 'ruleId must not be blank'
+    'forRule' | ' ' || IllegalArgumentException | 'ruleId must not be blank'
+    'forRule' | null || NullPointerException     | 'ruleId'
+    'builder' | '' || IllegalArgumentException | 'ruleId must not be blank'
+    'builder' | ' ' || IllegalArgumentException | 'ruleId must not be blank'
+    'builder' | null || NullPointerException     | 'ruleId'
   }
 }
