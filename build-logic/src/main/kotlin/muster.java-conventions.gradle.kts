@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 plugins {
   `java-library`
   groovy
@@ -12,21 +27,26 @@ fun version(alias: String): String = libs.findVersion(alias).get().requiredVersi
 
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
-tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror")) }
+tasks.withType<JavaCompile>().configureEach {
+  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+}
 
 // Internal packages are not exported, so the API docs leave them out. The source path lets the
 // documented classes still refer to them.
 tasks.withType<Javadoc>().configureEach {
   exclude("**/internal/**")
   (options as StandardJavadocDocletOptions).apply {
-    addStringOption("-source-path", sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator))
+    addStringOption(
+      "-source-path",
+      sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator),
+    )
     addBooleanOption("Xdoclint:all", true)
     addBooleanOption("Xwerror", true)
   }
 }
 
-// Published to consumers: modules that require me.yakar.muster read org.jspecify, and null-aware tools
-// need the annotations on their classpath.
+// Published to consumers: modules that require me.yakar.muster read org.jspecify, and
+// null-aware tools need the annotations on their classpath.
 dependencies { api(libs.findLibrary("jspecify").get()) }
 
 testing {
@@ -45,7 +65,9 @@ testing {
 val testJavaVersion = providers.gradleProperty("testJavaVersion").map(String::toInt).orElse(21)
 
 tasks.withType<Test>().configureEach {
-  javaLauncher = javaToolchains.launcherFor { languageVersion = testJavaVersion.map(JavaLanguageVersion::of) }
+  javaLauncher = javaToolchains.launcherFor {
+    languageVersion = testJavaVersion.map(JavaLanguageVersion::of)
+  }
 }
 
 jacoco { toolVersion = version("jacoco") }
