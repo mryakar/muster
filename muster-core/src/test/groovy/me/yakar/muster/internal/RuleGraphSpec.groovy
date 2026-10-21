@@ -148,20 +148,20 @@ class RuleGraphSpec extends Specification {
 
     where:
     rules || cycle
-    [rule(A, 'a', [A])] || 'a → a'
+    [rule(A, 'a', [A])] || 'a -> a'
     [
       rule(A, 'a', [B]),
       rule(B, 'b', [A])
-    ] || 'a → b → a'
+    ] || 'a -> b -> a'
     [
       rule(B, 'b', [A]),
       rule(A, 'a', [B])
-    ] || 'a → b → a'
+    ] || 'a -> b -> a'
     [
       rule(A, 'entry', [B]),
       rule(B, 'x', [C]),
       rule(C, 'y', [D]),
       rule(D, 'z', [B])
-    ] || 'x → y → z → x'
+    ] || 'x -> y -> z -> x'
   }
 }

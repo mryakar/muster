@@ -180,7 +180,7 @@ public final class Muster {
      * @param rules the rules
      * @return this builder
      * @throws IllegalArgumentException if a rule has no {@code @Rule}, an invalid id or no input
-     *     type, or if its class or id is already registered
+     *     type, requires a rule twice, or if its class or id is already registered
      */
     public Builder rules(BusinessRule<?>... rules) {
       for (var rule : rules) {
@@ -198,7 +198,7 @@ public final class Muster {
      * @param ruleClasses the rule classes
      * @return this builder
      * @throws IllegalArgumentException if a class has no {@code @Rule}, an invalid id or no input
-     *     type, or if it or its id is already registered
+     *     type, requires a rule twice, or if it or its id is already registered
      */
     @SafeVarargs
     public final Builder rules(
@@ -310,7 +310,7 @@ public final class Muster {
       for (var id : disabled) {
         var ruleClass = ids.get(id);
         if (ruleClass == null) {
-          throw new IllegalArgumentException("no rule has the id '" + id + "'");
+          throw new IllegalArgumentException("cannot disable '" + id + "': no rule has that id");
         }
         disabledClasses.add(ruleClass);
       }

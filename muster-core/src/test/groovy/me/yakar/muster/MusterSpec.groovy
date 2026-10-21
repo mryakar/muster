@@ -439,7 +439,7 @@ class MusterSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "no rule has the id 'vehicle.nme-unique'"
+    e.message == "cannot disable 'vehicle.nme-unique': no rule has that id"
   }
 
   def 'Muster checks the rule requirements when it is built'() {
