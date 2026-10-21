@@ -97,7 +97,7 @@ public final class RuleGraph {
           "rules require each other in a cycle: "
               + Stream.concat(path.subList(start, path.size()).stream(), Stream.of(rule))
                   .map(RuleDefinition::id)
-                  .collect(Collectors.joining(" → ")));
+                  .collect(Collectors.joining(" -> ")));
     }
     path.add(rule);
     for (var required : rule.requires()) {
