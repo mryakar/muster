@@ -19,4 +19,5 @@ module me.yakar.muster {
 
   exports me.yakar.muster;
   exports me.yakar.muster.rule;
+  exports me.yakar.muster.spi;
 }
