@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
@@ -58,14 +60,17 @@ public final class Muster {
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
   private final Map<Class<?>, PreparedRule> rules;
+  private final Set<Class<?>> disabled;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
 
   private Muster(
       Map<Class<?>, PreparedRule> rules,
+      Set<Class<?>> disabled,
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale) {
     this.rules = Map.copyOf(rules);
+    this.disabled = Set.copyOf(disabled);
     this.caller = caller;
     this.locale = locale;
   }
@@ -84,7 +89,8 @@ public final class Muster {
    * for example per service method, and keep it.
    *
    * <p>The chain also includes the rules that the given ones {@linkplain
-   * me.yakar.muster.rule.RequiresRule require}, and logs each one it adds.
+   * me.yakar.muster.rule.RequiresRule require}, and logs each one it adds. It leaves out the rules
+   * that are {@linkplain Builder#disable disabled}.
    *
    * @param inputType the type of input the chain checks; a primitive type stands for its wrapper
    * @param ruleClasses the rules, registered with this Muster
@@ -120,7 +126,9 @@ public final class Muster {
                 + inputType.getTypeName()
                 + " is not");
       }
-      included.put(ruleClass, rule);
+      if (!disabled.contains(ruleClass)) {
+        included.put(ruleClass, rule);
+      }
     }
     var pending = new ArrayDeque<>(included.values());
     while (!pending.isEmpty()) {
@@ -160,6 +168,7 @@ public final class Muster {
     private final Map<Class<?>, RuleDefinition> definitions = new LinkedHashMap<>();
     private final Map<Class<?>, Supplier<BusinessRule<?>>> sources = new LinkedHashMap<>();
     private final Map<String, Class<?>> ids = new LinkedHashMap<>();
+    private final Set<String> disabled = new LinkedHashSet<>();
     private Supplier<? extends @Nullable Principal> caller = () -> null;
     private Supplier<Locale> locale = Locale::getDefault;
 
@@ -246,6 +255,23 @@ public final class Muster {
     }
 
     /**
+     * Switches rules off without changing code, for example from configuration. A disabled rule
+     * runs in no chain, but it is still checked and created, so that switching it on again cannot
+     * reveal a setup error. Muster logs every disabled rule when it is built.
+     *
+     * <p>A rule that requires a disabled rule must be disabled as well.
+     *
+     * @param ids the ids of the rules to switch off
+     * @return this builder
+     */
+    public Builder disable(String... ids) {
+      for (var id : ids) {
+        disabled.add(requireNonNull(id, "id"));
+      }
+      return this;
+    }
+
+    /**
      * Sets who makes a call. Muster asks once at the start of every check; {@code null} stands for
      * an anonymous or system call. Unless set, no call has a caller.
      *
@@ -273,18 +299,30 @@ public final class Muster {
      * Builds Muster, creating the rules registered with a factory.
      *
      * @return the Muster
-     * @throws IllegalArgumentException if a rule requires a rule that is not registered or does not
-     *     accept its input, or rules require each other in a cycle
+     * @throws IllegalArgumentException if a disabled id belongs to no rule, a rule requires a rule
+     *     that is not registered, does not accept its input or is disabled while the rule is not,
+     *     or rules require each other in a cycle
      * @throws IllegalStateException if the factory fails, returns {@code null} or returns an
      *     instance of another class
      */
     public Muster build() {
-      RuleGraph.validate(definitions);
+      var disabledClasses = new LinkedHashSet<Class<?>>();
+      for (var id : disabled) {
+        var ruleClass = ids.get(id);
+        if (ruleClass == null) {
+          throw new IllegalArgumentException("no rule has the id '" + id + "'");
+        }
+        disabledClasses.add(ruleClass);
+      }
+      RuleGraph.validate(definitions, disabledClasses);
       var rules = new LinkedHashMap<Class<?>, PreparedRule>();
       definitions.forEach(
           (ruleClass, definition) ->
               rules.put(ruleClass, PreparedRule.of(definition, sources.get(ruleClass).get())));
-      return new Muster(rules, caller, locale);
+      for (var id : disabled) {
+        LOGGER.log(Level.WARNING, "Rule '" + id + "' is disabled");
+      }
+      return new Muster(rules, disabledClasses, caller, locale);
     }
   }
 }
