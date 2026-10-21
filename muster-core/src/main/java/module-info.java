@@ -15,5 +15,7 @@
  */
 /** Business rules checked before your service method runs. */
 module me.yakar.muster {
-  requires static org.jspecify;
+  requires static transitive org.jspecify;
+
+  exports me.yakar.muster;
 }
