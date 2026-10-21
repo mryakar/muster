@@ -19,19 +19,76 @@ never means editing the service.
 Format checks on a single field (blank, negative, malformed) stay with Jakarta Bean Validation.
 Muster is for rules that need the database and the context of the operation.
 
+Running rules around the service method and inside its transaction is the job of the Spring Boot
+starter, which arrives in 0.2.0. Until then, Muster checks rules through its plain Java API.
+
+## Usage
+
+A rule is a class with a stable id. It reports violations instead of throwing:
+
+```java
+@Rule(id = "vehicle.name-unique")
+final class VehicleNameUnique implements BusinessRule<VehicleFields> {
+
+  private final VehicleRepository vehicles;
+
+  VehicleNameUnique(VehicleRepository vehicles) {
+    this.vehicles = vehicles;
+  }
+
+  @Override
+  public RuleResult check(VehicleFields input, RuleContext ctx) {
+    return vehicles.existsByName(input.name())
+        ? RuleResult.failed(ctx.violation().clientArg("name", input.name()).build())
+        : RuleResult.passed();
+  }
+}
+```
+
+Build one `Muster` for the application, then check inputs against chains of rules:
+
+```java
+Muster muster = Muster.builder()
+    .rules(new VehicleNameUnique(vehicles), new VehicleCodeFormat())
+    .build();
+
+RuleChain<CreateVehicle> create =
+    muster.chain(CreateVehicle.class, VehicleNameUnique.class, VehicleCodeFormat.class);
+create.check(command); // throws BusinessRuleViolationException if a rule is violated
+```
+
+An input that implements `RuleTarget` can skip the chain: every rule whose input type accepts it
+binds by type.
+
+```java
+interface VehicleFields extends RuleTarget {
+  String code();
+
+  String name();
+}
+
+record CreateVehicle(String code, String name) implements VehicleFields {}
+
+muster.check(new CreateVehicle("TR-1", "Atlas"));
+```
+
+Rules can require other rules with `@RequiresRule`, be switched off with `disable`, and stop at the
+first violation (`CheckMode.FAIL_FAST`, the default) or report them all (`CheckMode.COLLECT_ALL`).
+A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
+
 ## Modules
 
 | Module | Purpose |
 |---|---|
-| `muster-core` | Rule contract, engine and plain Java API. No runtime dependencies. |
-| `muster-spring-boot-starter` | Spring Boot integration: AOP, transaction ordering, `ProblemDetail` responses. |
+| `muster-core` | Rule contract, engine and plain Java API. Its only dependency is the JSpecify annotations. |
+| `muster-spring-boot-starter` | Spring Boot integration: AOP, transaction ordering, `ProblemDetail` responses. Coming in 0.2.0. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Compiled examples used by the documentation and the integration tests. |
 
 ## Requirements
 
 - Java 21 or later
-- Spring Boot 4 for the starter
+- Spring Boot 4 for the starter, from 0.2.0
 
 ## Building
 
