@@ -37,10 +37,15 @@ import org.jspecify.annotations.Nullable;
  *   <li><b>Client arguments</b> fill the message template and are sent to the client.
  *   <li><b>Internal arguments</b> are for the application only: code, logs and {@link #toString()}.
  *       They never reach a message or a response, and they are dropped when a violation is
- *       serialized with Java serialization.
+ *       serialized with Java serialization. A deserialized violation therefore does not equal the
+ *       original if the original had internal arguments.
  * </ul>
  *
  * <p>Rules create violations through {@link RuleContext#violation()}.
+ *
+ * <p>A violation is not meant to be written as JSON: JSON mappers find nothing to write in it. Map
+ * it to a response type of your own, which shows the client arguments and leaves out the internal
+ * ones.
  */
 public final class Violation implements Serializable {
 
@@ -116,8 +121,7 @@ public final class Violation implements Serializable {
   }
 
   /**
-   * Returns the field of the input this violation is about, such as {@code name} or {@code
-   * [3].name}.
+   * Returns the field of the input this violation is about, such as {@code name}.
    *
    * @return the target, if the violation is about a single field
    */
@@ -219,6 +223,10 @@ public final class Violation implements Serializable {
 
     /**
      * Adds an argument that fills the message template and is sent to the client.
+     *
+     * <p>To send a violation through Java serialization, for example inside a {@link
+     * me.yakar.muster.BusinessRuleViolationException} kept in a replicated session, the value must
+     * be {@link Serializable}.
      *
      * @param name the name the message template refers to, as in {@code {name}}
      * @param value the value

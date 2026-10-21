@@ -32,6 +32,9 @@ import me.yakar.muster.rule.Violation;
  * <p>A violation is an expected outcome, not a programming error, so this exception has no stack
  * trace. Its message lists the violation codes only, never argument values; it may end up in front
  * of a client.
+ *
+ * <p>Do not return {@link #violations()} as a response body as it is: map each violation to a
+ * response type of your own.
  */
 public final class BusinessRuleViolationException extends RuntimeException {
 
