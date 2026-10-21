@@ -86,6 +86,10 @@ class RuleDefinitionSpec extends Specification {
   @RequiresRule(Requiring)
   static class OwnRequirements extends RequiringBase {}
 
+  @Rule(id = 'vehicle.requires-nothing')
+  @RequiresRule([])
+  static class RequiresNothing extends RequiringBase {}
+
   static abstract class PlainBase implements BusinessRule<String> {}
 
   @Rule(id = 'vehicle.plain')
@@ -147,6 +151,11 @@ class RuleDefinitionSpec extends Specification {
   def 'a rule that declares its own requirements is not compared with its supertypes'() {
     expect:
     RuleDefinition.of(OwnRequirements).requires() == [Requiring]
+  }
+
+  def 'a subclass that requires nothing says so with an empty @RequiresRule'() {
+    expect:
+    RuleDefinition.of(RequiresNothing).requires() == []
   }
 
   def 'a rule whose supertypes declare no requirements requires nothing'() {

@@ -242,7 +242,8 @@ public final class Muster {
      * @param rules the rules
      * @return this builder
      * @throws IllegalArgumentException if a rule has no {@code @Rule}, an invalid id or no input
-     *     type, requires a rule twice, or if its class or id is already registered
+     *     type, requires a rule twice, leaves out a {@code @RequiresRule} that a supertype
+     *     declares, or if its class or id is already registered
      */
     public Builder rules(BusinessRule<?>... rules) {
       for (var rule : rules) {
@@ -260,7 +261,8 @@ public final class Muster {
      * @param ruleClasses the rule classes
      * @return this builder
      * @throws IllegalArgumentException if a class has no {@code @Rule}, an invalid id or no input
-     *     type, requires a rule twice, or if it or its id is already registered
+     *     type, requires a rule twice, leaves out a {@code @RequiresRule} that a supertype
+     *     declares, or if it or its id is already registered
      */
     @SafeVarargs
     public final Builder rules(

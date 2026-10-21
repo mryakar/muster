@@ -41,7 +41,8 @@ import java.lang.annotation.Target;
  *
  * <p>Like {@link Rule}, the annotation is not inherited, from superclasses or interfaces. So that a
  * rule cannot lose its requirements unnoticed, Muster rejects a rule that does not declare {@code
- * RequiresRule} while one of its supertypes does: declare the requirements on every rule class.
+ * RequiresRule} while one of its supertypes does: declare the requirements on every rule class. A
+ * subclass that requires nothing says so with {@code @RequiresRule({})}.
  */
 @Documented
 @Retention(RUNTIME)

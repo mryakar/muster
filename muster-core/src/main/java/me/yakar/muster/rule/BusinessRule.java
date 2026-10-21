@@ -57,7 +57,7 @@ public interface BusinessRule<T> {
    * Returns whether this rule applies to a call. A rule that does not apply is skipped: it is not
    * checked and does not count as passed.
    *
-   * <p>Decide from the context only, such as the operation or the caller. A condition on the input
+   * <p>Decide from the context only, such as the caller or the locale. A condition on the input
    * belongs in {@link #check}.
    *
    * @param ctx the context of the call
