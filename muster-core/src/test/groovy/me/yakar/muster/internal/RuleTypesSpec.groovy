@@ -77,6 +77,48 @@ class RuleTypesSpec extends Specification {
     }
   }
 
+  static abstract class ArrayRule<E> implements BusinessRule<E[]> {
+    RuleResult check(E[] input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class OfBoundArray extends ArrayRule<String> {}
+
+  static class OfBoundArrayOfArrays extends ArrayRule<Integer[]> {}
+
+  static class OfGenericArray implements BusinessRule<List<String>[]> {
+    RuleResult check(List<String>[] input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static abstract class Pair<A, B> implements BusinessRule<B> {
+    RuleResult check(B input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static abstract class Swap<C, D> extends Pair<D, C> {}
+
+  static class Swapped extends Swap<Long, String> {}
+
+  static interface Generic<Z> extends BusinessRule<Z> {}
+
+  static abstract class ThroughSuperclassInterface<Q> implements Generic<Q> {
+    RuleResult check(Q input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class ThroughSuperclassAndInterface extends ThroughSuperclassInterface<Short> {}
+
+  static class OpenArray<T> implements BusinessRule<T[]> {
+    RuleResult check(T[] input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   static class Open<T> implements BusinessRule<T> {
     RuleResult check(T input, RuleContext ctx) {
       RuleResult.passed()
@@ -104,6 +146,11 @@ class RuleTypesSpec extends Specification {
     AmongOtherInterfaces || Character
     OfList || List
     OfArray || String[]
+    OfBoundArray || String[]
+    OfBoundArrayOfArrays || Integer[][]
+    OfGenericArray || List[]
+    Swapped || Long
+    ThroughSuperclassAndInterface || Short
   }
 
   def 'a class that does not name its input type is rejected'() {
@@ -112,9 +159,9 @@ class RuleTypesSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "cannot tell what ${ruleClass.name} checks; a rule names its input type, as in 'implements BusinessRule<Input>'"
+    e.message == "cannot tell what ${ruleClass.typeName} checks; a rule names its input type, as in 'implements BusinessRule<Input>'"
 
     where:
-    ruleClass << [Open, Raw, String]
+    ruleClass << [Open, OpenArray, Raw, String]
   }
 }

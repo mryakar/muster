@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.internal;
 
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -32,7 +33,8 @@ public final class RuleTypes {
 
   /**
    * Returns the type of input a rule class checks: the {@code T} of {@link BusinessRule}, resolved
-   * through superclasses and interfaces. A parameterized type resolves to its raw class.
+   * through superclasses and interfaces. A parameterized type resolves to its raw class, and an
+   * array of one to an array of the raw class.
    *
    * @param ruleClass the rule class
    * @return the input type
@@ -44,7 +46,7 @@ public final class RuleTypes {
     if (inputType == null) {
       throw new IllegalArgumentException(
           "cannot tell what "
-              + ruleClass.getName()
+              + ruleClass.getTypeName()
               + " checks; a rule names its input type, as in 'implements BusinessRule<Input>'");
     }
     return inputType;
@@ -63,7 +65,7 @@ public final class RuleTypes {
       var variables = raw.getTypeParameters();
       var arguments = parameterized.getActualTypeArguments();
       for (var i = 0; i < variables.length; i++) {
-        ownBindings.put(variables[i], bindings.getOrDefault(arguments[i], arguments[i]));
+        ownBindings.put(variables[i], resolve(arguments[i], bindings));
       }
     } else {
       raw = (Class<?>) type;
@@ -78,6 +80,21 @@ public final class RuleTypes {
       }
     }
     return null;
+  }
+
+  /**
+   * Replaces the type variables in {@code type} that {@code bindings} binds, so that an array of a
+   * bound variable, such as {@code E[]}, becomes a class.
+   */
+  private static Type resolve(Type type, Map<TypeVariable<?>, Type> bindings) {
+    if (type instanceof TypeVariable<?> variable) {
+      return bindings.getOrDefault(variable, variable);
+    }
+    if (type instanceof GenericArrayType array) {
+      var component = rawClass(resolve(array.getGenericComponentType(), bindings));
+      return component == null ? array : component.arrayType();
+    }
+    return type;
   }
 
   private static List<Type> supertypes(Class<?> type) {
@@ -97,7 +114,8 @@ public final class RuleTypes {
     if (type instanceof ParameterizedType parameterized) {
       return (Class<?>) parameterized.getRawType();
     }
-    // A type variable that nothing binds, as in 'class AnyRule<T> implements BusinessRule<T>'.
+    // A type variable that nothing binds, as in 'class AnyRule<T> implements BusinessRule<T>', or
+    // an array of one.
     return null;
   }
 }
