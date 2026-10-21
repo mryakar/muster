@@ -896,6 +896,18 @@ class MusterSpec extends Specification {
     e.message == "rule 'vehicle.impostor' reported a violation of rule 'vehicle.name-unique'; build violations from the RuleContext the rule receives"
   }
 
+  def 'a chain rejects an input of another type, which only unchecked code can pass'() {
+    given:
+    RuleChain chain = Muster.builder().rules(new NameUnique()).build().chain(CreateVehicle, NameUnique)
+
+    when:
+    chain.check('not a vehicle')
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the chain checks ${CreateVehicle.name}, not java.lang.String"
+  }
+
   def 'an exception from a rule propagates as it is'() {
     when:
     Muster.builder().rules(new Broken(), new NameUnique()).build().chain(CreateVehicle, Broken, NameUnique).check(INVALID)
