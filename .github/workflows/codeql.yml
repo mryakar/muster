@@ -19,8 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # java-kotlin joins once the first Java class exists; CodeQL fails on a codebase without any.
-        language: [actions]
+        language: [actions, java-kotlin]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
