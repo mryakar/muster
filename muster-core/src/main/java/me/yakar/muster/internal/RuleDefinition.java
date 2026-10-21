@@ -15,7 +15,10 @@
  */
 package me.yakar.muster.internal;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Pattern;
+import me.yakar.muster.rule.RequiresRule;
 import me.yakar.muster.rule.Rule;
 
 /**
@@ -24,8 +27,10 @@ import me.yakar.muster.rule.Rule;
  * @param ruleClass the rule class
  * @param id the rule id
  * @param inputType the type of input the rule checks
+ * @param requires the rules that must pass first, in the order the rule lists them
  */
-public record RuleDefinition(Class<?> ruleClass, String id, Class<?> inputType) {
+public record RuleDefinition(
+    Class<?> ruleClass, String id, Class<?> inputType, List<Class<?>> requires) {
 
   private static final Pattern ID = Pattern.compile("[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*");
 
@@ -35,7 +40,7 @@ public record RuleDefinition(Class<?> ruleClass, String id, Class<?> inputType) 
    * @param ruleClass the rule class
    * @return the definition
    * @throws IllegalArgumentException if the class has no {@code @Rule}, an invalid id, or no input
-   *     type
+   *     type, or requires a rule twice
    */
   public static RuleDefinition of(Class<?> ruleClass) {
     var rule = ruleClass.getAnnotation(Rule.class);
@@ -53,7 +58,24 @@ public record RuleDefinition(Class<?> ruleClass, String id, Class<?> inputType) 
               + " letters, digits, and single dots or hyphens between them, as in"
               + " 'vehicle.name-unique'");
     }
-    return new RuleDefinition(ruleClass, rule.id(), RuleTypes.inputType(ruleClass));
+    return new RuleDefinition(
+        ruleClass, rule.id(), RuleTypes.inputType(ruleClass), requires(ruleClass));
+  }
+
+  private static List<Class<?>> requires(Class<?> ruleClass) {
+    var annotation = ruleClass.getAnnotation(RequiresRule.class);
+    if (annotation == null) {
+      return List.of();
+    }
+    var requires = List.<Class<?>>of(annotation.value());
+    var seen = new HashSet<Class<?>>();
+    for (var required : requires) {
+      if (!seen.add(required)) {
+        throw new IllegalArgumentException(
+            ruleClass.getTypeName() + " requires " + required.getTypeName() + " twice");
+      }
+    }
+    return requires;
   }
 
   /** Explains why a class that looks like a rule has no {@code @Rule}. */

@@ -17,7 +17,12 @@ package me.yakar.muster
 
 import java.security.Principal
 import java.util.function.Supplier
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
@@ -123,7 +128,169 @@ class MusterSpec extends Specification {
     }
   }
 
+  /** A rule about a task that notes when it runs, and fails for one task number. */
+  static abstract class TaskRule implements BusinessRule<Long> {
+    final List<String> ran
+    final long failsFor
+
+    TaskRule(List<String> ran, long failsFor) {
+      this.ran = ran
+      this.failsFor = failsFor
+    }
+
+    RuleResult check(Long input, RuleContext ctx) {
+      ran << ctx.ruleId()
+      input == failsFor ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'task.exists')
+  static class TaskExists extends TaskRule {
+    TaskExists(List<String> ran) {
+      super(ran, 404L)
+    }
+  }
+
+  @Rule(id = 'task.assignable')
+  @RequiresRule(TaskExists)
+  static class TaskAssignable extends TaskRule {
+    TaskAssignable(List<String> ran) {
+      super(ran, 409L)
+    }
+  }
+
+  @Rule(id = 'task.started')
+  @RequiresRule(TaskAssignable)
+  static class TaskStarted extends TaskRule {
+    TaskStarted(List<String> ran) {
+      super(ran, 410L)
+    }
+  }
+
+  @Rule(id = 'task.imported')
+  static class TaskImported extends TaskRule {
+    TaskImported(List<String> ran) {
+      super(ran, -1L)
+    }
+
+    boolean appliesTo(RuleContext ctx) {
+      false
+    }
+  }
+
+  @Rule(id = 'task.from-import')
+  @RequiresRule(TaskImported)
+  static class TaskFromImport extends TaskRule {
+    TaskFromImport(List<String> ran) {
+      super(ran, 1L)
+    }
+  }
+
   def amo = { 'amo' } as Principal
+
+  List<String> ran = []
+  List<LogRecord> logged = []
+  Logger log = Logger.getLogger('me.yakar.muster')
+  Handler handler = new Handler() {
+    void publish(LogRecord record) {
+      logged << record
+    }
+
+    void flush() {}
+
+    void close() {}
+  }
+
+  def setup() {
+    log.addHandler(handler)
+  }
+
+  def cleanup() {
+    log.removeHandler(handler)
+  }
+
+  Muster tasks() {
+    Muster.builder()
+        .rules(new TaskExists(ran), new TaskAssignable(ran), new TaskStarted(ran), new TaskImported(ran), new TaskFromImport(ran))
+        .build()
+  }
+
+  def 'a rule runs after the rules it requires, whatever their ids'() {
+    when:
+    tasks().chain(Long, TaskAssignable, TaskExists).check(1L)
+
+    then:
+    ran == [
+      'task.exists',
+      'task.assignable'
+    ]
+  }
+
+  def 'when task #task fails #failing, the rules that require it are skipped'() {
+    when:
+    tasks().chain(Long, TaskStarted, TaskAssignable, TaskExists).check(task)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == [failing]
+    ran == expectedRan
+
+    where:
+    task | failing || expectedRan
+    404L | 'task.exists' || ['task.exists']
+    409L | 'task.assignable' || [
+      'task.exists',
+      'task.assignable'
+    ]
+    410L | 'task.started' || [
+      'task.exists',
+      'task.assignable',
+      'task.started'
+    ]
+  }
+
+  def 'a rule whose required rule does not apply is skipped'() {
+    when:
+    tasks().chain(Long, TaskFromImport, TaskImported).check(1L)
+
+    then:
+    noExceptionThrown()
+    ran.empty
+  }
+
+  def 'a chain includes the rules that its rules require, and logs each one'() {
+    when:
+    tasks().chain(Long, TaskStarted).check(1L)
+
+    then:
+    ran == [
+      'task.exists',
+      'task.assignable',
+      'task.started'
+    ]
+    logged*.level == [Level.INFO, Level.INFO]
+    logged*.message == [
+      "The chain for java.lang.Long includes rule 'task.assignable' because 'task.started' requires it",
+      "The chain for java.lang.Long includes rule 'task.exists' because 'task.assignable' requires it"
+    ]
+  }
+
+  def 'a chain that lists the required rules logs nothing'() {
+    when:
+    tasks().chain(Long, TaskStarted, TaskAssignable, TaskExists)
+
+    then:
+    logged.empty
+  }
+
+  def 'Muster checks the rule requirements when it is built'() {
+    when:
+    Muster.builder().rules(new TaskAssignable(ran)).build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${TaskAssignable.name} requires ${TaskExists.name}, which is not registered"
+  }
 
   def 'an input that violates no rule passes'() {
     given:
