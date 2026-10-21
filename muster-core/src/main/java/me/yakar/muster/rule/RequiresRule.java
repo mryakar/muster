@@ -37,8 +37,11 @@ import java.lang.annotation.Target;
  * list a required rule includes it anyway.
  *
  * <p>A required rule receives the same input, so it must accept the input type of the rule that
- * requires it. Rules cannot require each other in a cycle. Like {@link Rule}, the annotation is not
- * inherited.
+ * requires it. Rules cannot require each other in a cycle.
+ *
+ * <p>Like {@link Rule}, the annotation is not inherited, from superclasses or interfaces. So that a
+ * rule cannot lose its requirements unnoticed, Muster rejects a rule that does not declare {@code
+ * RequiresRule} while one of its supertypes does: declare the requirements on every rule class.
  */
 @Documented
 @Retention(RUNTIME)
