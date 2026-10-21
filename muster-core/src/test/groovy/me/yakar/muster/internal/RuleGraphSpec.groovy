@@ -34,6 +34,10 @@ class RuleGraphSpec extends Specification {
     rules.collectEntries { [it.ruleClass(), it] }
   }
 
+  static void validate(Map<Class<?>, RuleDefinition> rules, Set<Class<?>> disabled = [] as Set) {
+    RuleGraph.validate(rules, disabled)
+  }
+
   def 'rules that do not depend on each other come in the order of their ids'() {
     expect:
     RuleGraph.order([
@@ -82,7 +86,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a graph without cycles, with a rule required twice over, is valid'() {
     when:
-    RuleGraph.validate(byClass(rule(A, 'top', [B, C]), rule(B, 'left', [D]), rule(C, 'right', [D]), rule(D, 'base')))
+    validate(byClass(rule(A, 'top', [B, C]), rule(B, 'left', [D]), rule(C, 'right', [D]), rule(D, 'base')))
 
     then:
     noExceptionThrown()
@@ -90,7 +94,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a required rule must be registered'() {
     when:
-    RuleGraph.validate(byClass(rule(A, 'task.ready', [B])))
+    validate(byClass(rule(A, 'task.ready', [B])))
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -99,7 +103,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a required rule must accept the input of the rule that requires it'() {
     when:
-    RuleGraph.validate(byClass(rule(A, 'task.ready', [B], Long), rule(B, 'task.exists', [], inputType)))
+    validate(byClass(rule(A, 'task.ready', [B], Long), rule(B, 'task.exists', [], inputType)))
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -111,7 +115,24 @@ class RuleGraphSpec extends Specification {
 
   def 'a required rule may accept a wider input'() {
     when:
-    RuleGraph.validate(byClass(rule(A, 'task.ready', [B], Long), rule(B, 'task.exists', [], Number)))
+    validate(byClass(rule(A, 'task.ready', [B], Long), rule(B, 'task.exists', [], Number)))
+
+    then:
+    noExceptionThrown()
+  }
+
+  def 'an enabled rule cannot require a disabled rule'() {
+    when:
+    validate(byClass(rule(A, 'task.ready', [B]), rule(B, 'task.exists')), [B] as Set)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "'task.ready' requires 'task.exists', which is disabled; disable 'task.ready' as well, or enable 'task.exists'"
+  }
+
+  def 'a disabled rule may require a disabled or an enabled rule'() {
+    when:
+    validate(byClass(rule(A, 'task.started', [B]), rule(B, 'task.ready', [C]), rule(C, 'task.exists')), [A, B] as Set)
 
     then:
     noExceptionThrown()
@@ -119,7 +140,7 @@ class RuleGraphSpec extends Specification {
 
   def 'rules cannot require each other in a cycle: #cycle'() {
     when:
-    RuleGraph.validate(byClass(*rules))
+    validate(byClass(*rules))
 
     then:
     def e = thrown(IllegalArgumentException)

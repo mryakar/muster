@@ -283,6 +283,84 @@ class MusterSpec extends Specification {
     logged.empty
   }
 
+  def 'a disabled rule runs in no chain, even when the chain lists it'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique').build()
+        .chain(CreateVehicle, NameUnique, CodeFormat).check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.code-format']
+  }
+
+  def 'Muster logs every disabled rule when it is built'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique', 'vehicle.code-format').build()
+
+    then:
+    logged*.level == [Level.WARNING, Level.WARNING]
+    logged*.message == [
+      "Rule 'vehicle.name-unique' is disabled",
+      "Rule 'vehicle.code-format' is disabled"
+    ]
+  }
+
+  def 'a disabled rule is still created, so that switching it on cannot reveal a setup error'() {
+    given:
+    def created = []
+    RuleFactory factory = {
+      created << it; it.getDeclaredConstructor().newInstance()
+    }
+
+    when:
+    Muster.builder().rules(factory, NameUnique, CodeFormat).disable('vehicle.name-unique').build()
+
+    then:
+    created == [NameUnique, CodeFormat]
+  }
+
+  def 'a rule may be disabled while the rules it requires stay enabled'() {
+    when:
+    Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran), new TaskStarted(ran)).disable('task.started').build()
+        .chain(Long, TaskStarted, TaskAssignable, TaskExists).check(410L)
+
+    then:
+    noExceptionThrown()
+    ran == [
+      'task.exists',
+      'task.assignable'
+    ]
+  }
+
+  def 'a disabled rule adds none of the rules it requires to a chain'() {
+    when:
+    Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran)).disable('task.exists', 'task.assignable').build()
+        .chain(Long, TaskAssignable).check(404L)
+
+    then:
+    noExceptionThrown()
+    ran.empty
+    logged*.level == [Level.WARNING, Level.WARNING]
+  }
+
+  def 'a rule that requires a disabled rule must be disabled as well'() {
+    when:
+    Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran)).disable('task.exists').build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "'task.assignable' requires 'task.exists', which is disabled; disable 'task.assignable' as well, or enable 'task.exists'"
+  }
+
+  def 'disabling an unknown id is rejected, so that a typo in configuration is not ignored'() {
+    when:
+    Muster.builder().rules(new NameUnique()).disable('vehicle.nme-unique').build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "no rule has the id 'vehicle.nme-unique'"
+  }
+
   def 'Muster checks the rule requirements when it is built'() {
     when:
     Muster.builder().rules(new TaskAssignable(ran)).build()
@@ -575,14 +653,16 @@ class MusterSpec extends Specification {
       { it.rules((RuleFactory) null, NameUnique) },
       { it.rules({ null } as RuleFactory, (Class) null) },
       { it.caller(null) },
-      { it.locale(null) }
+      { it.locale(null) },
+      { it.disable('task.exists', null) }
     ]
     message << [
       'rule',
       'factory',
       'rule class',
       'caller',
-      'locale'
+      'locale',
+      'id'
     ]
   }
 }

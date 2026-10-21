@@ -35,12 +35,14 @@ public final class RuleGraph {
 
   /**
    * Checks that every required rule is registered, accepts the input of the rule that requires it,
-   * and that no rules require each other in a cycle.
+   * and is not disabled while the rule that requires it is enabled, and that no rules require each
+   * other in a cycle.
    *
    * @param rules the registered rules, by class
+   * @param disabled the classes of the disabled rules
    * @throws IllegalArgumentException if a requirement is not met
    */
-  public static void validate(Map<Class<?>, RuleDefinition> rules) {
+  public static void validate(Map<Class<?>, RuleDefinition> rules, Set<Class<?>> disabled) {
     for (var rule : rules.values()) {
       for (var requiredClass : rule.requires()) {
         var required = rules.get(requiredClass);
@@ -60,6 +62,18 @@ public final class RuleGraph {
                   + required.inputType().getTypeName()
                   + ", not "
                   + rule.inputType().getTypeName());
+        }
+        if (disabled.contains(requiredClass) && !disabled.contains(rule.ruleClass())) {
+          throw new IllegalArgumentException(
+              "'"
+                  + rule.id()
+                  + "' requires '"
+                  + required.id()
+                  + "', which is disabled; disable '"
+                  + rule.id()
+                  + "' as well, or enable '"
+                  + required.id()
+                  + "'");
         }
       }
     }
