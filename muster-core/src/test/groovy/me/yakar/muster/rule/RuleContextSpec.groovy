@@ -125,9 +125,12 @@ class RuleContextSpec extends Specification {
   }
 
   def 'a context describes itself for logs'() {
+    given:
+    def anonymous = RuleContext.forRule('task.ready')
+    def known = RuleContext.builder('request.owner-only').caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+
     expect:
-    RuleContext.forRule('task.ready').toString() == 'RuleContext[ruleId=task.ready, locale=und]'
-    RuleContext.builder('request.owner-only').caller(amo).locale(Locale.forLanguageTag('tr-TR')).build().toString() ==
-        'RuleContext[ruleId=request.owner-only, caller=amo, locale=tr-TR]'
+    anonymous.toString() == 'RuleContext[ruleId=task.ready, locale=und]'
+    known.toString() == 'RuleContext[ruleId=request.owner-only, caller=amo, locale=tr-TR]'
   }
 }

@@ -18,26 +18,30 @@ package me.yakar.muster
 import java.io.InvalidObjectException
 
 import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.Violation
 import spock.lang.Shared
 import spock.lang.Specification
 
 class BusinessRuleViolationExceptionSpec extends Specification {
 
   @Shared
-  def owner = RuleContext.forRule('request.owner-only').violation('request.not-owner')
-  .clientArg('requestNo', 'TR-1047')
-  .internalArg('ownerId', 7731)
-  .build()
+  Violation owner
+
   @Shared
-  def ready = RuleContext.forRule('task.ready').violation()
-  .clientArg('currentStatus', 'DRAFT')
-  .build()
+  Violation ready
+
+  def setupSpec() {
+    owner = RuleContext.forRule('request.owner-only').violation('request.not-owner')
+        .clientArg('requestNo', 'TR-1047')
+        .internalArg('ownerId', 7731)
+        .build()
+    ready = RuleContext.forRule('task.ready').violation().clientArg('currentStatus', 'DRAFT').build()
+  }
 
   def 'the message lists the codes and no argument values'() {
     expect:
-    new BusinessRuleViolationException([owner]).message == '1 business rule violation: request.not-owner'
-    new BusinessRuleViolationException([owner, ready]).message ==
-    '2 business rule violations: request.not-owner, task.ready'
+    messageFor([owner]) == '1 business rule violation: request.not-owner'
+    messageFor([owner, ready]) == '2 business rule violations: request.not-owner, task.ready'
   }
 
   def 'the exception keeps the violations in order and does not change with the given list'() {
@@ -146,5 +150,9 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     field.accessible = true
     field.set(exception, violations)
     exception
+  }
+
+  private static String messageFor(List<Violation> violations) {
+    new BusinessRuleViolationException(violations).message
   }
 }
