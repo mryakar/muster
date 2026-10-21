@@ -16,5 +16,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A rule context that tells a rule who makes the call and in which locale.
 - `Muster`, the engine: rules are registered as instances or created by a `RuleFactory`, and every rule is checked when Muster is built. `muster.chain(...)` prepares a `RuleChain` once; each check runs the rules that apply and throws a single exception with all violations.
 - `@RequiresRule`: a rule runs after the rules it requires, and only if they passed. Chains add required rules they do not list. Each rule class declares its own requirements; a rule that would lose them to inheritance is rejected.
+- Binding rules by type: an input that implements `RuleTarget` is checked with `muster.check(input)` by every enabled rule whose input type accepts its class.
 - Switching rules off by id with `disable`, without changing code.
 - The API is split by audience: `me.yakar.muster` for the calling side, `me.yakar.muster.rule` for writing rules, `me.yakar.muster.spi` for integrations.

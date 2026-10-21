@@ -26,18 +26,27 @@ import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.rule.RuleTarget
 import me.yakar.muster.spi.RuleFactory
 import spock.lang.Specification
 
 class MusterSpec extends Specification {
 
-  static interface VehicleFields {
+  static interface VehicleFields extends RuleTarget {
     String code()
 
     String name()
   }
 
+  static interface Identified {
+    Long id()
+  }
+
   static record CreateVehicle(String code, String name) implements VehicleFields {}
+
+  static record UpdateVehicle(Long id, String code, String name) implements VehicleFields, Identified {}
+
+  static record Unbound(String text) implements RuleTarget {}
 
   static final CreateVehicle VALID = new CreateVehicle('TR-1', 'Atlas')
   static final CreateVehicle INVALID = new CreateVehicle('bad', 'taken')
@@ -206,6 +215,21 @@ class MusterSpec extends Specification {
   static class TaskReopened extends TaskRule {
     TaskReopened(List<String> ran) {
       super(ran, -1L)
+    }
+  }
+
+  @Rule(id = 'vehicle.known')
+  static class VehicleKnown implements BusinessRule<Identified> {
+    RuleResult check(Identified input, RuleContext ctx) {
+      input.id() == 404L ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.a-renamable')
+  @RequiresRule(VehicleKnown)
+  static class VehicleRenamable implements BusinessRule<UpdateVehicle> {
+    RuleResult check(UpdateVehicle input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build())
     }
   }
 
@@ -542,6 +566,109 @@ class MusterSpec extends Specification {
     def second = thrown(BusinessRuleViolationException)
     second.violations()[0].clientArgs() == [caller: 'none', locale: 'de-DE']
     asked == 2
+  }
+
+  def 'a rule target is checked by every rule whose input type accepts it'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat(), new VehicleExists(), new VehicleKnown()).build()
+
+    when:
+    muster.check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
+  }
+
+  def 'rules bind to the class of the input at run time'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new VehicleKnown()).build()
+    VehicleFields create = new CreateVehicle('TR-1', 'Atlas')
+    VehicleFields update = new UpdateVehicle(404L, 'TR-1', 'Atlas')
+
+    when:
+    muster.check(create)
+
+    then:
+    noExceptionThrown()
+
+    when:
+    muster.check(update)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.known']
+  }
+
+  def 'a rule whose input type is Object checks every rule target'() {
+    when:
+    Muster.builder().rules(new ReportsCall()).build().check(new Unbound('anything'))
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['call.reported']
+  }
+
+  def 'rules bound by type run after the rules they require, and are skipped when those fail'() {
+    given:
+    def muster = Muster.builder().rules(new VehicleRenamable(), new VehicleKnown()).build()
+
+    when:
+    muster.check(new UpdateVehicle(404L, 'TR-1', 'Atlas'))
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.known']
+
+    when:
+    muster.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
+
+    then:
+    def second = thrown(BusinessRuleViolationException)
+    second.violations()*.ruleId() == ['vehicle.a-renamable']
+  }
+
+  def 'a disabled rule does not bind by type'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique').build().check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.code-format']
+  }
+
+  def 'Muster binds the rules for a class once, and logs them'() {
+    given:
+    log.level = Level.FINE
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+
+    when:
+    muster.check(VALID)
+    muster.check(VALID)
+    muster.check(new Unbound('nothing binds'))
+    muster.check(new Unbound('nothing binds'))
+
+    then:
+    logged*.level == [Level.FINE, Level.FINE]
+    logged*.message == [
+      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]",
+      "Rules bound to ${Unbound.name}: []"
+    ]
+
+    cleanup:
+    log.level = null
+  }
+
+  def 'a null rule target is rejected'() {
+    when:
+    Muster.builder().build().check(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'input'
   }
 
   def 'a null input is rejected before any rule runs'() {

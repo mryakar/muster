@@ -97,6 +97,11 @@ public final class RuleChain<I> {
     }
   }
 
+  /** Returns the ids of the rules in the chain, in the order they run. */
+  List<String> ruleIds() {
+    return steps.stream().map(step -> step.rule().id()).toList();
+  }
+
   private static boolean allPassed(int[] required, boolean[] passed) {
     for (var index : required) {
       if (!passed[index]) {

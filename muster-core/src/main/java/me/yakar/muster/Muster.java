@@ -34,6 +34,7 @@ import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
 import me.yakar.muster.internal.RuleGraph;
 import me.yakar.muster.rule.BusinessRule;
+import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.spi.RuleFactory;
 import org.jspecify.annotations.Nullable;
 
@@ -63,6 +64,15 @@ public final class Muster {
   private final Set<Class<?>> disabled;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
+
+  /** The chains for rule targets, by the class of the input. */
+  private final ClassValue<RuleChain<Object>> bound =
+      new ClassValue<>() {
+        @Override
+        protected RuleChain<Object> computeValue(Class<?> type) {
+          return bind(type);
+        }
+      };
 
   private Muster(
       Map<Class<?>, PreparedRule> rules,
@@ -130,6 +140,44 @@ public final class Muster {
         included.put(ruleClass, rule);
       }
     }
+    return compose(inputType, included);
+  }
+
+  /**
+   * Checks a rule target against every enabled rule whose input type accepts its class, and
+   * collects all violations. A rule whose input type is {@code Object} checks every target.
+   *
+   * <p>The rules bind to the class of the input at run time: an input declared as an interface
+   * binds to the rules of its actual class. Muster prepares the chain for a class on its first
+   * check, logs the bound rules at {@code DEBUG}, and keeps it.
+   *
+   * @param input the input
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
+   *     returns {@code null}
+   * @see RuleChain#check
+   */
+  public void check(RuleTarget input) {
+    requireNonNull(input, "input");
+    bound.get(input.getClass()).check(input);
+  }
+
+  private RuleChain<Object> bind(Class<?> type) {
+    var included = new LinkedHashMap<Class<?>, PreparedRule>();
+    rules.forEach(
+        (ruleClass, rule) -> {
+          if (!disabled.contains(ruleClass)
+              && rule.definition().inputType().isAssignableFrom(type)) {
+            included.put(ruleClass, rule);
+          }
+        });
+    RuleChain<Object> chain = compose(type, included);
+    LOGGER.log(Level.DEBUG, () -> "Rules bound to " + type.getTypeName() + ": " + chain.ruleIds());
+    return chain;
+  }
+
+  /** Adds the rules that the included ones require, and orders them. */
+  private <I> RuleChain<I> compose(Class<?> inputType, Map<Class<?>, PreparedRule> included) {
     var pending = new ArrayDeque<>(included.values());
     while (!pending.isEmpty()) {
       var rule = pending.removeFirst();
