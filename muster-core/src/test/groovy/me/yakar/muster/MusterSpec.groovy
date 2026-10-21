@@ -159,12 +159,14 @@ class MusterSpec extends Specification {
     ]
   }
 
-  def 'a rule that does not apply to the call is skipped'() {
+  def 'a rule that does not apply to the call is skipped, and the rules after it still run'() {
     when:
-    Muster.builder().rules(new ImportOnly()).build().chain(Object, ImportOnly).check('input')
+    Muster.builder().rules(new ImportOnly(), new NameUnique()).build()
+        .chain(CreateVehicle, ImportOnly, NameUnique).check(INVALID)
 
     then:
-    noExceptionThrown()
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.name-unique']
   }
 
   def 'a chain with no rules passes every input'() {
