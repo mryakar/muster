@@ -1,6 +1,7 @@
 [versions]
 google-java-format = "1.36.1"
 groovy = "5.1.3"
+jackson = "3.1.5"
 jacoco = "0.8.15"
 jspecify = "1.0.1"
 junit = "6.1.3"
@@ -11,6 +12,7 @@ spring-boot = "4.1.1"
 
 [libraries]
 groovy-bom = { module = "org.apache.groovy:groovy-bom", version.ref = "groovy" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 spock-bom = { module = "org.spockframework:spock-bom", version.ref = "spock" }
