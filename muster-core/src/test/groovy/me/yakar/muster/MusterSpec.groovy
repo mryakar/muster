@@ -257,6 +257,13 @@ class MusterSpec extends Specification {
     }
   }
 
+  @Rule(id = 'vehicle.impostor')
+  static class Impostor implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build(), RuleContext.forRule('vehicle.name-unique').violation().build())
+    }
+  }
+
   def amo = { 'amo' } as Principal
 
   List<String> ran = []
@@ -878,6 +885,15 @@ class MusterSpec extends Specification {
     then:
     def e = thrown(NullPointerException)
     e.message == "rule 'rule.returns-null' returned null"
+  }
+
+  def 'a violation reported under another rule\'s id is rejected'() {
+    when:
+    Muster.builder().rules(new Impostor()).build().chain(Object, Impostor).check('input')
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.message == "rule 'vehicle.impostor' reported a violation of rule 'vehicle.name-unique'; build violations from the RuleContext the rule receives"
   }
 
   def 'an exception from a rule propagates as it is'() {
