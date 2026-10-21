@@ -18,4 +18,5 @@ module me.yakar.muster {
   requires static transitive org.jspecify;
 
   exports me.yakar.muster;
+  exports me.yakar.muster.rule;
 }

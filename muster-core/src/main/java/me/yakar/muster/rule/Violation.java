@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster;
+package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
-import static me.yakar.muster.Checks.requireNonBlank;
+import static me.yakar.muster.rule.Checks.requireNonBlank;
 
 import java.io.Serial;
 import java.io.Serializable;

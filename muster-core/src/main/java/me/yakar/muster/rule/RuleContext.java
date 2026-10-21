@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster;
+package me.yakar.muster.rule;
 
-import static me.yakar.muster.Checks.requireNonBlank;
+import static me.yakar.muster.rule.Checks.requireNonBlank;
 
 /**
  * What a rule knows about the call it checks, besides its input.

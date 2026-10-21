@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster;
+package me.yakar.muster.rule;
 
 /** How serious a {@link Violation} is. */
 public enum Severity {

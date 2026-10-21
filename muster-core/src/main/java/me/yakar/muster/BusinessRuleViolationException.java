@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.joining;
 
 import java.io.Serial;
 import java.util.List;
+import me.yakar.muster.rule.Violation;
 
 /**
  * Thrown when a call violates one or more business rules.

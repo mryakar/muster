@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster;
+package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,7 +24,7 @@ import java.util.List;
  * The outcome of checking a rule: it either passed or failed with one or more violations.
  *
  * <p>Rules return a result instead of throwing; Muster throws a single {@link
- * BusinessRuleViolationException} once all rules have run.
+ * me.yakar.muster.BusinessRuleViolationException} once all rules have run.
  */
 public sealed interface RuleResult {
 
