@@ -29,6 +29,8 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
@@ -65,14 +67,12 @@ public final class Muster {
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
 
-  /** The chains for rule targets, by the class of the input. */
-  private final ClassValue<RuleChain<Object>> bound =
-      new ClassValue<>() {
-        @Override
-        protected RuleChain<Object> computeValue(Class<?> type) {
-          return bind(type);
-        }
-      };
+  /**
+   * The chains for rule targets, by the class of the input. Kept here rather than in a {@link
+   * ClassValue}, which would keep the rules alive for as long as the input class, after this Muster
+   * is gone.
+   */
+  private final ConcurrentMap<Class<?>, RuleChain<Object>> bound = new ConcurrentHashMap<>();
 
   private Muster(
       Map<Class<?>, PreparedRule> rules,
@@ -148,8 +148,9 @@ public final class Muster {
    * collects all violations. A rule whose input type is {@code Object} checks every target.
    *
    * <p>The rules bind to the class of the input at run time: an input declared as an interface
-   * binds to the rules of its actual class. Muster prepares the chain for a class on its first
-   * check, logs the bound rules at {@code DEBUG}, and keeps it.
+   * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
+   * first check, logs the bound rules at {@code DEBUG}, and keeps it for as long as the Muster is
+   * used.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
@@ -159,7 +160,7 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    bound.get(input.getClass()).check(input);
+    bound.computeIfAbsent(input.getClass(), this::bind).check(input);
   }
 
   private RuleChain<Object> bind(Class<?> type) {

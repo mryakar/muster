@@ -15,7 +15,10 @@
  */
 package me.yakar.muster
 
+import java.lang.ref.WeakReference
 import java.security.Principal
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.function.Supplier
 import java.util.logging.Handler
 import java.util.logging.Level
@@ -673,6 +676,52 @@ class MusterSpec extends Specification {
 
     cleanup:
     log.level = null
+  }
+
+  def 'threads that check a new class at the same time bind its rules once'() {
+    given:
+    log.level = Level.FINE
+    def muster = Muster.builder().rules(new NameUnique()).build()
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(16)
+    def checks = (1..16).collect {
+      pool.submit {
+        start.await(); muster.check(VALID)
+      }
+    }
+
+    when:
+    start.countDown()
+    checks*.get()
+
+    then:
+    logged*.message == [
+      "Rules bound to ${CreateVehicle.name}: [vehicle.name-unique]"
+    ]
+
+    cleanup:
+    pool.shutdownNow()
+    log.level = null
+  }
+
+  def 'a Muster that is no longer used does not keep its rules alive'() {
+    given:
+    def rule = checkedByDroppedMuster()
+
+    when:
+    for (def i = 0; i < 100 && rule.get() != null; i++) {
+      System.gc()
+      Thread.sleep(10)
+    }
+
+    then:
+    rule.get() == null
+  }
+
+  private static WeakReference<NameUnique> checkedByDroppedMuster() {
+    def rule = new NameUnique()
+    Muster.builder().rules(rule).build().check(VALID)
+    new WeakReference<>(rule)
   }
 
   def 'a null rule target is rejected'() {
