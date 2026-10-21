@@ -18,8 +18,11 @@ tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf
 // documented classes still refer to them.
 tasks.withType<Javadoc>().configureEach {
   exclude("**/internal/**")
-  (options as StandardJavadocDocletOptions)
-    .addStringOption("-source-path", sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator))
+  (options as StandardJavadocDocletOptions).apply {
+    addStringOption("-source-path", sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator))
+    addBooleanOption("Xdoclint:all", true)
+    addBooleanOption("Xwerror", true)
+  }
 }
 
 // Published to consumers: modules that require me.yakar.muster read org.jspecify, and null-aware tools
