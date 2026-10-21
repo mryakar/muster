@@ -18,6 +18,8 @@ package me.yakar.muster;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.util.List;
 import me.yakar.muster.rule.Violation;
@@ -57,6 +59,24 @@ public final class BusinessRuleViolationException extends RuntimeException {
    */
   public List<Violation> violations() {
     return violations;
+  }
+
+  /**
+   * Rebuilds the exception, so that a deserialized one keeps the guarantees of the constructor: at
+   * least one violation, none of them {@code null}, in a list that cannot be changed.
+   *
+   * @return the rebuilt exception
+   * @throws InvalidObjectException if the stream breaks those guarantees
+   */
+  @Serial
+  private Object readResolve() throws ObjectStreamException {
+    try {
+      return new BusinessRuleViolationException(violations);
+    } catch (RuntimeException e) {
+      var invalid = new InvalidObjectException(e.getMessage());
+      invalid.initCause(e);
+      throw invalid;
+    }
   }
 
   private static String message(List<Violation> violations) {
