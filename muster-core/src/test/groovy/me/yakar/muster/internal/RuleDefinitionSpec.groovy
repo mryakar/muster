@@ -48,6 +48,53 @@ class RuleDefinitionSpec extends Specification {
     }
   }
 
+  @RequiresRule(NameUnique)
+  static abstract class RequiringBase implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.from-base')
+  static class FromBase extends RequiringBase {}
+
+  static abstract class Middle extends RequiringBase {}
+
+  @Rule(id = 'vehicle.from-grandparent')
+  static class FromGrandparent extends Middle {}
+
+  @RequiresRule(NameUnique)
+  static interface RequiringInterface extends BusinessRule<String> {}
+
+  @Rule(id = 'vehicle.from-interface')
+  static class FromInterface implements RequiringInterface {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static abstract class BaseWithInterface implements RequiringInterface {}
+
+  @Rule(id = 'vehicle.from-interface-of-base')
+  static class FromInterfaceOfBase extends BaseWithInterface {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.own-requirements')
+  @RequiresRule(Requiring)
+  static class OwnRequirements extends RequiringBase {}
+
+  static abstract class PlainBase implements BusinessRule<String> {}
+
+  @Rule(id = 'vehicle.plain')
+  static class Plain extends PlainBase implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   static class Unannotated implements BusinessRule<String> {
     RuleResult check(String input, RuleContext ctx) {
       RuleResult.passed()
@@ -79,6 +126,32 @@ class RuleDefinitionSpec extends Specification {
   def 'a definition lists the rules a rule requires, in its order'() {
     expect:
     RuleDefinition.of(Requiring).requires() == [NameUnique, Unannotated]
+  }
+
+  def 'a rule whose #where declares @RequiresRule must declare it too'() {
+    when:
+    RuleDefinition.of(ruleClass)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${ruleClass.name} does not declare @RequiresRule, but ${declaring.name} does; @RequiresRule is not inherited, so declare the rules ${ruleClass.simpleName} requires on it"
+
+    where:
+    where                     | ruleClass || declaring
+    'superclass'              | FromBase || RequiringBase
+    'grandparent'             | FromGrandparent || RequiringBase
+    'interface'               | FromInterface || RequiringInterface
+    'superclass\'s interface' | FromInterfaceOfBase || RequiringInterface
+  }
+
+  def 'a rule that declares its own requirements is not compared with its supertypes'() {
+    expect:
+    RuleDefinition.of(OwnRequirements).requires() == [Requiring]
+  }
+
+  def 'a rule whose supertypes declare no requirements requires nothing'() {
+    expect:
+    RuleDefinition.of(Plain).requires() == []
   }
 
   def 'a rule cannot require the same rule twice'() {

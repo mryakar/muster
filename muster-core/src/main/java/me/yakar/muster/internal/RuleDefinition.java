@@ -15,11 +15,13 @@
  */
 package me.yakar.muster.internal;
 
+import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
 import me.yakar.muster.rule.RequiresRule;
 import me.yakar.muster.rule.Rule;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What Muster knows about a rule class before it has an instance.
@@ -40,7 +42,8 @@ public record RuleDefinition(
    * @param ruleClass the rule class
    * @return the definition
    * @throws IllegalArgumentException if the class has no {@code @Rule}, an invalid id, or no input
-   *     type, or requires a rule twice
+   *     type, requires a rule twice, or leaves out a {@code @RequiresRule} that a supertype
+   *     declares
    */
   public static RuleDefinition of(Class<?> ruleClass) {
     var rule = ruleClass.getAnnotation(Rule.class);
@@ -65,6 +68,16 @@ public record RuleDefinition(
   private static List<Class<?>> requires(Class<?> ruleClass) {
     var annotation = ruleClass.getAnnotation(RequiresRule.class);
     if (annotation == null) {
+      var declaring = supertypeRequiringRules(ruleClass);
+      if (declaring != null) {
+        throw new IllegalArgumentException(
+            ruleClass.getTypeName()
+                + " does not declare @RequiresRule, but "
+                + declaring.getTypeName()
+                + " does; @RequiresRule is not inherited, so declare the rules "
+                + ruleClass.getSimpleName()
+                + " requires on it");
+      }
       return List.of();
     }
     var requires = List.<Class<?>>of(annotation.value());
@@ -76,6 +89,35 @@ public record RuleDefinition(
       }
     }
     return requires;
+  }
+
+  /**
+   * Finds a superclass or interface of a rule class that declares {@code @RequiresRule}, nearest
+   * superclasses first. A rule would silently lose those requirements, since annotations are not
+   * inherited.
+   */
+  private static @Nullable Class<?> supertypeRequiringRules(Class<?> ruleClass) {
+    var pending = new ArrayDeque<Class<?>>();
+    var seen = new HashSet<Class<?>>();
+    addSupertypes(ruleClass, pending);
+    while (!pending.isEmpty()) {
+      var type = pending.removeFirst();
+      if (seen.add(type)) {
+        if (type.isAnnotationPresent(RequiresRule.class)) {
+          return type;
+        }
+        addSupertypes(type, pending);
+      }
+    }
+    return null;
+  }
+
+  private static void addSupertypes(Class<?> type, ArrayDeque<Class<?>> pending) {
+    var superclass = type.getSuperclass();
+    if (superclass != null) {
+      pending.addLast(superclass);
+    }
+    pending.addAll(List.of(type.getInterfaces()));
   }
 
   /** Explains why a class that looks like a rule has no {@code @Rule}. */
