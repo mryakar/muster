@@ -117,6 +117,7 @@ public final class Muster {
   public final <I> RuleChain<I> chain(
       Class<I> inputType, Class<? extends BusinessRule<?>>... ruleClasses) {
     requireNonNull(inputType, "inputType");
+    // The JDK's own mapping from a primitive type to its wrapper; other types stay as they are.
     var wrapped = MethodType.methodType(inputType).wrap().returnType();
     var included = new LinkedHashMap<Class<?>, PreparedRule>();
     var listed = new HashSet<Class<?>>();
@@ -143,7 +144,7 @@ public final class Muster {
         included.put(ruleClass, rule);
       }
     }
-    return compose(inputType, included);
+    return compose(wrapped, included);
   }
 
   /**
@@ -220,7 +221,7 @@ public final class Muster {
       positions.put(definition.ruleClass(), steps.size());
       steps.add(new RuleChain.Step(included.get(definition.ruleClass()), requires));
     }
-    return new RuleChain<>(steps, caller, locale, mode);
+    return new RuleChain<>(inputType, steps, caller, locale, mode);
   }
 
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */

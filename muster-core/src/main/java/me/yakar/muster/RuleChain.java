@@ -45,16 +45,19 @@ import org.jspecify.annotations.Nullable;
  */
 public final class RuleChain<I> {
 
+  private final Class<?> inputType;
   private final List<Step> steps;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
   private final CheckMode mode;
 
   RuleChain(
+      Class<?> inputType,
       List<Step> steps,
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale,
       CheckMode mode) {
+    this.inputType = inputType;
     this.steps = List.copyOf(steps);
     this.caller = caller;
     this.locale = locale;
@@ -69,7 +72,7 @@ public final class RuleChain<I> {
    * @return the chain with the given mode
    */
   public RuleChain<I> withMode(CheckMode mode) {
-    return new RuleChain<>(steps, caller, locale, requireNonNull(mode, "mode"));
+    return new RuleChain<>(inputType, steps, caller, locale, requireNonNull(mode, "mode"));
   }
 
   /**
@@ -92,10 +95,19 @@ public final class RuleChain<I> {
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
    *     returns {@code null}
+   * @throws IllegalArgumentException if {@code input} is not of the type the chain checks, which
+   *     only unchecked code can pass
    * @throws IllegalStateException if a rule reports a violation under another rule's id
    */
   public void check(I input) {
     requireNonNull(input, "input");
+    if (!inputType.isInstance(input)) {
+      throw new IllegalArgumentException(
+          "the chain checks "
+              + inputType.getTypeName()
+              + ", not "
+              + input.getClass().getTypeName());
+    }
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     var violations = new ArrayList<Violation>();
