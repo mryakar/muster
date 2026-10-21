@@ -15,6 +15,8 @@
  */
 package me.yakar.muster
 
+import java.io.InvalidObjectException
+
 import me.yakar.muster.rule.RuleContext
 import spock.lang.Shared
 import spock.lang.Specification
@@ -108,5 +110,41 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     ]
     copy.violations().every { it.internalArgs().isEmpty() }
     copy.stackTrace.length == 0
+  }
+
+  def 'a deserialized exception cannot have #what'() {
+    when:
+    Serialization.roundTrip(withViolations(violations))
+
+    then:
+    def e = thrown(InvalidObjectException)
+    e.message == message
+
+    where:
+    what                    | violations || message
+    'no violations'         | [] || 'the exception needs at least one violation'
+    'a null list'           | null || 'violations'
+    'a null violation'      | [owner, null] || null
+  }
+
+  def 'a deserialized exception keeps its violations in a list that cannot be changed'() {
+    given:
+    def copy = Serialization.roundTrip(withViolations(new ArrayList([owner])))
+
+    when:
+    copy.violations().add(ready)
+
+    then:
+    thrown(UnsupportedOperationException)
+    copy.violations()*.code() == ['request.not-owner']
+  }
+
+  /** An exception whose violations field holds what a crafted stream could put there. */
+  private BusinessRuleViolationException withViolations(Object violations) {
+    def exception = new BusinessRuleViolationException([owner])
+    def field = BusinessRuleViolationException.getDeclaredField('violations')
+    field.accessible = true
+    field.set(exception, violations)
+    exception
   }
 }
