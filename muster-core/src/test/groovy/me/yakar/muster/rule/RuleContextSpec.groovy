@@ -92,21 +92,35 @@ class RuleContextSpec extends Specification {
     message << ['caller', 'locale']
   }
 
-  def 'a rule id must not be blank'() {
+  def 'a context rejects "#ruleId", which Muster would not register'() {
     when:
     RuleContext."$factory"(ruleId)
 
     then:
-    def e = thrown(exception)
-    e.message == message
+    def e = thrown(IllegalArgumentException)
+    e.message == "the rule id '$ruleId' is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
 
     where:
-    factory   | ruleId || exception                | message
-    'forRule' | '' || IllegalArgumentException | 'ruleId must not be blank'
-    'forRule' | ' ' || IllegalArgumentException | 'ruleId must not be blank'
-    'forRule' | null || NullPointerException     | 'ruleId'
-    'builder' | '' || IllegalArgumentException | 'ruleId must not be blank'
-    'builder' | ' ' || IllegalArgumentException | 'ruleId must not be blank'
-    'builder' | null || NullPointerException     | 'ruleId'
+    [factory, ruleId] << [
+      ['forRule', 'builder'],
+      [
+        '',
+        ' ',
+        'Not An Id',
+        'task..ready'
+      ]
+    ].combinations()
+  }
+
+  def 'a context rejects a null rule id'() {
+    when:
+    RuleContext."$factory"(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'ruleId'
+
+    where:
+    factory << ['forRule', 'builder']
   }
 }

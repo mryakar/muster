@@ -18,7 +18,6 @@ package me.yakar.muster.internal;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Pattern;
 import me.yakar.muster.rule.RequiresRule;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
@@ -33,8 +32,6 @@ import org.jspecify.annotations.Nullable;
  */
 public record RuleDefinition(
     Class<?> ruleClass, String id, Class<?> inputType, List<Class<?>> requires) {
-
-  private static final Pattern ID = Pattern.compile("[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*");
 
   /**
    * Reads the definition of a rule class.
@@ -51,15 +48,14 @@ public record RuleDefinition(
       throw new IllegalArgumentException(
           ruleClass.getTypeName() + " is not annotated with @Rule" + hint(ruleClass));
     }
-    if (!ID.matcher(rule.id()).matches()) {
+    if (!RuleIds.isValid(rule.id())) {
       throw new IllegalArgumentException(
           "the id '"
               + rule.id()
               + "' of "
               + ruleClass.getTypeName()
-              + " is invalid; an id starts with a lowercase letter and continues with lowercase"
-              + " letters, digits, and single dots or hyphens between them, as in"
-              + " 'vehicle.name-unique'");
+              + " is invalid; "
+              + RuleIds.FORMAT);
     }
     return new RuleDefinition(
         ruleClass, rule.id(), RuleTypes.inputType(ruleClass), requires(ruleClass));

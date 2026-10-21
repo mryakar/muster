@@ -16,11 +16,11 @@
 package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
-import static me.yakar.muster.rule.Checks.requireNonBlank;
 
 import java.security.Principal;
 import java.util.Locale;
 import java.util.Optional;
+import me.yakar.muster.internal.RuleIds;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -52,7 +52,7 @@ public final class RuleContext {
    *
    * @param ruleId the id of the rule being checked
    * @return the context
-   * @throws IllegalArgumentException if {@code ruleId} is blank
+   * @throws IllegalArgumentException if {@code ruleId} is not a valid rule id
    */
   public static RuleContext forRule(String ruleId) {
     return builder(ruleId).build();
@@ -64,7 +64,7 @@ public final class RuleContext {
    *
    * @param ruleId the id of the rule being checked
    * @return a builder for the context
-   * @throws IllegalArgumentException if {@code ruleId} is blank
+   * @throws IllegalArgumentException if {@code ruleId} is not a valid rule id
    */
   public static Builder builder(String ruleId) {
     return new Builder(ruleId);
@@ -128,7 +128,12 @@ public final class RuleContext {
     private Locale locale = Locale.ROOT;
 
     private Builder(String ruleId) {
-      this.ruleId = requireNonBlank(ruleId, "ruleId");
+      requireNonNull(ruleId, "ruleId");
+      if (!RuleIds.isValid(ruleId)) {
+        throw new IllegalArgumentException(
+            "the rule id '" + ruleId + "' is invalid; " + RuleIds.FORMAT);
+      }
+      this.ruleId = ruleId;
     }
 
     /**
