@@ -14,17 +14,17 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
 tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror")) }
 
-dependencies {
-  compileOnly(libs.findLibrary("jspecify").get())
-  testImplementation(platform(libs.findLibrary("groovy-bom").get()))
-  testImplementation(platform(libs.findLibrary("junit-bom").get()))
-  testImplementation(platform(libs.findLibrary("spock-bom").get()))
-}
+dependencies { compileOnly(libs.findLibrary("jspecify").get()) }
 
 testing {
   suites.withType<JvmTestSuite>().configureEach {
     useSpock(version("spock"))
-    dependencies { runtimeOnly("org.junit.platform:junit-platform-launcher") }
+    dependencies {
+      implementation(platform(libs.findLibrary("groovy-bom").get()))
+      implementation(platform(libs.findLibrary("junit-bom").get()))
+      implementation(platform(libs.findLibrary("spock-bom").get()))
+      runtimeOnly("org.junit.platform:junit-platform-launcher")
+    }
   }
 }
 
