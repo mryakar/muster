@@ -145,7 +145,7 @@ class RuleDefinitionSpec extends Specification {
       'task.-ready',
       'task_ready',
       'task ready',
-      'görev'
+      'café'
     ]
   }
 
