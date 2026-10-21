@@ -160,6 +160,7 @@ public final class Muster {
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
    *     returns {@code null}
+   * @throws IllegalStateException if a rule reports a violation under another rule's id
    * @see RuleChain#check
    */
   public void check(RuleTarget input) {
