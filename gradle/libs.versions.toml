@@ -1,6 +1,6 @@
 [versions]
 google-java-format = "1.36.1"
-groovy = "5.0.8"
+groovy = "6.0.0"
 jacoco = "0.8.15"
 jspecify = "1.0.1"
 junit = "6.1.3"
@@ -18,4 +18,4 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 
 # Gradle plugins used by the convention plugins in build-logic
 pitest-gradle-plugin = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version = "1.19.0" }
-spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version = "8.9.0" }
+spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version = "8.10.4" }
