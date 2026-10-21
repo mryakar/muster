@@ -15,12 +15,14 @@
  */
 package me.yakar.muster;
 
-import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 
+import java.lang.System.Logger.Level;
 import java.lang.invoke.MethodType;
 import java.security.Principal;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
+import me.yakar.muster.internal.RuleGraph;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.spi.RuleFactory;
 import org.jspecify.annotations.Nullable;
@@ -51,6 +54,8 @@ import org.jspecify.annotations.Nullable;
  * wrong. A chain then only runs its rules.
  */
 public final class Muster {
+
+  private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
   private final Map<Class<?>, PreparedRule> rules;
   private final Supplier<? extends @Nullable Principal> caller;
@@ -78,6 +83,9 @@ public final class Muster {
    * Creates a chain that checks inputs of the given type against the given rules. Create it once,
    * for example per service method, and keep it.
    *
+   * <p>The chain also includes the rules that the given ones {@linkplain
+   * me.yakar.muster.rule.RequiresRule require}, and logs each one it adds.
+   *
    * @param inputType the type of input the chain checks; a primitive type stands for its wrapper
    * @param ruleClasses the rules, registered with this Muster
    * @param <I> the type of input
@@ -91,7 +99,7 @@ public final class Muster {
       Class<I> inputType, Class<? extends BusinessRule<?>>... ruleClasses) {
     requireNonNull(inputType, "inputType");
     var wrapped = MethodType.methodType(inputType).wrap().returnType();
-    var chained = new ArrayList<PreparedRule>();
+    var included = new LinkedHashMap<Class<?>, PreparedRule>();
     var listed = new HashSet<Class<?>>();
     for (var ruleClass : ruleClasses) {
       requireNonNull(ruleClass, "rule class");
@@ -112,10 +120,38 @@ public final class Muster {
                 + inputType.getTypeName()
                 + " is not");
       }
-      chained.add(rule);
+      included.put(ruleClass, rule);
     }
-    chained.sort(comparing(PreparedRule::id));
-    return new RuleChain<>(chained, caller, locale);
+    var pending = new ArrayDeque<>(included.values());
+    while (!pending.isEmpty()) {
+      var rule = pending.removeFirst();
+      for (var requiredClass : rule.definition().requires()) {
+        if (!included.containsKey(requiredClass)) {
+          var required = rules.get(requiredClass);
+          included.put(requiredClass, required);
+          pending.addLast(required);
+          LOGGER.log(
+              Level.INFO,
+              "The chain for "
+                  + inputType.getTypeName()
+                  + " includes rule '"
+                  + required.id()
+                  + "' because '"
+                  + rule.id()
+                  + "' requires it");
+        }
+      }
+    }
+    var ordered =
+        RuleGraph.order(included.values().stream().map(PreparedRule::definition).toList());
+    var positions = new HashMap<Class<?>, Integer>();
+    var steps = new ArrayList<RuleChain.Step>();
+    for (var definition : ordered) {
+      var requires = definition.requires().stream().mapToInt(positions::get).toArray();
+      positions.put(definition.ruleClass(), steps.size());
+      steps.add(new RuleChain.Step(included.get(definition.ruleClass()), requires));
+    }
+    return new RuleChain<>(steps, caller, locale);
   }
 
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */
@@ -237,10 +273,13 @@ public final class Muster {
      * Builds Muster, creating the rules registered with a factory.
      *
      * @return the Muster
+     * @throws IllegalArgumentException if a rule requires a rule that is not registered or does not
+     *     accept its input, or rules require each other in a cycle
      * @throws IllegalStateException if the factory fails, returns {@code null} or returns an
      *     instance of another class
      */
     public Muster build() {
+      RuleGraph.validate(definitions);
       var rules = new LinkedHashMap<Class<?>, PreparedRule>();
       definitions.forEach(
           (ruleClass, definition) ->

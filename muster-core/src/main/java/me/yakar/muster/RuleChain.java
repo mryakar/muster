@@ -32,28 +32,28 @@ import org.jspecify.annotations.Nullable;
  * The rules an input is checked against, prepared for repeated use. Get one from {@link
  * Muster#chain}.
  *
- * <p>The rules run in the order of their ids, so the violations come in the same order on every
+ * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires};
+ * otherwise rules run in the order of their ids, so the violations come in the same order on every
  * call.
  *
  * @param <I> the type of input
  */
 public final class RuleChain<I> {
 
-  private final List<PreparedRule> rules;
+  private final List<Step> steps;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
 
   RuleChain(
-      List<PreparedRule> rules,
-      Supplier<? extends @Nullable Principal> caller,
-      Supplier<Locale> locale) {
-    this.rules = List.copyOf(rules);
+      List<Step> steps, Supplier<? extends @Nullable Principal> caller, Supplier<Locale> locale) {
+    this.steps = List.copyOf(steps);
     this.caller = caller;
     this.locale = locale;
   }
 
   /**
-   * Checks an input against every rule that applies to the call, and collects all violations.
+   * Checks an input against every rule that applies to the call, and collects all violations. A
+   * rule whose required rules did not all pass is skipped.
    *
    * <p>A rule that fails with an exception is not a violation: the exception propagates.
    *
@@ -67,7 +67,13 @@ public final class RuleChain<I> {
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     var violations = new ArrayList<Violation>();
-    for (var rule : rules) {
+    var passed = new boolean[steps.size()];
+    for (var i = 0; i < steps.size(); i++) {
+      var step = steps.get(i);
+      if (!allPassed(step.requires(), passed)) {
+        continue;
+      }
+      var rule = step.rule();
       var context = RuleContext.builder(rule.id()).locale(callLocale);
       if (callCaller != null) {
         context.caller(callCaller);
@@ -82,10 +88,29 @@ public final class RuleChain<I> {
       }
       if (result instanceof RuleResult.Failed failed) {
         violations.addAll(failed.violations());
+      } else {
+        passed[i] = true;
       }
     }
     if (!violations.isEmpty()) {
       throw new BusinessRuleViolationException(violations);
     }
   }
+
+  private static boolean allPassed(int[] required, boolean[] passed) {
+    for (var index : required) {
+      if (!passed[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * A rule in a chain.
+   *
+   * @param rule the rule
+   * @param requires the positions in the chain of the rules it requires, all before its own
+   */
+  record Step(PreparedRule rule, int[] requires) {}
 }

@@ -17,6 +17,7 @@ package me.yakar.muster.internal
 
 import groovy.transform.CompileStatic
 import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
@@ -26,6 +27,22 @@ class RuleDefinitionSpec extends Specification {
 
   @Rule(id = 'vehicle.name-unique')
   static class NameUnique implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.name-unique-on-rename')
+  @RequiresRule([NameUnique, Unannotated])
+  static class Requiring implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.twice')
+  @RequiresRule([NameUnique, Unannotated, NameUnique])
+  static class RequiringTwice implements BusinessRule<String> {
     RuleResult check(String input, RuleContext ctx) {
       RuleResult.passed()
     }
@@ -56,7 +73,21 @@ class RuleDefinitionSpec extends Specification {
 
   def 'a definition holds the class, the id and the input type of a rule'() {
     expect:
-    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String)
+    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String, [])
+  }
+
+  def 'a definition lists the rules a rule requires, in its order'() {
+    expect:
+    RuleDefinition.of(Requiring).requires() == [NameUnique, Unannotated]
+  }
+
+  def 'a rule cannot require the same rule twice'() {
+    when:
+    RuleDefinition.of(RequiringTwice)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${RequiringTwice.name} requires ${NameUnique.name} twice"
   }
 
   def 'a rule needs @Rule'() {

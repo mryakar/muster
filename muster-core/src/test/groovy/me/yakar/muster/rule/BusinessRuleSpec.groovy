@@ -60,11 +60,14 @@ class BusinessRuleSpec extends Specification {
     VehicleNameUniqueForFleet.getAnnotation(Rule) == null
   }
 
-  def 'the rule annotation is documented, kept at runtime and only allowed on types'() {
+  def '@#annotation.simpleName is documented, kept at runtime, only allowed on types and not inherited'() {
     expect:
-    Rule.isAnnotationPresent(Documented)
-    !Rule.isAnnotationPresent(Inherited)
-    Rule.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME
-    Rule.getAnnotation(Target).value() == [ElementType.TYPE] as ElementType[]
+    annotation.isAnnotationPresent(Documented)
+    !annotation.isAnnotationPresent(Inherited)
+    annotation.getAnnotation(Retention).value() == RetentionPolicy.RUNTIME
+    annotation.getAnnotation(Target).value() == [ElementType.TYPE] as ElementType[]
+
+    where:
+    annotation << [Rule, RequiresRule]
   }
 }
