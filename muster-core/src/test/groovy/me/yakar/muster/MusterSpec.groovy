@@ -110,6 +110,19 @@ class MusterSpec extends Specification {
 
   static class ProxiedNameUnique extends NameUnique {}
 
+  /** Throws without wrapping, as a factory in another JVM language may, checked exceptions included. */
+  static class ThrowingFactory implements RuleFactory {
+    final Exception failure
+
+    ThrowingFactory(Exception failure) {
+      this.failure = failure
+    }
+
+    BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass) {
+      throw failure
+    }
+  }
+
   def amo = { 'amo' } as Principal
 
   def 'an input that violates no rule passes'() {
@@ -258,6 +271,30 @@ class MusterSpec extends Specification {
     'a rule listed twice'       | CreateVehicle | [NameUnique, NameUnique] || "${NameUnique.name} is listed twice"
     'a rule for another input'  | CreateVehicle | [NameUnique, VehicleExists] || "${VehicleExists.name} checks java.lang.Long, which ${CreateVehicle.name} is not"
     'a wider input than a rule' | Object        | [NameUnique] || "${NameUnique.name} checks ${VehicleFields.name}, which java.lang.Object is not"
+    'an array input'            | String[]      | [VehicleExists] || "${VehicleExists.name} checks java.lang.Long, which java.lang.String[] is not"
+  }
+
+  def 'a chain rejects a null #message'() {
+    when:
+    Muster.builder().rules(new NameUnique()).build().chain(inputType, *ruleClasses)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == message
+
+    where:
+    inputType     | ruleClasses || message
+    null          | [NameUnique] || 'inputType'
+    CreateVehicle | [NameUnique, null] || 'rule class'
+  }
+
+  def 'a locale supplier that returns null fails the check'() {
+    when:
+    Muster.builder().locale { null }.build().chain(Object).check('input')
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'the locale supplier returned null'
   }
 
   def 'a factory creates each rule once, when Muster is built'() {
@@ -292,10 +329,9 @@ class MusterSpec extends Specification {
     thrown(BusinessRuleViolationException)
   }
 
-  def 'a factory that fails stops the build'() {
+  def 'a factory that fails with #failure stops the build'() {
     given:
-    def failure = new IllegalStateException('no such bean')
-    RuleFactory factory = { throw failure }
+    def factory = new ThrowingFactory(failure)
 
     when:
     Muster.builder().rules(factory, NameUnique).build()
@@ -304,6 +340,12 @@ class MusterSpec extends Specification {
     def e = thrown(IllegalStateException)
     e.message == "the rule factory could not create ${NameUnique.name}"
     e.cause.is(failure)
+
+    where:
+    failure << [
+      new IllegalStateException('no such bean'),
+      new IOException('disk unavailable')
+    ]
   }
 
   def 'a factory that returns #returned stops the build'() {

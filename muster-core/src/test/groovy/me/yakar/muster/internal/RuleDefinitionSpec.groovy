@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.internal
 
+import groovy.transform.CompileStatic
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
@@ -36,6 +37,23 @@ class RuleDefinitionSpec extends Specification {
     }
   }
 
+  static class SubclassOfRule extends NameUnique {}
+
+  static class SubclassOfSubclass extends SubclassOfRule {}
+
+  @CompileStatic
+  static BusinessRule<String> lambda() {
+    (String input, RuleContext ctx) -> RuleResult.passed()
+  }
+
+  static BusinessRule<String> anonymous() {
+    new BusinessRule<String>() {
+          RuleResult check(String input, RuleContext ctx) {
+            RuleResult.passed()
+          }
+        }
+  }
+
   def 'a definition holds the class, the id and the input type of a rule'() {
     expect:
     RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String)
@@ -48,6 +66,39 @@ class RuleDefinitionSpec extends Specification {
     then:
     def e = thrown(IllegalArgumentException)
     e.message == "${Unannotated.name} is not annotated with @Rule"
+  }
+
+  def 'a lambda or an anonymous class cannot be a rule'() {
+    expect: 'the classes are what the test means'
+    ruleClass.hidden || ruleClass.anonymousClass
+
+    when:
+    RuleDefinition.of(ruleClass)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${ruleClass.typeName} is not annotated with @Rule; a rule cannot be a lambda or an anonymous class, it is a named class with @Rule"
+
+    where:
+    ruleClass << [
+      lambda().getClass(),
+      anonymous().getClass()
+    ]
+  }
+
+  def 'a subclass of a rule is told that @Rule is not inherited'() {
+    when:
+    RuleDefinition.of(ruleClass)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${ruleClass.name} is not annotated with @Rule; @Rule is not inherited from ${NameUnique.name}"
+
+    where:
+    ruleClass << [
+      SubclassOfRule,
+      SubclassOfSubclass
+    ]
   }
 
   def 'a rule id may be #id'() {
