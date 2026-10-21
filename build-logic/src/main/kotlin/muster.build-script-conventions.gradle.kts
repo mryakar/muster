@@ -19,7 +19,7 @@ plugins { id("com.diffplug.spotless") }
 spotless {
   kotlinGradle {
     target("*.gradle.kts", "*/*.gradle.kts", "build-logic/src/main/kotlin/*.gradle.kts")
-    ktfmt().googleStyle()
+    ktfmt(versionCatalogs.named("libs").findVersion("ktfmt").get().requiredVersion).googleStyle()
     licenseHeaderFile(
       file("config/spotless/license-header.txt"),
       "(plugins|pluginManagement|dependencyResolutionManagement|//)",
