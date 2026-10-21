@@ -280,9 +280,11 @@ class MusterSpec extends Specification {
     log.removeHandler(handler)
   }
 
+  /** In FAIL_FAST mode a failed rule ends the check, so only COLLECT_ALL shows which rules are skipped. */
   Muster tasks() {
     Muster.builder()
         .rules(new TaskExists(ran), new TaskAssignable(ran), new TaskStarted(ran), new TaskImported(ran), new TaskFromImport(ran))
+        .mode(CheckMode.COLLECT_ALL)
         .build()
   }
 
@@ -343,7 +345,8 @@ class MusterSpec extends Specification {
 
   def 'a required rule that several listed rules share is added and logged once, and gates them all'() {
     given:
-    def chain = Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran), new TaskReopened(ran)).build()
+    def chain = Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran), new TaskReopened(ran))
+        .mode(CheckMode.COLLECT_ALL).build()
         .chain(Long, TaskAssignable, TaskReopened)
 
     expect:
