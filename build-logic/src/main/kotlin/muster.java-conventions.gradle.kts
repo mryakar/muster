@@ -14,6 +14,14 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
 tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror")) }
 
+// Internal packages are not exported, so the API docs leave them out. The source path lets the
+// documented classes still refer to them.
+tasks.withType<Javadoc>().configureEach {
+  exclude("**/internal/**")
+  (options as StandardJavadocDocletOptions)
+    .addStringOption("-source-path", sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator))
+}
+
 dependencies { compileOnly(libs.findLibrary("jspecify").get()) }
 
 testing {
