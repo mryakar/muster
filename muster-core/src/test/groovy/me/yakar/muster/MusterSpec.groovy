@@ -236,6 +236,27 @@ class MusterSpec extends Specification {
     }
   }
 
+  @Rule(id = 'task.audited')
+  static class TaskAudited extends TaskRule {
+    TaskAudited(List<String> ran) {
+      super(ran, 500L)
+    }
+  }
+
+  @Rule(id = 'task.billed')
+  static class TaskBilled extends TaskRule {
+    TaskBilled(List<String> ran) {
+      super(ran, 500L)
+    }
+  }
+
+  @Rule(id = 'plan.capacity-sufficient')
+  static class CapacitySufficient implements BusinessRule<Long> {
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation('plan.passenger-capacity').build(), ctx.violation('plan.parcel-capacity').build())
+    }
+  }
+
   def amo = { 'amo' } as Principal
 
   List<String> ran = []
@@ -303,6 +324,7 @@ class MusterSpec extends Specification {
     given: 'the order is exists, locked, closable, reopened'
     def chain = Muster.builder()
         .rules(new TaskExists(ran), new TaskLocked(ran), new TaskClosable(ran), new TaskReopened(ran))
+        .mode(CheckMode.COLLECT_ALL)
         .build()
         .chain(Long, TaskClosable, TaskReopened)
 
@@ -490,9 +512,9 @@ class MusterSpec extends Specification {
     noExceptionThrown()
   }
 
-  def 'all violations are collected, in the order of the rule ids'() {
+  def 'in COLLECT_ALL mode, all violations are collected, in the order of the rule ids'() {
     given:
-    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(CheckMode.COLLECT_ALL).build()
 
     when:
     muster.chain(CreateVehicle, *ruleClasses).check(INVALID)
@@ -510,6 +532,110 @@ class MusterSpec extends Specification {
       [NameUnique, CodeFormat],
       [CodeFormat, NameUnique]
     ]
+  }
+
+  def 'Muster checks in FAIL_FAST mode unless told otherwise'() {
+    given:
+    def muster = Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).build()
+    def chain = muster.chain(Long, TaskBilled, TaskAudited)
+
+    expect:
+    chain.mode() == CheckMode.FAIL_FAST
+
+    when:
+    chain.check(500L)
+
+    then: 'the check stops at the first violated rule'
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['task.audited']
+    ran == ['task.audited']
+  }
+
+  def 'in COLLECT_ALL mode, every rule runs'() {
+    when:
+    Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).mode(CheckMode.COLLECT_ALL).build()
+        .chain(Long, TaskBilled, TaskAudited).check(500L)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['task.audited', 'task.billed']
+    ran == ['task.audited', 'task.billed']
+  }
+
+  def 'in FAIL_FAST mode, all violations of the first violated rule are reported'() {
+    when:
+    Muster.builder().rules(new CapacitySufficient(), new TaskAudited(ran)).build()
+        .chain(Long, CapacitySufficient, TaskAudited).check(500L)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.code() == [
+      'plan.passenger-capacity',
+      'plan.parcel-capacity'
+    ]
+    ran.empty
+  }
+
+  def 'in FAIL_FAST mode, skipped rules do not stop the check'() {
+    when: 'the order is imported, from-import, locked; the first two are skipped'
+    Muster.builder().rules(new TaskImported(ran), new TaskFromImport(ran), new TaskLocked(ran)).build()
+        .chain(Long, TaskFromImport, TaskLocked).check(423L)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['task.locked']
+    ran == ['task.locked']
+  }
+
+  def 'a chain checks in its own mode, whatever the mode of the Muster: #global, then #own'() {
+    given:
+    def chain = Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).mode(global).build()
+        .chain(Long, TaskBilled, TaskAudited)
+
+    when:
+    def overridden = chain.withMode(own)
+
+    then: 'the original chain keeps the mode of the Muster'
+    chain.mode() == global
+    overridden.mode() == own
+
+    when:
+    overridden.check(500L)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == reported
+
+    where:
+    global                | own || reported
+    CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['task.audited']
+    CheckMode.FAIL_FAST   | CheckMode.COLLECT_ALL || ['task.audited', 'task.billed']
+  }
+
+  def 'rules bound by type check in the mode of the Muster'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(mode).build().check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == reported
+
+    where:
+    mode || reported
+    CheckMode.FAIL_FAST || ['vehicle.code-format']
+    CheckMode.COLLECT_ALL || [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
+  }
+
+  def 'a chain rejects a null mode'() {
+    when:
+    Muster.builder().build().chain(Object).withMode(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'mode'
   }
 
   def 'a rule that does not apply to the call is skipped, and the rules after it still run'() {
@@ -574,7 +700,7 @@ class MusterSpec extends Specification {
   def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
     given:
     log.level = Level.FINE
-    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat(), new VehicleExists(), new VehicleKnown()).build()
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat(), new VehicleExists(), new VehicleKnown()).mode(CheckMode.COLLECT_ALL).build()
 
     when:
     muster.check(INVALID)
@@ -595,7 +721,7 @@ class MusterSpec extends Specification {
 
   def 'rules bind to the class of the input at run time'() {
     given:
-    def muster = Muster.builder().rules(new NameUnique(), new VehicleKnown()).build()
+    def muster = Muster.builder().rules(new NameUnique(), new VehicleKnown()).mode(CheckMode.COLLECT_ALL).build()
     VehicleFields create = new CreateVehicle('TR-1', 'taken')
     VehicleFields update = new UpdateVehicle(404L, 'TR-1', 'taken')
 
@@ -924,7 +1050,8 @@ class MusterSpec extends Specification {
       { it.rules({ null } as RuleFactory, (Class) null) },
       { it.caller(null) },
       { it.locale(null) },
-      { it.disable('task.exists', null) }
+      { it.disable('task.exists', null) },
+      { it.mode(null) }
     ]
     message << [
       'rule',
@@ -932,7 +1059,8 @@ class MusterSpec extends Specification {
       'rule class',
       'caller',
       'locale',
-      'id'
+      'id',
+      'mode'
     ]
   }
 }
