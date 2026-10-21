@@ -84,29 +84,32 @@ public final class Muster {
    * @return the chain
    * @throws IllegalArgumentException if a rule is not registered or listed twice, or does not check
    *     inputs of {@code inputType}
+   * @throws NullPointerException if {@code inputType} or a rule class is {@code null}
    */
   @SafeVarargs
   public final <I> RuleChain<I> chain(
       Class<I> inputType, Class<? extends BusinessRule<?>>... ruleClasses) {
+    requireNonNull(inputType, "inputType");
     var wrapped = MethodType.methodType(inputType).wrap().returnType();
     var chained = new ArrayList<PreparedRule>();
     var listed = new HashSet<Class<?>>();
     for (var ruleClass : ruleClasses) {
+      requireNonNull(ruleClass, "rule class");
       var rule = rules.get(ruleClass);
       if (rule == null) {
-        throw new IllegalArgumentException(ruleClass.getName() + " is not registered");
+        throw new IllegalArgumentException(ruleClass.getTypeName() + " is not registered");
       }
       if (!listed.add(ruleClass)) {
-        throw new IllegalArgumentException(ruleClass.getName() + " is listed twice");
+        throw new IllegalArgumentException(ruleClass.getTypeName() + " is listed twice");
       }
       var ruleInputType = rule.definition().inputType();
       if (!ruleInputType.isAssignableFrom(wrapped)) {
         throw new IllegalArgumentException(
-            ruleClass.getName()
+            ruleClass.getTypeName()
                 + " checks "
-                + ruleInputType.getName()
+                + ruleInputType.getTypeName()
                 + ", which "
-                + inputType.getName()
+                + inputType.getTypeName()
                 + " is not");
       }
       chained.add(rule);
@@ -165,15 +168,15 @@ public final class Muster {
 
     private void register(Class<?> ruleClass, Supplier<BusinessRule<?>> source) {
       if (definitions.containsKey(ruleClass)) {
-        throw new IllegalArgumentException(ruleClass.getName() + " is registered twice");
+        throw new IllegalArgumentException(ruleClass.getTypeName() + " is registered twice");
       }
       var definition = RuleDefinition.of(ruleClass);
       var other = ids.get(definition.id());
       if (other != null) {
         throw new IllegalArgumentException(
-            other.getName()
+            other.getTypeName()
                 + " and "
-                + ruleClass.getName()
+                + ruleClass.getTypeName()
                 + " share the id '"
                 + definition.id()
                 + "'");
@@ -188,20 +191,20 @@ public final class Muster {
       @Nullable BusinessRule<?> rule;
       try {
         rule = factory.create(ruleClass);
-      } catch (RuntimeException e) {
+      } catch (Exception e) { // Checked ones too: a factory in another JVM language may throw them.
         throw new IllegalStateException(
-            "the rule factory could not create " + ruleClass.getName(), e);
+            "the rule factory could not create " + ruleClass.getTypeName(), e);
       }
       if (rule == null) {
         throw new IllegalStateException(
-            "the rule factory returned null for " + ruleClass.getName());
+            "the rule factory returned null for " + ruleClass.getTypeName());
       }
       if (!ruleClass.isInstance(rule)) {
         throw new IllegalStateException(
             "the rule factory returned a "
-                + rule.getClass().getName()
+                + rule.getClass().getTypeName()
                 + " for "
-                + ruleClass.getName());
+                + ruleClass.getTypeName());
       }
       return rule;
     }

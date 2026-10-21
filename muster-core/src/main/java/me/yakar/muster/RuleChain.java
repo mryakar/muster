@@ -59,12 +59,13 @@ public final class RuleChain<I> {
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if {@code input} is {@code null} or a rule returns {@code null}
+   * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
+   *     returns {@code null}
    */
   public void check(I input) {
     requireNonNull(input, "input");
     var callCaller = caller.get();
-    var callLocale = locale.get();
+    var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     var violations = new ArrayList<Violation>();
     for (var rule : rules) {
       var context = RuleContext.builder(rule.id()).locale(callLocale);
