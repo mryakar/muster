@@ -785,7 +785,7 @@ class MusterSpec extends Specification {
     e.violations()*.ruleId() == ['vehicle.code-format']
   }
 
-  def 'Muster binds the rules for a class once, and logs them'() {
+  def 'Muster binds the rules for a class once, and logs them, or warns that none binds'() {
     given:
     log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
@@ -797,10 +797,10 @@ class MusterSpec extends Specification {
     muster.check(new Unbound('nothing binds'))
 
     then:
-    logged*.level == [Level.FINE, Level.FINE]
+    logged*.level == [Level.FINE, Level.WARNING]
     logged*.message == [
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]",
-      "Rules bound to ${Unbound.name}: []"
+      "No rule binds to ${Unbound.name}; check that its rules are registered, enabled and accept it"
     ]
 
     cleanup:
