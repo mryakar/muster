@@ -22,7 +22,9 @@ tasks.withType<Javadoc>().configureEach {
     .addStringOption("-source-path", sourceSets["main"].java.srcDirs.joinToString(File.pathSeparator))
 }
 
-dependencies { compileOnly(libs.findLibrary("jspecify").get()) }
+// Published to consumers: modules that require me.yakar.muster read org.jspecify, and null-aware tools
+// need the annotations on their classpath.
+dependencies { api(libs.findLibrary("jspecify").get()) }
 
 testing {
   suites.withType<JvmTestSuite>().configureEach {
