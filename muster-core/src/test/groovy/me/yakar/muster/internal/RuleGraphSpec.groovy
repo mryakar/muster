@@ -138,30 +138,40 @@ class RuleGraphSpec extends Specification {
     noExceptionThrown()
   }
 
-  def 'rules cannot require each other in a cycle: #cycle'() {
+  def 'rules cannot require each other in a cycle: #edges'() {
     when:
-    validate(byClass(*rules))
+    validate(graph(edges))
 
     then:
     def e = thrown(IllegalArgumentException)
     e.message == "rules require each other in a cycle: $cycle"
 
     where:
-    rules || cycle
-    [rule(A, 'a', [A])] || 'a -> a'
-    [
-      rule(A, 'a', [B]),
-      rule(B, 'b', [A])
-    ] || 'a -> b -> a'
-    [
-      rule(B, 'b', [A]),
-      rule(A, 'a', [B])
-    ] || 'a -> b -> a'
-    [
-      rule(A, 'entry', [B]),
-      rule(B, 'x', [C]),
-      rule(C, 'y', [D]),
-      rule(D, 'z', [B])
-    ] || 'x -> y -> z -> x'
+    edges || cycle
+    'a -> a' || 'a -> a'
+    'a -> b, b -> a' || 'a -> b -> a'
+    'b -> a, a -> b' || 'a -> b -> a'
+    'entry -> x, x -> y, y -> z, z -> x' || 'x -> y -> z -> x'
+  }
+
+  /**
+   * Builds a graph from edges such as {@code 'a -> b'}, read as "a requires b". Rules are registered
+   * in the order they first appear.
+   */
+  static Map<Class<?>, RuleDefinition> graph(String edges) {
+    def ids = []
+    def requires = [:].withDefault { [] }
+    edges.split(',')*.trim().each { edge ->
+      def (from, to) = edge.split('->')*.trim()
+      [from, to].each { if (!(it in ids)) ids << it }
+      requires[from] << to
+    }
+    def classOf = { [A, B, C, D, E][ids.indexOf(it)] }
+    ids.collectEntries {
+      [
+        classOf(it),
+        rule(classOf(it), it, requires[it].collect(classOf))
+      ]
+    }
   }
 }

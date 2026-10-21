@@ -103,65 +103,39 @@ class ViolationSpec extends Specification {
     first.category().isEmpty()
   }
 
-  def 'an argument name can be used only once across both kinds'() {
+  def 'an argument name can be used only once across both kinds: #first, then #second'() {
     when:
     def builder = context.violation()
-    first(builder, 'id')
-    second(builder, 'id')
+    builder."$first"('id', 1)
+    builder."$second"('id', 2)
 
     then:
     def e = thrown(IllegalArgumentException)
     e.message == message
 
     where:
-    first                                  | second || message
-    ({
-      b, n -> b.clientArg(n, 1)
-    })          | { b, n ->
-      b.clientArg(n, 2)
-    } || "'id' is already a client argument"
-    ({
-      b, n -> b.clientArg(n, 1)
-    })          | { b, n ->
-      b.internalArg(n, 2)
-    } || "'id' is already a client argument"
-    ({
-      b, n -> b.internalArg(n, 1)
-    })        | { b, n ->
-      b.internalArg(n, 2)
-    } || "'id' is already an internal argument"
-    ({
-      b, n -> b.internalArg(n, 1)
-    })        | { b, n ->
-      b.clientArg(n, 2)
-    } || "'id' is already an internal argument"
+    first         | second || message
+    'clientArg'   | 'clientArg' || "'id' is already a client argument"
+    'clientArg'   | 'internalArg' || "'id' is already a client argument"
+    'internalArg' | 'internalArg' || "'id' is already an internal argument"
+    'internalArg' | 'clientArg' || "'id' is already an internal argument"
   }
 
-  def 'an argument needs a name and a value'() {
+  def 'an argument needs a name and a value: #method(#name, #value)'() {
     when:
-    add(context.violation())
+    context.violation()."$method"(name, value)
 
     then:
     def e = thrown(exception)
     e.message == message
 
     where:
-    add || exception                | message
-    ({
-      it.clientArg(' ', 1)
-    }) || IllegalArgumentException | 'argument name must not be blank'
-    ({
-      it.internalArg('', 1)
-    }) || IllegalArgumentException | 'argument name must not be blank'
-    ({
-      it.clientArg(null, 1)
-    }) || NullPointerException     | 'argument name'
-    ({
-      it.clientArg('name', null)
-    }) || NullPointerException     | "value of argument 'name'"
-    ({
-      it.internalArg('ownerId', null)
-    }) || NullPointerException     | "value of argument 'ownerId'"
+    method        | name      | value || exception                | message
+    'clientArg'   | ' '       | 1 || IllegalArgumentException | 'argument name must not be blank'
+    'internalArg' | ''        | 1 || IllegalArgumentException | 'argument name must not be blank'
+    'clientArg'   | null      | 1 || NullPointerException     | 'argument name'
+    'clientArg'   | 'name'    | null || NullPointerException     | "value of argument 'name'"
+    'internalArg' | 'ownerId' | null || NullPointerException     | "value of argument 'ownerId'"
   }
 
   def 'a violation can name a target and a category'() {
@@ -173,25 +147,19 @@ class ViolationSpec extends Specification {
     violation.category() == Optional.of(Category.CONFLICT)
   }
 
-  def 'target and category are checked'() {
+  def 'target and category are checked: #method(#value)'() {
     when:
-    set(context.violation())
+    context.violation()."$method"(value)
 
     then:
     def e = thrown(exception)
     e.message == message
 
     where:
-    set || exception                | message
-    ({
-      it.target(' ')
-    }) || IllegalArgumentException | 'target must not be blank'
-    ({
-      it.target(null)
-    }) || NullPointerException     | 'target'
-    ({
-      it.category(null)
-    }) || NullPointerException     | 'category'
+    method     | value || exception                | message
+    'target'   | ' ' || IllegalArgumentException | 'target must not be blank'
+    'target'   | null || NullPointerException     | 'target'
+    'category' | null || NullPointerException     | 'category'
   }
 
   def 'a code must not be blank'() {
