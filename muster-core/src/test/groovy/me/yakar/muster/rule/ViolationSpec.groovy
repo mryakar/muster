@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster
+package me.yakar.muster.rule
 
+import me.yakar.muster.Serialization
 import spock.lang.Shared
 import spock.lang.Specification
 

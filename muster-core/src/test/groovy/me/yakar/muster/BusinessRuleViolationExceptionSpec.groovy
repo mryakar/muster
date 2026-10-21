@@ -15,6 +15,7 @@
  */
 package me.yakar.muster
 
+import me.yakar.muster.rule.RuleContext
 import spock.lang.Shared
 import spock.lang.Specification
 

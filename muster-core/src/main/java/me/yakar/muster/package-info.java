@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** Muster core API. */
+/** Checking business rules: the entry point and the exception it throws. */
 @NullMarked
 package me.yakar.muster;
 
