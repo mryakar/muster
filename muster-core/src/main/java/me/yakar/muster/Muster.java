@@ -227,8 +227,7 @@ public final class Muster {
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */
   public static final class Builder {
 
-    private final Map<Class<?>, RuleDefinition> definitions = new LinkedHashMap<>();
-    private final Map<Class<?>, Supplier<BusinessRule<?>>> sources = new LinkedHashMap<>();
+    private final Map<Class<?>, Registration> registrations = new LinkedHashMap<>();
     private final Map<String, Class<?>> ids = new LinkedHashMap<>();
     private final Set<String> disabled = new LinkedHashSet<>();
     private Supplier<? extends @Nullable Principal> caller = () -> null;
@@ -275,7 +274,7 @@ public final class Muster {
     }
 
     private void register(Class<?> ruleClass, Supplier<BusinessRule<?>> source) {
-      if (definitions.containsKey(ruleClass)) {
+      if (registrations.containsKey(ruleClass)) {
         throw new IllegalArgumentException(ruleClass.getTypeName() + " is registered twice");
       }
       var definition = RuleDefinition.of(ruleClass);
@@ -289,8 +288,7 @@ public final class Muster {
                 + definition.id()
                 + "'");
       }
-      definitions.put(ruleClass, definition);
-      sources.put(ruleClass, source);
+      registrations.put(ruleClass, new Registration(definition, source));
       ids.put(definition.id(), ruleClass);
     }
 
@@ -389,15 +387,23 @@ public final class Muster {
         }
         disabledClasses.add(ruleClass);
       }
+      var definitions = new LinkedHashMap<Class<?>, RuleDefinition>();
+      registrations.forEach(
+          (ruleClass, registration) -> definitions.put(ruleClass, registration.definition()));
       RuleGraph.validate(definitions, disabledClasses);
       var rules = new LinkedHashMap<Class<?>, PreparedRule>();
-      definitions.forEach(
-          (ruleClass, definition) ->
-              rules.put(ruleClass, PreparedRule.of(definition, sources.get(ruleClass).get())));
+      registrations.forEach(
+          (ruleClass, registration) ->
+              rules.put(
+                  ruleClass,
+                  PreparedRule.of(registration.definition(), registration.source().get())));
       for (var id : disabled) {
         LOGGER.log(Level.WARNING, "Rule '" + id + "' is disabled");
       }
       return new Muster(rules, disabledClasses, caller, locale, mode);
     }
+
+    /** A registered rule class and where its instance comes from. */
+    private record Registration(RuleDefinition definition, Supplier<BusinessRule<?>> source) {}
   }
 }
