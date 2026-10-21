@@ -123,4 +123,11 @@ class RuleContextSpec extends Specification {
     where:
     factory << ['forRule', 'builder']
   }
+
+  def 'a context describes itself for logs'() {
+    expect:
+    RuleContext.forRule('task.ready').toString() == 'RuleContext[ruleId=task.ready, locale=und]'
+    RuleContext.builder('request.owner-only').caller(amo).locale(Locale.forLanguageTag('tr-TR')).build().toString() ==
+        'RuleContext[ruleId=request.owner-only, caller=amo, locale=tr-TR]'
+  }
 }

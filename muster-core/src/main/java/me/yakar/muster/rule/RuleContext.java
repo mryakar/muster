@@ -120,6 +120,21 @@ public final class RuleContext {
     return new Violation.Builder(ruleId, code);
   }
 
+  /**
+   * Describes this context for developers and logs: the rule id, the caller's name if there is a
+   * caller, and the locale.
+   *
+   * @return the description
+   */
+  @Override
+  public String toString() {
+    var text = new StringBuilder("RuleContext[ruleId=").append(ruleId);
+    if (caller != null) {
+      text.append(", caller=").append(caller.getName());
+    }
+    return text.append(", locale=").append(locale.toLanguageTag()).append(']').toString();
+  }
+
   /** Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}. */
   public static final class Builder {
 

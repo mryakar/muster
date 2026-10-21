@@ -908,6 +908,16 @@ class MusterSpec extends Specification {
     e.message == "the chain checks ${CreateVehicle.name}, not java.lang.String"
   }
 
+  def 'a chain describes itself for logs'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+
+    expect:
+    muster.chain(CreateVehicle, NameUnique, CodeFormat).toString() ==
+        "RuleChain[input=${CreateVehicle.name}, mode=FAIL_FAST, rules=[vehicle.code-format, vehicle.name-unique]]"
+    muster.chain(long).withMode(CheckMode.COLLECT_ALL).toString() == 'RuleChain[input=java.lang.Long, mode=COLLECT_ALL, rules=[]]'
+  }
+
   def 'an exception from a rule propagates as it is'() {
     when:
     Muster.builder().rules(new Broken(), new NameUnique()).build().chain(CreateVehicle, Broken, NameUnique).check(INVALID)

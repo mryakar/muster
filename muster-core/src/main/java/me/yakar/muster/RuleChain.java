@@ -154,6 +154,23 @@ public final class RuleChain<I> {
     }
   }
 
+  /**
+   * Describes this chain for developers and logs: the type it checks, its mode and its rules in the
+   * order they run.
+   *
+   * @return the description
+   */
+  @Override
+  public String toString() {
+    return "RuleChain[input="
+        + inputType.getTypeName()
+        + ", mode="
+        + mode
+        + ", rules="
+        + ruleIds()
+        + "]";
+  }
+
   /** Returns the ids of the rules in the chain, in the order they run. */
   List<String> ruleIds() {
     return steps.stream().map(step -> step.rule().id()).toList();
