@@ -10,3 +10,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Violations that keep client arguments, which reach messages and responses, apart from internal arguments, which never leave the application.
+- `BusinessRuleViolationException`, thrown once with every violation; its message lists codes only.
