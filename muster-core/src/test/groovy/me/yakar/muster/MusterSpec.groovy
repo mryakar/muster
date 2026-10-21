@@ -186,6 +186,29 @@ class MusterSpec extends Specification {
     }
   }
 
+  @Rule(id = 'task.locked')
+  static class TaskLocked extends TaskRule {
+    TaskLocked(List<String> ran) {
+      super(ran, 423L)
+    }
+  }
+
+  @Rule(id = 'task.closable')
+  @RequiresRule([TaskExists, TaskLocked])
+  static class TaskClosable extends TaskRule {
+    TaskClosable(List<String> ran) {
+      super(ran, -1L)
+    }
+  }
+
+  @Rule(id = 'task.reopened')
+  @RequiresRule(TaskExists)
+  static class TaskReopened extends TaskRule {
+    TaskReopened(List<String> ran) {
+      super(ran, -1L)
+    }
+  }
+
   def amo = { 'amo' } as Principal
 
   List<String> ran = []
@@ -247,6 +270,45 @@ class MusterSpec extends Specification {
       'task.assignable',
       'task.started'
     ]
+  }
+
+  def 'a rule is skipped only when one of its own required rules did not pass'() {
+    given: 'the order is exists, locked, closable, reopened'
+    def chain = Muster.builder()
+        .rules(new TaskExists(ran), new TaskLocked(ran), new TaskClosable(ran), new TaskReopened(ran))
+        .build()
+        .chain(Long, TaskClosable, TaskReopened)
+
+    when:
+    chain.check(423L)
+
+    then: 'closable needs locked, which failed; reopened needs only exists'
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['task.locked']
+    ran == [
+      'task.exists',
+      'task.locked',
+      'task.reopened'
+    ]
+  }
+
+  def 'a required rule that several listed rules share is added and logged once, and gates them all'() {
+    given:
+    def chain = Muster.builder().rules(new TaskExists(ran), new TaskAssignable(ran), new TaskReopened(ran)).build()
+        .chain(Long, TaskAssignable, TaskReopened)
+
+    expect:
+    logged*.message == [
+      "The chain for java.lang.Long includes rule 'task.exists' because 'task.assignable' requires it"
+    ]
+
+    when:
+    chain.check(404L)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['task.exists']
+    ran == ['task.exists']
   }
 
   def 'a rule whose required rule does not apply is skipped'() {
@@ -341,6 +403,25 @@ class MusterSpec extends Specification {
     noExceptionThrown()
     ran.empty
     logged*.level == [Level.WARNING, Level.WARNING]
+  }
+
+  def 'a disabled rule listed in a chain still has to accept its input'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new VehicleExists()).disable('vehicle.exists').build()
+        .chain(CreateVehicle, NameUnique, VehicleExists)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${VehicleExists.name} checks java.lang.Long, which ${CreateVehicle.name} is not"
+  }
+
+  def 'a disabled rule still has to have its required rules registered'() {
+    when:
+    Muster.builder().rules(new TaskAssignable(ran)).disable('task.assignable').build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${TaskAssignable.name} requires ${TaskExists.name}, which is not registered"
   }
 
   def 'a rule that requires a disabled rule must be disabled as well'() {
