@@ -23,7 +23,9 @@ import java.util.List;
 import me.yakar.muster.rule.Violation;
 
 /**
- * Thrown when a call violates one or more business rules.
+ * Thrown when a call violates one or more business rules. In {@link CheckMode#FAIL_FAST} mode, the
+ * default, it holds the violations of the first violated rule only; in {@link
+ * CheckMode#COLLECT_ALL} mode, those of every violated rule.
  *
  * <p>A violation is an expected outcome, not a programming error, so this exception has no stack
  * trace. Its message lists the violation codes only, never argument values; it may end up in front

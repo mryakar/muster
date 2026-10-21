@@ -35,7 +35,8 @@ import org.jspecify.annotations.Nullable;
  * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires};
  * otherwise rules run in the order of their ids, so the violations come in the same order on every
  * call. Muster has no notion of cost: in {@link CheckMode#FAIL_FAST} mode, the order alone decides
- * which violation is reported.
+ * which violation is reported. To run one rule before another, have the later one require the
+ * earlier; it then runs only if the earlier one passed.
  *
  * <p>A chain checks in the {@linkplain #mode() mode} of the Muster that created it, unless {@link
  * #withMode} gives it its own.

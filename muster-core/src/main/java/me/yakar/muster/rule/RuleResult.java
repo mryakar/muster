@@ -23,8 +23,10 @@ import java.util.List;
 /**
  * The outcome of checking a rule: it either passed or failed with one or more violations.
  *
- * <p>Rules return a result instead of throwing; Muster throws a single {@link
- * me.yakar.muster.BusinessRuleViolationException} once all rules have run.
+ * <p>Rules return a result instead of throwing. Muster collects the results and throws a single
+ * {@link me.yakar.muster.BusinessRuleViolationException} when the check ends; in the default {@link
+ * me.yakar.muster.CheckMode#FAIL_FAST} mode, the check ends at the first failed rule, and later
+ * rules do not run.
  */
 public sealed interface RuleResult {
 
