@@ -34,7 +34,11 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires};
  * otherwise rules run in the order of their ids, so the violations come in the same order on every
- * call.
+ * call. Muster has no notion of cost: in {@link CheckMode#FAIL_FAST} mode, the order alone decides
+ * which violation is reported.
+ *
+ * <p>A chain checks in the {@linkplain #mode() mode} of the Muster that created it, unless {@link
+ * #withMode} gives it its own.
  *
  * @param <I> the type of input
  */
@@ -43,17 +47,43 @@ public final class RuleChain<I> {
   private final List<Step> steps;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
+  private final CheckMode mode;
 
   RuleChain(
-      List<Step> steps, Supplier<? extends @Nullable Principal> caller, Supplier<Locale> locale) {
+      List<Step> steps,
+      Supplier<? extends @Nullable Principal> caller,
+      Supplier<Locale> locale,
+      CheckMode mode) {
     this.steps = List.copyOf(steps);
     this.caller = caller;
     this.locale = locale;
+    this.mode = mode;
   }
 
   /**
-   * Checks an input against every rule that applies to the call, and collects all violations. A
-   * rule whose required rules did not all pass is skipped.
+   * Returns a chain with the same rules that checks in the given mode, whatever the mode of the
+   * Muster. This chain is not changed.
+   *
+   * @param mode the mode
+   * @return the chain with the given mode
+   */
+  public RuleChain<I> withMode(CheckMode mode) {
+    return new RuleChain<>(steps, caller, locale, requireNonNull(mode, "mode"));
+  }
+
+  /**
+   * Returns the mode this chain checks in: its own, or else the mode of the Muster that created it.
+   *
+   * @return the mode
+   */
+  public CheckMode mode() {
+    return mode;
+  }
+
+  /**
+   * Checks an input against the rules that apply to the call. In {@link CheckMode#FAIL_FAST} mode
+   * the check stops at the first violated rule; in {@link CheckMode#COLLECT_ALL} mode it collects
+   * the violations of every rule. A rule whose required rules did not all pass is skipped.
    *
    * <p>A rule that fails with an exception is not a violation: the exception propagates.
    *
@@ -88,6 +118,9 @@ public final class RuleChain<I> {
       }
       if (result instanceof RuleResult.Failed failed) {
         violations.addAll(failed.violations());
+        if (mode == CheckMode.FAIL_FAST) {
+          break;
+        }
       } else {
         passed[i] = true;
       }

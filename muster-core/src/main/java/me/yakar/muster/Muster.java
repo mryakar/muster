@@ -66,6 +66,7 @@ public final class Muster {
   private final Set<Class<?>> disabled;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
+  private final CheckMode mode;
 
   /**
    * The chains for rule targets, by the class of the input. Kept here rather than in a {@link
@@ -78,11 +79,13 @@ public final class Muster {
       Map<Class<?>, PreparedRule> rules,
       Set<Class<?>> disabled,
       Supplier<? extends @Nullable Principal> caller,
-      Supplier<Locale> locale) {
+      Supplier<Locale> locale,
+      CheckMode mode) {
     this.rules = Map.copyOf(rules);
     this.disabled = Set.copyOf(disabled);
     this.caller = caller;
     this.locale = locale;
+    this.mode = mode;
   }
 
   /**
@@ -144,8 +147,8 @@ public final class Muster {
   }
 
   /**
-   * Checks a rule target against every enabled rule whose input type accepts its class, and
-   * collects all violations. A rule whose input type is {@code Object} checks every target.
+   * Checks a rule target against every enabled rule whose input type accepts its class, in the mode
+   * of this Muster. A rule whose input type is {@code Object} checks every target.
    *
    * <p>The rules bind to the class of the input at run time: an input declared as an interface
    * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
@@ -208,7 +211,7 @@ public final class Muster {
       positions.put(definition.ruleClass(), steps.size());
       steps.add(new RuleChain.Step(included.get(definition.ruleClass()), requires));
     }
-    return new RuleChain<>(steps, caller, locale);
+    return new RuleChain<>(steps, caller, locale, mode);
   }
 
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */
@@ -220,6 +223,7 @@ public final class Muster {
     private final Set<String> disabled = new LinkedHashSet<>();
     private Supplier<? extends @Nullable Principal> caller = () -> null;
     private Supplier<Locale> locale = Locale::getDefault;
+    private CheckMode mode = CheckMode.FAIL_FAST;
 
     private Builder() {}
 
@@ -345,6 +349,18 @@ public final class Muster {
     }
 
     /**
+     * Sets how far a check goes once a rule is violated. Unless set, it is {@link
+     * CheckMode#FAIL_FAST}. A chain can override it with {@link RuleChain#withMode}.
+     *
+     * @param mode the mode
+     * @return this builder
+     */
+    public Builder mode(CheckMode mode) {
+      this.mode = requireNonNull(mode, "mode");
+      return this;
+    }
+
+    /**
      * Builds Muster, creating the rules registered with a factory.
      *
      * @return the Muster
@@ -371,7 +387,7 @@ public final class Muster {
       for (var id : disabled) {
         LOGGER.log(Level.WARNING, "Rule '" + id + "' is disabled");
       }
-      return new Muster(rules, disabledClasses, caller, locale);
+      return new Muster(rules, disabledClasses, caller, locale, mode);
     }
   }
 }
