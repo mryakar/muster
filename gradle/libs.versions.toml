@@ -4,6 +4,7 @@ groovy = "5.1.3"
 jackson = "3.1.5"
 jacoco = "0.8.15"
 jspecify = "1.0.1"
+ktfmt = "0.65"
 junit = "6.1.3"
 pitest = "1.30.1"
 pitest-junit5-plugin = "1.2.3"
@@ -22,6 +23,7 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 # versions; the build reads the versions.
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "google-java-format" }
 jacoco-agent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacoco" }
+ktfmt = { module = "org.jetbrains.kotlinx:ktfmt", version.ref = "ktfmt" }
 pitest = { module = "org.pitest:pitest", version.ref = "pitest" }
 pitest-junit5-plugin = { module = "org.pitest:pitest-junit5-plugin", version.ref = "pitest-junit5-plugin" }
 
