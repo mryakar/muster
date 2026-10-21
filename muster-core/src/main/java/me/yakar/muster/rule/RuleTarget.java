@@ -16,8 +16,10 @@
 package me.yakar.muster.rule;
 
 /**
- * Marks the inputs that rules bind to by type. Every enabled rule whose input type accepts a rule
- * target checks it, without being listed anywhere.
+ * Marks the inputs that rules bind to by type. When a rule target is passed to {@link
+ * me.yakar.muster.Muster#check}, every enabled rule whose input type accepts it checks it, without
+ * being listed anywhere. A chain created with {@link me.yakar.muster.Muster#chain} runs only the
+ * rules it lists, and the rules they require.
  *
  * {@snippet :
  * interface VehicleFields extends RuleTarget {
@@ -33,6 +35,7 @@ package me.yakar.muster.rule;
  * }
  *
  * <p>Only marked inputs bind by type; otherwise a rule for {@code Long} would check every {@code
- * Long} in the application. A rule whose input type is {@code Object} binds to every rule target.
+ * Long} in the application. A rule whose input type is a wide supertype, such as {@code Object},
+ * {@code Record} or {@code RuleTarget} itself, binds to every rule target of that type.
  */
 public interface RuleTarget {}
