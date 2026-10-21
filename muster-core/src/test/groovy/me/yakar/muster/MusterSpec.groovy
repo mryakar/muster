@@ -568,8 +568,9 @@ class MusterSpec extends Specification {
     asked == 2
   }
 
-  def 'a rule target is checked by every rule whose input type accepts it'() {
+  def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
     given:
+    log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat(), new VehicleExists(), new VehicleKnown()).build()
 
     when:
@@ -581,26 +582,36 @@ class MusterSpec extends Specification {
       'vehicle.code-format',
       'vehicle.name-unique'
     ]
+    logged*.message == [
+      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
+    ]
+
+    cleanup:
+    log.level = null
   }
 
   def 'rules bind to the class of the input at run time'() {
     given:
     def muster = Muster.builder().rules(new NameUnique(), new VehicleKnown()).build()
-    VehicleFields create = new CreateVehicle('TR-1', 'Atlas')
-    VehicleFields update = new UpdateVehicle(404L, 'TR-1', 'Atlas')
+    VehicleFields create = new CreateVehicle('TR-1', 'taken')
+    VehicleFields update = new UpdateVehicle(404L, 'TR-1', 'taken')
 
     when:
     muster.check(create)
 
     then:
-    noExceptionThrown()
+    def first = thrown(BusinessRuleViolationException)
+    first.violations()*.ruleId() == ['vehicle.name-unique']
 
     when:
     muster.check(update)
 
     then:
-    def e = thrown(BusinessRuleViolationException)
-    e.violations()*.ruleId() == ['vehicle.known']
+    def second = thrown(BusinessRuleViolationException)
+    second.violations()*.ruleId() == [
+      'vehicle.known',
+      'vehicle.name-unique'
+    ]
   }
 
   def 'a rule whose input type is Object checks every rule target'() {
@@ -619,9 +630,10 @@ class MusterSpec extends Specification {
     when:
     muster.check(new UpdateVehicle(404L, 'TR-1', 'Atlas'))
 
-    then:
+    then: 'both rules are bound by type, so the chain adds nothing on its own'
     def e = thrown(BusinessRuleViolationException)
     e.violations()*.ruleId() == ['vehicle.known']
+    logged.empty
 
     when:
     muster.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
@@ -629,6 +641,7 @@ class MusterSpec extends Specification {
     then:
     def second = thrown(BusinessRuleViolationException)
     second.violations()*.ruleId() == ['vehicle.a-renamable']
+    logged.empty
   }
 
   def 'a disabled rule does not bind by type'() {
