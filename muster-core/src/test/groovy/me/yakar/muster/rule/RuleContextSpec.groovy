@@ -56,6 +56,34 @@ class RuleContextSpec extends Specification {
     context.locale() == Locale.ROOT
   }
 
+  def 'a builder from a context starts with its rule, caller and locale'() {
+    given:
+    def context = RuleContext.builder('request.owner-only').caller(amo).locale(Locale.GERMANY).build()
+
+    when:
+    def copy = context.toBuilder().build()
+
+    then:
+    copy.ruleId() == 'request.owner-only'
+    copy.caller().get().is(amo)
+    copy.locale() == Locale.GERMANY
+  }
+
+  def 'a context derived for another call leaves the original as it is'() {
+    given:
+    def context = RuleContext.forRule('task.ready')
+
+    when:
+    def derived = context.toBuilder().caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+
+    then:
+    derived.ruleId() == 'task.ready'
+    derived.caller().get().is(amo)
+    derived.locale() == Locale.forLanguageTag('tr-TR')
+    context.caller().empty
+    context.locale() == Locale.ROOT
+  }
+
   def 'a context does not change when its builder is used again'() {
     given:
     def builder = RuleContext.builder('request.owner-only')

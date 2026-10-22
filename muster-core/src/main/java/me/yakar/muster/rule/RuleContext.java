@@ -40,10 +40,10 @@ public final class RuleContext {
   private final @Nullable Principal caller;
   private final Locale locale;
 
-  private RuleContext(Builder builder) {
-    ruleId = builder.ruleId;
-    caller = builder.caller;
-    locale = builder.locale;
+  private RuleContext(String ruleId, @Nullable Principal caller, Locale locale) {
+    this.ruleId = ruleId;
+    this.caller = caller;
+    this.locale = locale;
   }
 
   /**
@@ -68,6 +68,17 @@ public final class RuleContext {
    */
   public static Builder builder(String ruleId) {
     return new Builder(ruleId);
+  }
+
+  /**
+   * Returns a builder that starts from this context: the same rule, caller and locale. Use it to
+   * create the context of the same rule for another call. The rule id is not checked again, since
+   * it was checked when this context was built.
+   *
+   * @return the builder
+   */
+  public Builder toBuilder() {
+    return new Builder(this);
   }
 
   /**
@@ -151,6 +162,12 @@ public final class RuleContext {
       this.ruleId = ruleId;
     }
 
+    private Builder(RuleContext context) {
+      ruleId = context.ruleId;
+      caller = context.caller;
+      locale = context.locale;
+    }
+
     /**
      * Sets who makes the call.
      *
@@ -180,7 +197,7 @@ public final class RuleContext {
      * @return the context
      */
     public RuleContext build() {
-      return new RuleContext(this);
+      return new RuleContext(ruleId, caller, locale);
     }
   }
 }

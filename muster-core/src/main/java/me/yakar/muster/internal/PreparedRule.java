@@ -16,15 +16,20 @@
 package me.yakar.muster.internal;
 
 import me.yakar.muster.rule.BusinessRule;
+import me.yakar.muster.rule.RuleContext;
 
 /**
- * A rule definition with the instance that checks it.
+ * A rule definition with the instance that checks it, and a context to start each call's context
+ * from. Every component is immutable, so chains share a prepared rule across threads.
  *
  * @param definition the definition
  * @param rule the instance; it accepts inputs of the {@linkplain RuleDefinition#inputType() input
  *     type} only
+ * @param context the rule's context with no caller and the root locale; its id is checked once,
+ *     here, rather than on every call
  */
-public record PreparedRule(RuleDefinition definition, BusinessRule<Object> rule) {
+public record PreparedRule(
+    RuleDefinition definition, BusinessRule<Object> rule, RuleContext context) {
 
   /**
    * Pairs a definition with its instance.
@@ -35,7 +40,8 @@ public record PreparedRule(RuleDefinition definition, BusinessRule<Object> rule)
    */
   @SuppressWarnings("unchecked") // Callers pass inputs of the definition's input type only.
   public static PreparedRule of(RuleDefinition definition, BusinessRule<?> rule) {
-    return new PreparedRule(definition, (BusinessRule<Object>) rule);
+    return new PreparedRule(
+        definition, (BusinessRule<Object>) rule, RuleContext.forRule(definition.id()));
   }
 
   /**
