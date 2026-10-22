@@ -76,6 +76,20 @@ Rules can require other rules with `@RequiresRule`, be switched off with `disabl
 first violation (`CheckMode.FAIL_FAST`, the default) or report them all (`CheckMode.COLLECT_ALL`).
 A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
 
+## Performance
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/check-cost-dark.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 114 ns and muster.check(target) 128 ns, against 72 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
+</picture>
+
+Muster resolves its rules once, when it starts, and does no reflection while it checks. A check
+that passes costs about 12 ns more than calling the same rules by hand, plus about 2 ns per rule:
+checking 20 rules adds about 43 ns. A check that fails throws an exception without a stack trace
+and takes about 0.4 µs. The numbers come from JMH on a 2013 laptop CPU; [the
+benchmarks](docs/benchmarks/README.md) give the method, every result and the budget a change is
+held to.
+
 ## Modules
 
 | Module | Purpose |

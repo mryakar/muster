@@ -46,6 +46,10 @@ except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -
 worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a fixed CPU
 frequency.
 
+`./gradlew jmhReport` copies the results of the last run to `docs/benchmarks` and draws the chart
+that the README shows. A change that affects performance is compared with the budget in
+[docs/benchmarks](docs/benchmarks/README.md), on the same machine.
+
 ## Dependencies
 
 Gradle verifies every dependency against the SHA-256 checksums in
