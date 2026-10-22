@@ -146,7 +146,10 @@ public final class RuleContext {
     return text.append(", locale=").append(locale.toLanguageTag()).append(']').toString();
   }
 
-  /** Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}. */
+  /**
+   * Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}, or from {@link
+   * RuleContext#toBuilder()} to start from an existing context.
+   */
   public static final class Builder {
 
     private final String ruleId;
