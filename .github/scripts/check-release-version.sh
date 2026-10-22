@@ -15,7 +15,8 @@
 # limitations under the License.
 #
 # Checks that a release tag such as v1.2.3 matches the version in gradle.properties, that the
-# version is not a snapshot, and that CHANGELOG.md has a section for it. Prints the version.
+# version is a release version (1.2.3, or a pre-release such as 1.2.3-rc.1), and that CHANGELOG.md
+# has a section for it. Prints the version.
 set -euo pipefail
 
 tag="${1:?usage: check-release-version.sh <tag>}"
@@ -25,11 +26,11 @@ if [[ "$tag" != "v$version" ]]; then
   echo "tag $tag does not match version $version in gradle.properties" >&2
   exit 1
 fi
-if [[ "$version" == *-SNAPSHOT ]]; then
-  echo "cannot release snapshot version $version" >&2
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+  echo "$version is not a release version such as 1.2.3 or 1.2.3-rc.1" >&2
   exit 1
 fi
-if ! grep -q "^## \[$version\]" CHANGELOG.md; then
+if ! grep -qF "## [$version]" CHANGELOG.md; then
   echo "CHANGELOG.md has no section for $version" >&2
   exit 1
 fi
