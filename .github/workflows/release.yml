@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The environment holds the Central and signing secrets, and a maintainer approves every run.
+    environment: release
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      # A release builds from scratch, without caches that other workflows wrote.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-disabled: true
+      - id: version
+        name: Check the tag against the version
+        run: echo "version=$(.github/scripts/check-release-version.sh "$GITHUB_REF_NAME")" >> "$GITHUB_OUTPUT"
+      - run: ./gradlew build
+      - name: Sign and publish to the local repository
+        run: ./gradlew publishToMavenLocal
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      - name: Use the published artifacts as a consumer would
+        run: ./gradlew -p consumer-test run -PmusterVersion="$VERSION"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+      # Uploads only: the release becomes public when a maintainer publishes it in the Central Portal.
+      - name: Upload to Maven Central
+        run: ./gradlew publishToMavenCentral
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      - name: Collect the release files
+        run: |
+          mkdir -p release
+          cp ~/.m2/repository/me/yakar/muster-*/"$VERSION"/muster-* release/
+          .github/scripts/release-notes.sh "$VERSION" > release-notes.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            release/
+            release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+  # A separate job, so that the token that can write to the repository never meets the build or the
+  # secrets.
+  github-release:
+    name: Draft the GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+      # A draft: a maintainer publishes it together with the release in the Central Portal.
+      - run: >-
+          gh release create "$GITHUB_REF_NAME" release/*
+          --repo "$GITHUB_REPOSITORY" --draft --verify-tag
+          --title "Muster $VERSION" --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.publish.outputs.version }}
