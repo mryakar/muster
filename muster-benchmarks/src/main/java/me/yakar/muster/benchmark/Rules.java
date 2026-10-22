@@ -24,6 +24,10 @@ import me.yakar.muster.rule.RuleResult;
 /**
  * Twenty rules that cost next to nothing, so that a benchmark measures Muster rather than the
  * rules. Each rule passes unless the order sets the bit of its index.
+ *
+ * <p>Each rule has a {@code check} of its own, as rules in an application do. Were they to share
+ * one, the JIT could inline it into the engine's loop and optimize away work that an application
+ * pays for, such as the context each rule receives.
  */
 final class Rules {
 
@@ -83,8 +87,7 @@ final class Rules {
       this.bit = 1L << index;
     }
 
-    @Override
-    public RuleResult check(Order input, RuleContext ctx) {
+    final RuleResult checkBit(Order input, RuleContext ctx) {
       return (input.failing() & bit) == 0
           ? RuleResult.passed()
           : RuleResult.failed(ctx.violation().build());
@@ -96,12 +99,22 @@ final class Rules {
     Rule01() {
       super(0);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-02")
   static final class Rule02 extends IndexedRule {
     Rule02() {
       super(1);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -110,12 +123,22 @@ final class Rules {
     Rule03() {
       super(2);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-04")
   static final class Rule04 extends IndexedRule {
     Rule04() {
       super(3);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -124,12 +147,22 @@ final class Rules {
     Rule05() {
       super(4);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-06")
   static final class Rule06 extends IndexedRule {
     Rule06() {
       super(5);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -138,12 +171,22 @@ final class Rules {
     Rule07() {
       super(6);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-08")
   static final class Rule08 extends IndexedRule {
     Rule08() {
       super(7);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -152,12 +195,22 @@ final class Rules {
     Rule09() {
       super(8);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-10")
   static final class Rule10 extends IndexedRule {
     Rule10() {
       super(9);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -166,12 +219,22 @@ final class Rules {
     Rule11() {
       super(10);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-12")
   static final class Rule12 extends IndexedRule {
     Rule12() {
       super(11);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -180,12 +243,22 @@ final class Rules {
     Rule13() {
       super(12);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-14")
   static final class Rule14 extends IndexedRule {
     Rule14() {
       super(13);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -194,12 +267,22 @@ final class Rules {
     Rule15() {
       super(14);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-16")
   static final class Rule16 extends IndexedRule {
     Rule16() {
       super(15);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -208,12 +291,22 @@ final class Rules {
     Rule17() {
       super(16);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-18")
   static final class Rule18 extends IndexedRule {
     Rule18() {
       super(17);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 
@@ -222,12 +315,22 @@ final class Rules {
     Rule19() {
       super(18);
     }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
+    }
   }
 
   @Rule(id = "rule-20")
   static final class Rule20 extends IndexedRule {
     Rule20() {
       super(19);
+    }
+
+    @Override
+    public RuleResult check(Order input, RuleContext ctx) {
+      return checkBit(input, ctx);
     }
   }
 }
