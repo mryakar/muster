@@ -20,7 +20,14 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.logging.Handler
 import java.util.logging.Level
+import java.util.logging.LogRecord
+import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.Rule
+import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.rule.RuleTarget
 
 /** Checking rule targets with rules bound by type. */
 class TypeBindingSpec extends EngineSpecification {
@@ -175,10 +182,11 @@ class TypeBindingSpec extends EngineSpecification {
     log.level = null
   }
 
-  def 'threads that keep checking classes, bound or not yet, each get the rules of their class'() {
-    given:
+  def 'threads that check a class being bound and one already bound each get the rules of its class'() {
+    given: 'a Muster that has bound a class no rule binds to, but not CreateVehicle'
     log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+    muster.check(new Unbound('text'))
     def start = new CountDownLatch(1)
     def pool = Executors.newFixedThreadPool(16)
     def runs = (1..16).collect {
@@ -215,6 +223,72 @@ class TypeBindingSpec extends EngineSpecification {
     cleanup:
     pool.shutdownNow()
     log.level = null
+  }
+
+  def 'checking a bound class takes no lock, even while another class in its bucket is being bound'() {
+    given: 'three classes in one bucket of the chain map, the first two of them bound'
+    def (first, second, third) = sameBucket(3).collect {
+      it.getDeclaredConstructor().newInstance() as RuleTarget
+    }
+    def muster = Muster.builder().rules(new AnyTarget()).build()
+    muster.check(first)
+    muster.check(second)
+
+    and: 'a log handler that holds up the binding of the third class'
+    log.level = Level.FINE
+    def binding = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
+    def holder = new Handler() {
+          void publish(LogRecord record) {
+            if (record.message.contains(third.class.name)) {
+              binding.countDown()
+              release.await()
+            }
+          }
+
+          void flush() {}
+
+          void close() {}
+        }
+    log.addHandler(holder)
+    def pool = Executors.newFixedThreadPool(2)
+
+    when: 'one thread binds the third class while another checks the second'
+    def binder = pool.submit { muster.check(third) }
+    assert binding.await(1, TimeUnit.MINUTES)
+    pool.submit { muster.check(second) }.get(5, TimeUnit.SECONDS)
+
+    then:
+    noExceptionThrown()
+
+    cleanup:
+    release.countDown()
+    binder?.get(1, TimeUnit.MINUTES)
+    log.removeHandler(holder)
+    pool.shutdownNow()
+    log.level = null
+  }
+
+  /** Classes whose hashes fall into the same bucket of a map of sixteen, as ConcurrentHashMap spreads them. */
+  private static List<Class<?>> sameBucket(int count) {
+    def loader = new GroovyClassLoader(TypeBindingSpec.classLoader)
+    def buckets = [:].withDefault { [] }
+    for (def i = 0; ; i++) {
+      def type = loader.parseClass("class Probe$i implements ${RuleTarget.name} {}")
+      def hash = type.hashCode()
+      def bucket = buckets[(hash ^ (hash >>> 16)) & 0x7fffffff & 15]
+      bucket << type
+      if (bucket.size() == count) {
+        return bucket
+      }
+    }
+  }
+
+  @Rule(id = 'target.any')
+  static class AnyTarget implements BusinessRule<RuleTarget> {
+    RuleResult check(RuleTarget input, RuleContext ctx) {
+      RuleResult.passed()
+    }
   }
 
   def 'a Muster that is no longer used does not keep its rules alive'() {
