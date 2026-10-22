@@ -32,6 +32,24 @@ public record PreparedRule(
     RuleDefinition definition, BusinessRule<Object> rule, RuleContext context) {
 
   /**
+   * Checks that the context is the rule's own and has no caller: every call derives its context
+   * from it, and checks violations against the rule's id.
+   *
+   * @param definition the definition
+   * @param rule the instance
+   * @param context the rule's context
+   * @throws IllegalArgumentException if the context is of another rule or has a caller
+   */
+  public PreparedRule {
+    if (!context.ruleId().equals(definition.id()) || context.caller().isPresent()) {
+      throw new IllegalArgumentException(
+          "the prepared context of rule '"
+              + definition.id()
+              + "' must be for that rule and have no caller");
+    }
+  }
+
+  /**
    * Pairs a definition with its instance.
    *
    * @param definition the definition
