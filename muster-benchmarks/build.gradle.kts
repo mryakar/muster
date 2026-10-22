@@ -52,6 +52,10 @@ tasks.register<JavaExec>("jmhReport") {
   val results = layout.buildDirectory.file("results/jmh/results.csv")
   val docs = layout.settingsDirectory.dir("docs/benchmarks")
   inputs.file(results)
-  outputs.dir(docs)
+  outputs.files(
+    docs.file("results.csv"),
+    docs.file("check-cost-light.svg"),
+    docs.file("check-cost-dark.svg"),
+  )
   args(results.get().asFile.absolutePath, docs.asFile.absolutePath)
 }
