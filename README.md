@@ -6,8 +6,8 @@ Business rules for layered Java applications, checked before your service method
 transaction, outside your service code.
 
 > [!NOTE]
-> Muster is in early development. Nothing has been released yet and the API will change until 1.0.0.
-> See the [roadmap](ROADMAP.md).
+> Muster is in early development and the API will change until 1.0.0. See the
+> [roadmap](ROADMAP.md).
 
 ## Why
 
@@ -21,6 +21,47 @@ Muster is for rules that need the database and the context of the operation.
 
 Running rules around the service method and inside its transaction is the job of the Spring Boot
 starter, which arrives in 0.2.0. Until then, Muster checks rules through its plain Java API.
+
+## Installation
+
+Muster is on Maven Central. Import the BOM, which keeps the versions of the Muster modules in
+line, and add the core without a version.
+
+Gradle:
+
+```kotlin
+dependencies {
+  implementation(platform("me.yakar:muster-bom:0.1.0"))
+  implementation("me.yakar:muster-core")
+}
+```
+
+Maven:
+
+```xml
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>me.yakar</groupId>
+      <artifactId>muster-bom</artifactId>
+      <version>0.1.0</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <dependency>
+    <groupId>me.yakar</groupId>
+    <artifactId>muster-core</artifactId>
+  </dependency>
+</dependencies>
+```
+
+The core is a Java module. An application that is a module too reads it with
+`requires me.yakar.muster;`. Each [release](https://github.com/mryakar/muster/releases) also
+carries the jars, their signatures and an SBOM.
 
 ## Usage
 
