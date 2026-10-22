@@ -143,8 +143,10 @@ public final class ResultsChart {
     var rules = header.indexOf("Param: rules");
     var violated = header.indexOf("Param: violated");
     var checkMode = header.indexOf("Param: mode");
+    var bound = header.indexOf("Param: bound");
     var prefix = CheckBenchmark.class.getName() + ".";
     var violations = new HashSet<List<String>>();
+    var bindings = new HashSet<String>();
     var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
     for (var line : lines.subList(1, lines.size())) {
       var cells = split(line);
@@ -168,6 +170,9 @@ public final class ResultsChart {
       }
       if (name.startsWith(ViolationBenchmark.class.getName() + ".")) {
         violations.add(List.of(cells.get(violated), cells.get(checkMode)));
+      }
+      if (name.startsWith(BindingBenchmark.class.getName() + ".")) {
+        bindings.add(cells.get(bound));
       }
     }
     var ruleCounts = new TreeSet<Integer>();
@@ -196,6 +201,11 @@ public final class ResultsChart {
     if (!violations.equals(expected)) {
       throw new IllegalArgumentException(
           results + " has ViolationBenchmark for " + violations + ", not for " + expected);
+    }
+    var expectedBindings = new HashSet<>(params(BindingBenchmark.class, "bound"));
+    if (!bindings.equals(expectedBindings)) {
+      throw new IllegalArgumentException(
+          results + " has BindingBenchmark for " + bindings + ", not for " + expectedBindings);
     }
     return scores;
   }
