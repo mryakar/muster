@@ -51,8 +51,27 @@ public final class BusinessRuleViolationException extends RuntimeException {
    * @throws IllegalArgumentException if {@code violations} is empty
    */
   public BusinessRuleViolationException(List<Violation> violations) {
-    super(message(violations), null, false, false);
-    this.violations = List.copyOf(violations);
+    super(null, null, false, false);
+    var copy = List.copyOf(requireNonNull(violations, "violations"));
+    if (copy.isEmpty()) {
+      throw new IllegalArgumentException("the exception needs at least one violation");
+    }
+    this.violations = copy;
+  }
+
+  /**
+   * Returns the number of violations and their codes, never argument values. It is built when asked
+   * for: a caller that maps the violations to a response never needs it.
+   *
+   * @return the message
+   */
+  @Override
+  public String getMessage() {
+    var noun =
+        violations.size() == 1 ? " business rule violation: " : " business rule violations: ";
+    return violations.size()
+        + noun
+        + violations.stream().map(Violation::code).collect(joining(", "));
   }
 
   /**
@@ -80,14 +99,5 @@ public final class BusinessRuleViolationException extends RuntimeException {
       invalid.initCause(e);
       throw invalid;
     }
-  }
-
-  private static String message(List<Violation> violations) {
-    var copy = List.copyOf(requireNonNull(violations, "violations"));
-    if (copy.isEmpty()) {
-      throw new IllegalArgumentException("the exception needs at least one violation");
-    }
-    var noun = copy.size() == 1 ? " business rule violation: " : " business rule violations: ";
-    return copy.size() + noun + copy.stream().map(Violation::code).collect(joining(", "));
   }
 }
