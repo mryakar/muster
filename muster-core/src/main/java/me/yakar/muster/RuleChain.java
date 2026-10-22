@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.PreparedRule;
-import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
@@ -118,7 +117,8 @@ public final class RuleChain<I> {
         continue;
       }
       var rule = step.rule();
-      var context = RuleContext.builder(rule.id()).locale(callLocale);
+      // From the context prepared with the rule, so that the rule id is not checked again.
+      var context = rule.context().toBuilder().locale(callLocale);
       if (callCaller != null) {
         context.caller(callCaller);
       }

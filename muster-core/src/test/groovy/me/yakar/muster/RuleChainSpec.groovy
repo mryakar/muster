@@ -15,6 +15,11 @@
  */
 package me.yakar.muster
 
+import java.security.Principal
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import me.yakar.muster.rule.RuleContext
 
 /** Checking an input with a chain: order, skipping, modes, the call context and failures. */
@@ -218,6 +223,52 @@ class RuleChainSpec extends EngineSpecification {
     def second = thrown(BusinessRuleViolationException)
     second.violations()[0].clientArgs() == [caller: 'none', locale: 'de-DE']
     asked == 2
+  }
+
+  def 'checks of one chain on many threads each see their own caller and locale'() {
+    given: 'a caller and a locale per thread'
+    def callers = new ThreadLocal<Principal>()
+    def locales = new ThreadLocal<Locale>()
+    def chain = Muster.builder()
+        .rules(new ReportsCall())
+        .caller { callers.get() }
+        .locale { locales.get() }
+        .build()
+        .chain(Object, ReportsCall)
+    def threads = 16
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(threads)
+    def runs = (0..<threads).collect { n ->
+      pool.submit({
+        def name = "caller-$n".toString()
+        callers.set({ name } as Principal)
+        locales.set(Locale.forLanguageTag("tr-${100 + n}"))
+        start.await()
+        def seen = [] as Set
+        2_000.times {
+          try {
+            chain.check('input')
+          } catch (BusinessRuleViolationException e) {
+            seen << e.violations()[0].clientArgs()
+          }
+        }
+        seen
+      } as Callable<Set>)
+    }
+
+    when:
+    start.countDown()
+    def calls = runs.collect { it.get(1, TimeUnit.MINUTES) }
+
+    then: 'no thread saw the call of another'
+    (0..<threads).every { n ->
+      calls[n] == [
+        [caller: "caller-$n".toString(), locale: "tr-${100 + n}".toString()]
+      ] as Set
+    }
+
+    cleanup:
+    pool.shutdownNow()
   }
 
   def 'a null input is rejected before any rule runs'() {
