@@ -18,8 +18,8 @@ plugins { application }
 val musterVersion = providers.gradleProperty("musterVersion").get()
 
 dependencies {
-  implementation(platform("me.yakar:muster-bom:$musterVersion"))
-  implementation("me.yakar:muster-core")
+  implementation(platform("me.yakar.muster:muster-bom:$musterVersion"))
+  implementation("me.yakar.muster:muster-core")
 }
 
 tasks.withType<JavaCompile>().configureEach {

@@ -23,7 +23,7 @@ val pomOnly = providers.gradleProperty("pomOnly").isPresent
 dependencyResolutionManagement {
   repositories {
     mavenLocal {
-      content { includeGroup("me.yakar") }
+      content { includeGroup("me.yakar.muster") }
       if (pomOnly) {
         metadataSources {
           mavenPom()
@@ -32,6 +32,6 @@ dependencyResolutionManagement {
         }
       }
     }
-    mavenCentral { content { excludeGroup("me.yakar") } }
+    mavenCentral { content { excludeGroup("me.yakar.muster") } }
   }
 }
