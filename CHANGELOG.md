@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-22
+
 ### Added
 
 - Violations that keep client arguments, which reach messages and responses, apart from internal arguments, which never leave the application.
@@ -26,4 +28,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call, also from many threads at once. `./gradlew jmh` runs them.
 - The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 100 ns over calling them by hand.
 
-[Unreleased]: https://github.com/mryakar/muster/commits/main
+[Unreleased]: https://github.com/mryakar/muster/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0
