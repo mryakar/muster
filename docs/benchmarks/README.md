@@ -66,7 +66,8 @@ with what the JIT optimizes away.
 | the second in its bucket | 51.0 ± 12.4 ns |
 
 Neither takes a lock. Which classes share a bucket depends on their identity hashes and changes from
-run to run, so the benchmark measures both positions.
+run to run, so the benchmark measures both positions. The eight threads share four cores, so a check
+takes about twice as long as from a single thread, which checks a target with one rule in 21.9 ns.
 
 The raw results are in [`results.csv`](results.csv). `./gradlew jmhReport` writes it and the chart;
 the tables and the image descriptions here are updated by hand.
@@ -78,8 +79,9 @@ the tables and the image descriptions here are updated by hand.
 - Linux 7.0, Amazon Corretto 21.0.11, JMH 1.37
 - Two forks, each with five one-second warm-up iterations and five one-second measurements
 - Allocation from JMH's GC profiler (`-prof gc`)
-- A fork can settle on other compiled code than the other fork, which shows as a large error. Such a
-  run is measured again rather than published.
+- If the two forks of a benchmark average more than 10% apart, as when one settles on other compiled
+  code than the other, the run is measured again rather than published. In the published run they
+  are at most 5% apart.
 
 ## Running the benchmarks
 
