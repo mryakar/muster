@@ -23,5 +23,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `muster-core` depends only on the JSpecify annotations, which carry the API's null contract.
 - Releases of `me.yakar:muster-core` and `me.yakar:muster-bom` on Maven Central, signed, with sources, API docs and, for the core, a CycloneDX SBOM.
 - The API is split by audience: `me.yakar.muster` for the calling side, `me.yakar.muster.rule` for writing rules, `me.yakar.muster.spi` for integrations.
+- JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call. `./gradlew jmh` runs them.
 
 [Unreleased]: https://github.com/mryakar/muster/commits/main

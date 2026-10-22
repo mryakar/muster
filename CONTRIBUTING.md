@@ -31,6 +31,20 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 - Every change comes with tests. The build requires 100% instruction, branch and line coverage.
 - Mutation testing (PIT) guards against tests that execute code without checking it.
 
+## Benchmarks
+
+`muster-benchmarks` measures with [JMH](https://github.com/openjdk/jmh) what Muster adds to a call,
+against the same rules called by hand. It is not published, and the build only compiles it.
+
+```bash
+./gradlew jmh
+```
+
+The run takes about six minutes and writes `muster-benchmarks/build/results/jmh/results.csv`, with
+the time and the allocation per call. `--args` selects benchmarks and overrides their settings, as
+in `./gradlew jmh --args="CheckBenchmark -f 1"`. For numbers worth comparing, run on a machine
+plugged in and otherwise idle, with a fixed CPU frequency.
+
 ## Dependencies
 
 Gradle verifies every dependency against the SHA-256 checksums in
