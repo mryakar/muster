@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins { id("muster.java-conventions") }
+plugins {
+  id("muster.java-conventions")
+  id("muster.publishing-conventions")
+}
 
 description = "Business rules checked before your service method runs."
 
