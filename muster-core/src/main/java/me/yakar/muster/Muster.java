@@ -72,7 +72,8 @@ public final class Muster {
   /**
    * The chains for rule targets, by the class of the input. Kept here rather than in a {@link
    * ClassValue}, which would keep the rules alive for as long as the input class, after this Muster
-   * is gone.
+   * is gone. A check reads it with {@code get}, which takes no lock; {@code computeIfAbsent} locks
+   * the bucket of a class that is not the first in it, even when the class is already bound.
    */
   private final ConcurrentMap<Class<?>, RuleChain<Object>> bound = new ConcurrentHashMap<>();
 
@@ -159,6 +160,7 @@ public final class Muster {
    * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
    * first check, and keeps it for as long as the Muster is used. It logs the bound rules at {@code
    * DEBUG}, or a warning if no rule binds, since that usually means a rule was not registered.
+   * Threads may check at the same time; the check of a class that is already bound takes no lock.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
@@ -169,7 +171,9 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    bound.computeIfAbsent(input.getClass(), binder).check(input);
+    var type = input.getClass();
+    var chain = bound.get(type);
+    (chain != null ? chain : bound.computeIfAbsent(type, binder)).check(input);
   }
 
   private RuleChain<Object> bind(Class<?> type) {
