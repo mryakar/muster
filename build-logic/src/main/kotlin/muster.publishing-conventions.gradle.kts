@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Publishes a module to Maven Central, with sources, API docs and a signed POM.
+// Publishes a module to Maven Central, with sources, API docs and a signed POM, and a library with
+// its software bill of materials.
+import org.cyclonedx.gradle.CyclonedxDirectTask
+import org.cyclonedx.model.Component
+
 plugins { id("com.vanniktech.maven.publish") }
 
 mavenPublishing {
@@ -52,6 +56,22 @@ mavenPublishing {
     issueManagement {
       system = "GitHub"
       url = "https://github.com/mryakar/muster/issues"
+    }
+  }
+}
+
+// The SBOM lists what a library brings to its users at run time, nothing the build uses.
+pluginManager.withPlugin("java-library") {
+  apply(plugin = "org.cyclonedx.bom")
+  val sbom =
+    tasks.named<CyclonedxDirectTask>("cyclonedxDirectBom") {
+      includeConfigs = listOf("runtimeClasspath")
+      projectType = Component.Type.LIBRARY
+    }
+  publishing.publications.withType<MavenPublication>().configureEach {
+    artifact(sbom.flatMap { it.jsonOutput }) {
+      classifier = "cyclonedx"
+      extension = "json"
     }
   }
 }
