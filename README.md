@@ -84,6 +84,7 @@ A rule that needs the time takes a `Clock` in its constructor, so that its tests
 | `muster-spring-boot-starter` | Spring Boot integration: AOP, transaction ordering, `ProblemDetail` responses. Coming in 0.2.0. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Compiled examples used by the documentation and the integration tests. |
+| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call. Not published. |
 
 ## Requirements
 
