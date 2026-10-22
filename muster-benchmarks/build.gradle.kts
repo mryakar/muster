@@ -27,14 +27,16 @@ dependencies {
 tasks.compileJava { options.compilerArgs.add("-Xlint:-processing") }
 
 // Runs every benchmark; --args selects some and overrides their settings, as in
-// --args="CheckBenchmark -f 1". The results are written as CSV, with the allocation per call.
+// --args="CheckBenchmark -f 1", except the result file and format. The results are written as CSV,
+// with the allocation per call.
 tasks.register<JavaExec>("jmh") {
   description = "Runs the JMH benchmarks."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "org.openjdk.jmh.Main"
   val results = layout.buildDirectory.file("results/jmh/results.csv")
-  outputs.file(results)
+  // A run measures the machine as it is now, so it never counts as up to date.
+  doNotTrackState("Benchmark results depend on the machine, not only on the inputs")
   argumentProviders.add {
     listOf("-prof", "gc", "-rf", "csv", "-rff", results.get().asFile.absolutePath)
   }
