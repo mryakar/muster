@@ -65,6 +65,9 @@ jobs:
     environment: release
     env:
       VERSION: ${{ needs.verify.outputs.version }}
+      # SIGNING_KEY holds only the signing subkey, so the build has to name it. Gradle takes the
+      # short id, the last 8 hex digits; without it, it looks for the primary key and fails.
+      ORG_GRADLE_PROJECT_signingInMemoryKeyId: 815A97C7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

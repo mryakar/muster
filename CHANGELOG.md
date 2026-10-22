@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Releases are signed with the signing subkey of the release key; the primary key no longer reaches the build.
+
 ## [0.1.0] - 2026-10-22
 
 ### Added
