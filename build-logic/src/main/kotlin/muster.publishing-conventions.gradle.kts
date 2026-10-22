@@ -17,6 +17,7 @@
 // its software bill of materials.
 import org.cyclonedx.gradle.CyclonedxDirectTask
 import org.cyclonedx.model.Component
+import org.cyclonedx.model.ExternalReference
 
 plugins { id("com.vanniktech.maven.publish") }
 
@@ -67,6 +68,16 @@ pluginManager.withPlugin("java-library") {
     tasks.named<CyclonedxDirectTask>("cyclonedxDirectBom") {
       includeConfigs = listOf("runtimeClasspath")
       projectType = Component.Type.LIBRARY
+      // A random serial number would make every build's SBOM differ.
+      includeBomSerialNumber = false
+      // The repository's public address, not whatever remote the build machine's clone uses.
+      externalReferences =
+        listOf(
+          ExternalReference().apply {
+            type = ExternalReference.Type.VCS
+            url = "https://github.com/mryakar/muster"
+          },
+        )
     }
   publishing.publications.withType<MavenPublication>().configureEach {
     artifact(sbom.flatMap { it.jsonOutput }) {
