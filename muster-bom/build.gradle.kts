@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins { `java-platform` }
+plugins {
+  `java-platform`
+  id("muster.publishing-conventions")
+}
 
 description = "Bill of materials that aligns the versions of the Muster modules."
 
 dependencies {
-  constraints {
-    api(project(":muster-core"))
-    api(project(":muster-spring-boot-starter"))
-  }
+  // The Spring Boot starter joins once it is published, in 0.2.0.
+  constraints { api(project(":muster-core")) }
 }
