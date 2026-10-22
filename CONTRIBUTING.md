@@ -81,55 +81,19 @@ contain only related changes. CI checks every commit message in a pull request.
 - Pull requests are merged with **rebase and merge** only, so every commit lands on `main` as-is.
   Rebase your branch onto `main` instead of merging `main` into it.
 
-## Releasing
+## Releases
 
-Maintainers release a version in these steps:
+The maintainer releases a version from a `vX.Y.Z` tag; the release workflow publishes it to Maven
+Central and GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
 
-1. A pull request sets the version in `gradle.properties` (for example `0.1.0`, or a pre-release
-   such as `1.0.0-rc.1`) and turns the changelog's `Unreleased` section into a section for that
-   version. At the end of the changelog it adds a link for the version,
-   `[0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0`, and points `[Unreleased]` at
-   `https://github.com/mryakar/muster/compare/v0.1.0...HEAD`.
-2. After it is merged, a `vX.Y.Z` tag on that commit of `main` starts the release workflow.
-3. The workflow checks the tag against the version, the changelog and `main`, builds, and runs the
-   consumer test in `consumer-test`. After a maintainer approves the run in the `release`
-   environment, it signs the artifacts, uploads them to the Maven Central Portal and drafts a
-   GitHub Release with the artifacts, signatures, SBOM and release notes.
-4. A maintainer checks the upload and publishes it in the Central Portal. Publishing cannot be
-   undone. Then they publish the GitHub Release. If the workflow has to run again after the upload,
-   drop the earlier deployment in the Portal first.
-5. A pull request moves the version to the next snapshot.
-
-To check the artifacts locally, publish them to the local repository and run the consumer test:
+To check what a build would publish, publish it to the local repository and run the consumer test,
+which uses Muster the way an application does:
 
 ```bash
 ./gradlew publishToMavenLocal
 ./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
 ./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)" -PpomOnly
 ```
-
-### Signing key
-
-Releases are signed with the OpenPGP key in [SECURITY.md](SECURITY.md#verifying-a-release). The
-build gets only its signing subkey, `46BA04A6815A97C7`, never the primary key. The `release`
-environment holds it in two secrets:
-
-- `SIGNING_KEY`: the subkey, exported with
-  `gpg --armor --export-secret-subkeys '46BA04A6815A97C7!'`. The `!` exports that subkey alone;
-  without it, the secrets of the other subkeys would reach the build too.
-- `SIGNING_KEY_PASSWORD`: its passphrase.
-
-The release workflow names the subkey by its short id, `815A97C7`, the last 8 hex digits of its
-id. The secrets live in the environment, not in the repository, and a change to them applies to
-the next run.
-
-The subkey expires on 2028-10-21. Extend it before then: the build does not check expiry and would
-sign with an expired subkey. After extending it, upload the public key to
-[keys.openpgp.org](https://keys.openpgp.org) again; `SIGNING_KEY` stays as it is, because an
-extension changes only the public key. When the subkey is replaced, upload the public key with the
-new subkey, export the new subkey into `SIGNING_KEY`, and in one pull request update its id in
-`.github/workflows/release.yml`, in this section and in SECURITY.md. Do both before the next tag; a
-mismatch fails at signing, before anything is uploaded.
 
 ## License
 
