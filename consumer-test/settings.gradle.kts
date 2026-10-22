@@ -17,9 +17,21 @@
 // only what Muster publishes: run it after publishing to the local repository.
 rootProject.name = "muster-consumer-test"
 
+// -PpomOnly reads only the POMs, as Maven users do, instead of the Gradle module metadata.
+val pomOnly = providers.gradleProperty("pomOnly").isPresent
+
 dependencyResolutionManagement {
   repositories {
-    mavenLocal()
-    mavenCentral()
+    mavenLocal {
+      content { includeGroup("me.yakar") }
+      if (pomOnly) {
+        metadataSources {
+          mavenPom()
+          artifact()
+          ignoreGradleMetadataRedirection()
+        }
+      }
+    }
+    mavenCentral { content { excludeGroup("me.yakar") } }
   }
 }
