@@ -66,22 +66,27 @@ contain only related changes. CI checks every commit message in a pull request.
 
 Maintainers release a version in these steps:
 
-1. A pull request sets the version in `gradle.properties` (for example `0.1.0`) and turns the
-   changelog's `Unreleased` section into a section for that version.
-2. After it is merged, a `vX.Y.Z` tag on that commit starts the release workflow. A maintainer
-   approves the run in the `release` environment.
-3. The workflow checks that the tag matches the version, builds, runs the consumer test in
-   `consumer-test`, and uploads the release to the Maven Central Portal. It drafts a GitHub Release
-   with the artifacts, signatures, SBOM and release notes.
+1. A pull request sets the version in `gradle.properties` (for example `0.1.0`, or a pre-release
+   such as `1.0.0-rc.1`) and turns the changelog's `Unreleased` section into a section for that
+   version. At the end of the changelog it adds a link for the version,
+   `[0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0`, and points `[Unreleased]` at
+   `https://github.com/mryakar/muster/compare/v0.1.0...HEAD`.
+2. After it is merged, a `vX.Y.Z` tag on that commit of `main` starts the release workflow.
+3. The workflow checks the tag against the version, the changelog and `main`, builds, and runs the
+   consumer test in `consumer-test`. After a maintainer approves the run in the `release`
+   environment, it signs the artifacts, uploads them to the Maven Central Portal and drafts a
+   GitHub Release with the artifacts, signatures, SBOM and release notes.
 4. A maintainer checks the upload and publishes it in the Central Portal. Publishing cannot be
-   undone. Then they publish the GitHub Release.
+   undone. Then they publish the GitHub Release. If the workflow has to run again after the upload,
+   drop the earlier deployment in the Portal first.
 5. A pull request moves the version to the next snapshot.
 
 To check the artifacts locally, publish them to the local repository and run the consumer test:
 
 ```bash
 ./gradlew publishToMavenLocal
-./gradlew -p consumer-test run -PmusterVersion=0.1.0-SNAPSHOT
+./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
+./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)" -PpomOnly
 ```
 
 ## License
