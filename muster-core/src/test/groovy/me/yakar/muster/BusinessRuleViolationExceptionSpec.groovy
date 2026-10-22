@@ -44,6 +44,15 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     messageFor([owner, ready]) == '2 business rule violations: request.not-owner, task.ready'
   }
 
+  def 'the message reaches the localized message and the description'() {
+    when:
+    def exception = new BusinessRuleViolationException([owner])
+
+    then:
+    exception.localizedMessage == '1 business rule violation: request.not-owner'
+    exception.toString() == BusinessRuleViolationException.name + ': 1 business rule violation: request.not-owner'
+  }
+
   def 'the exception keeps the violations in order and does not change with the given list'() {
     given:
     def violations = [ready, owner]
