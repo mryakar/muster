@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// The base conventions, and the quality gates of the projects that are tested and published:
+// Spock tests, full coverage, mutation testing and strict API docs.
 plugins {
+  id("muster.java-base-conventions")
   `java-library`
   groovy
   jacoco
-  id("com.diffplug.spotless")
   id("info.solidsoft.pitest")
 }
 
 val libs = versionCatalogs.named("libs")
 
 fun version(alias: String): String = libs.findVersion(alias).get().requiredVersion
-
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
-
-tasks.withType<JavaCompile>().configureEach {
-  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
-}
 
 // Internal packages are not exported, so the API docs leave them out. The source path lets the
 // documented classes still refer to them.
@@ -109,17 +105,10 @@ pitest {
   failWhenNoMutations = false
 }
 
-val licenseHeader = rootProject.file("config/spotless/license-header.txt")
-
 spotless {
-  java {
-    target("src/*/java/**/*.java")
-    googleJavaFormat(version("google-java-format"))
-    licenseHeaderFile(licenseHeader, "(package|import|module|open|@)")
-  }
   groovy {
     target("src/*/groovy/**/*.groovy")
     greclipse().configFile(rootProject.file("config/spotless/greclipse.properties"))
-    licenseHeaderFile(licenseHeader, "(package|import)")
+    licenseHeaderFile(rootProject.file("config/spotless/license-header.txt"), "(package|import)")
   }
 }
