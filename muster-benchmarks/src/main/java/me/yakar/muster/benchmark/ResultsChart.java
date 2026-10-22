@@ -20,11 +20,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import org.openjdk.jmh.annotations.Param;
 
 /**
  * Draws the results of {@link CheckBenchmark} as a line chart for the README: the time of a passing
@@ -111,12 +114,16 @@ public final class ResultsChart {
     var directory = Path.of(args[1]);
     var lines = Files.readAllLines(results);
     var scores = read(results, lines);
+    // Everything is drawn before anything is written, so a failure leaves the published files.
+    var charts = new LinkedHashMap<String, String>();
+    for (var theme : Theme.values()) {
+      charts.put("check-cost-" + theme.name + ".svg", draw(scores, theme));
+    }
     Files.createDirectories(directory);
     // JMH ends lines as the platform does; the copy ends them the same everywhere.
     Files.writeString(directory.resolve("results.csv"), String.join("\n", lines) + "\n");
-    for (var theme : Theme.values()) {
-      Files.writeString(
-          directory.resolve("check-cost-" + theme.name + ".svg"), draw(scores, theme));
+    for (var chart : charts.entrySet()) {
+      Files.writeString(directory.resolve(chart.getKey()), chart.getValue());
     }
   }
 
@@ -134,8 +141,10 @@ public final class ResultsChart {
     var score = header.indexOf("Score");
     var unit = header.indexOf("Unit");
     var rules = header.indexOf("Param: rules");
+    var violated = header.indexOf("Param: violated");
+    var checkMode = header.indexOf("Param: mode");
     var prefix = CheckBenchmark.class.getName() + ".";
-    var violations = false;
+    var violations = new HashSet<List<String>>();
     var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
     for (var line : lines.subList(1, lines.size())) {
       var cells = split(line);
@@ -157,18 +166,47 @@ public final class ResultsChart {
             .computeIfAbsent(name.substring(prefix.length()), key -> new TreeMap<>())
             .put(Integer.parseInt(cells.get(rules)), Double.parseDouble(cells.get(score)));
       }
-      violations |= name.startsWith(ViolationBenchmark.class.getName() + ".");
-    }
-    for (var series : SERIES) {
-      if (!scores.containsKey(series.benchmark())) {
-        throw new IllegalArgumentException(
-            results + " has no results of CheckBenchmark." + series.benchmark());
+      if (name.startsWith(ViolationBenchmark.class.getName() + ".")) {
+        violations.add(List.of(cells.get(violated), cells.get(checkMode)));
       }
     }
-    if (!violations) {
-      throw new IllegalArgumentException(results + " has no results of ViolationBenchmark");
+    var ruleCounts = new TreeSet<Integer>();
+    for (var count : params(CheckBenchmark.class, "rules")) {
+      ruleCounts.add(Integer.parseInt(count));
+    }
+    for (var series : SERIES) {
+      var measured = scores.getOrDefault(series.benchmark(), new TreeMap<>()).keySet();
+      if (!measured.equals(ruleCounts)) {
+        throw new IllegalArgumentException(
+            results
+                + " has CheckBenchmark."
+                + series.benchmark()
+                + " for "
+                + measured
+                + " rules, not for "
+                + ruleCounts);
+      }
+    }
+    var expected = new HashSet<List<String>>();
+    for (var count : params(ViolationBenchmark.class, "violated")) {
+      for (var checked : params(ViolationBenchmark.class, "mode")) {
+        expected.add(List.of(count, checked));
+      }
+    }
+    if (!violations.equals(expected)) {
+      throw new IllegalArgumentException(
+          results + " has ViolationBenchmark for " + violations + ", not for " + expected);
     }
     return scores;
+  }
+
+  /** Returns the values a benchmark declares for one of its parameters. */
+  private static List<String> params(Class<?> benchmark, String field) {
+    try {
+      return List.of(benchmark.getField(field).getAnnotation(Param.class).value());
+    } catch (NoSuchFieldException e) {
+      throw new IllegalStateException(benchmark.getSimpleName() + " has no parameter " + field, e);
+    }
   }
 
   /** Splits a line of JMH's CSV, whose text cells are quoted and hold no quotes or commas. */
