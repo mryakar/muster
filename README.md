@@ -61,7 +61,9 @@ Maven:
 
 The core is a Java module. An application that is a module too reads it with
 `requires me.yakar.muster;`. Each [release](https://github.com/mryakar/muster/releases) also
-carries the jars, their signatures and an SBOM.
+carries the jars and POMs, their signatures and an SBOM;
+[SECURITY.md](SECURITY.md#verifying-a-release) says how to verify them. Used without Maven or
+Gradle, the core also needs `org.jspecify:jspecify` to compile.
 
 ## Usage
 
@@ -139,7 +141,7 @@ held to.
 | `muster-core` | Rule contract, engine and plain Java API. Its only dependency is the JSpecify annotations. |
 | `muster-spring-boot-starter` | Spring Boot integration: AOP, transaction ordering, `ProblemDetail` responses. Coming in 0.2.0. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
-| `muster-examples` | Compiled examples used by the documentation and the integration tests. |
+| `muster-examples` | Compiled examples used by the documentation and the integration tests. Not published. |
 | `muster-benchmarks` | JMH benchmarks of what Muster adds to a call. Not published. |
 
 ## Requirements
