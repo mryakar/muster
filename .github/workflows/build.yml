@@ -64,3 +64,27 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+  consumer:
+    name: Consumer test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      # Without caches, as a release builds; this also checks that the dependency checksums are
+      # complete.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-disabled: true
+      - run: ./gradlew publishToMavenLocal
+      - name: Use the published artifacts as a consumer would
+        run: |
+          version="$(sed -n 's/^version=//p' gradle.properties)"
+          ./gradlew -p consumer-test run -PmusterVersion="$version"
+          ./gradlew -p consumer-test run -PmusterVersion="$version" -PpomOnly
