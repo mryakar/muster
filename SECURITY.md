@@ -21,6 +21,9 @@ gpg --keyserver hkps://keys.openpgp.org --recv-keys 4C3AF91B1B7F67BD50D28A406CCE
 gpg --verify muster-core-0.1.0.jar.asc muster-core-0.1.0.jar
 ```
 
+The signature may come from the key's signing subkey, `46BA04A6815A97C7`; `gpg` then names the
+subkey and reports the fingerprint above as the primary key's.
+
 ## Reporting a vulnerability
 
 Please do not report security vulnerabilities in public issues.
