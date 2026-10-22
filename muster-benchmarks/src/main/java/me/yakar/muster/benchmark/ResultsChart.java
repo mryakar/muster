@@ -36,7 +36,7 @@ public final class ResultsChart {
   private static final int WIDTH = 720;
   private static final int HEIGHT = 380;
   private static final int LEFT = 64;
-  private static final int RIGHT = 200;
+  private static final int RIGHT = 236;
   private static final int TOP = 20;
   private static final int BOTTOM = 56;
   private static final int MIN_LABEL_GAP = 18;
@@ -45,7 +45,7 @@ public final class ResultsChart {
 
   /** The colors of GitHub's light and dark themes, where the README is read. */
   private enum Theme {
-    LIGHT("light", "#1f2328", "#59636e", "#d1d9e0", "#ffffff", "#2a78d6", "#1baf7a", "#818b98"),
+    LIGHT("light", "#1f2328", "#59636e", "#d1d9e0", "#ffffff", "#2a78d6", "#169a6b", "#818b98"),
     DARK("dark", "#f0f6fc", "#9198a1", "#3d444d", "#0d1117", "#3987e5", "#199e70", "#9198a1");
 
     final String name;
@@ -120,28 +120,53 @@ public final class ResultsChart {
     }
   }
 
-  /** Reads the scores of {@link CheckBenchmark}: by benchmark, then by the number of rules. */
+  /**
+   * Reads the scores of {@link CheckBenchmark}: by benchmark, then by the number of rules. The
+   * results replace the published ones, so they must come from a full run in the default mode.
+   */
   private static Map<String, TreeMap<Integer, Double>> read(Path results, List<String> lines) {
+    if (lines.isEmpty()) {
+      throw new IllegalArgumentException(results + " is empty");
+    }
     var header = split(lines.getFirst());
     var benchmark = header.indexOf("Benchmark");
+    var mode = header.indexOf("Mode");
     var score = header.indexOf("Score");
+    var unit = header.indexOf("Unit");
     var rules = header.indexOf("Param: rules");
     var prefix = CheckBenchmark.class.getName() + ".";
+    var violations = false;
     var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
     for (var line : lines.subList(1, lines.size())) {
       var cells = split(line);
       var name = cells.get(benchmark);
-      if (name.startsWith(prefix) && !name.contains(":")) {
+      if (name.contains(":")) {
+        continue;
+      }
+      if (!cells.get(mode).equals("avgt") || !cells.get(unit).equals("ns/op")) {
+        throw new IllegalArgumentException(
+            name
+                + " was measured as "
+                + cells.get(mode)
+                + " in "
+                + cells.get(unit)
+                + "; the published results are average times in ns/op");
+      }
+      if (name.startsWith(prefix)) {
         scores
             .computeIfAbsent(name.substring(prefix.length()), key -> new TreeMap<>())
             .put(Integer.parseInt(cells.get(rules)), Double.parseDouble(cells.get(score)));
       }
+      violations |= name.startsWith(ViolationBenchmark.class.getName() + ".");
     }
     for (var series : SERIES) {
       if (!scores.containsKey(series.benchmark())) {
         throw new IllegalArgumentException(
             results + " has no results of CheckBenchmark." + series.benchmark());
       }
+    }
+    if (!violations) {
+      throw new IllegalArgumentException(results + " has no results of ViolationBenchmark");
     }
     return scores;
   }
@@ -272,6 +297,9 @@ public final class ResultsChart {
 
   /** The step between gridlines: a round number that gives at most six of them. */
   private static double step(double max) {
+    if (max <= 0) {
+      throw new IllegalArgumentException("the results have no positive score");
+    }
     for (var step : new double[] {10, 20, 25, 50, 100, 200, 250, 500, 1000}) {
       if (max / step <= 6) {
         return step;
@@ -286,7 +314,9 @@ public final class ResultsChart {
       text.append(series.label()).append(':');
       scores
           .get(series.benchmark())
-          .forEach((rules, ns) -> text.append(format(" %d rules %.0f ns,", rules, ns)));
+          .forEach(
+              (rules, ns) ->
+                  text.append(format(" %d %s %.1f ns,", rules, rules == 1 ? "rule" : "rules", ns)));
       text.setLength(text.length() - 1);
       text.append(". ");
     }
