@@ -24,6 +24,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Releases of `me.yakar:muster-core` and `me.yakar:muster-bom` on Maven Central, signed, with sources, API docs and, for the core, a CycloneDX SBOM.
 - The API is split by audience: `me.yakar.muster` for the calling side, `me.yakar.muster.rule` for writing rules, `me.yakar.muster.spi` for integrations.
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call. `./gradlew jmh` runs them.
-- The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 43 ns over calling them by hand.
+- The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 42 ns over calling them by hand.
 
 [Unreleased]: https://github.com/mryakar/muster/commits/main
