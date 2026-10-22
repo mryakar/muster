@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
@@ -74,6 +75,9 @@ public final class Muster {
    * is gone.
    */
   private final ConcurrentMap<Class<?>, RuleChain<Object>> bound = new ConcurrentHashMap<>();
+
+  /** Binds a class to its rules. A field, so that a check does not create it on every call. */
+  private final Function<Class<?>, RuleChain<Object>> binder = this::bind;
 
   private Muster(
       Map<Class<?>, PreparedRule> rules,
@@ -165,7 +169,7 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    bound.computeIfAbsent(input.getClass(), this::bind).check(input);
+    bound.computeIfAbsent(input.getClass(), binder).check(input);
   }
 
   private RuleChain<Object> bind(Class<?> type) {
