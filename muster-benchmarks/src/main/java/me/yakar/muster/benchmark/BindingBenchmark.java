@@ -41,7 +41,9 @@ import org.openjdk.jmh.annotations.Warmup;
  * already bound. Muster keeps the chain of each class in a hash map; two classes whose hashes fall
  * into the same bucket of it are bound one after the other, and the benchmark checks the first or
  * the second of them. Which classes share a bucket depends on their identity hashes, so it changes
- * from run to run; with seventeen classes and sixteen buckets, two always do.
+ * from run to run; with seventeen classes and sixteen buckets, two always do. The buckets are those
+ * of a ConcurrentHashMap of default size, as Muster's map of chains is; should that change, so must
+ * {@link #bucket}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
