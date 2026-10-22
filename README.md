@@ -60,8 +60,9 @@ Maven:
 ```
 
 The core is a Java module. An application that is a module too reads it with
-`requires me.yakar.muster;`. Each [release](https://github.com/mryakar/muster/releases) also
-carries the jars and POMs, their signatures and an SBOM;
+`requires me.yakar.muster;`. From 0.2.0 on, each
+[release](https://github.com/mryakar/muster/releases) also carries the jars and POMs, their
+signatures and an SBOM; those of 0.1.0 are on Maven Central only.
 [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify them. Used without Maven or
 Gradle, the core also needs `org.jspecify:jspecify` to compile.
 
