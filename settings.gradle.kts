@@ -24,4 +24,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "muster"
 
-include("muster-core", "muster-spring-boot-starter", "muster-bom", "muster-examples")
+include(
+  "muster-core",
+  "muster-spring-boot-starter",
+  "muster-bom",
+  "muster-examples",
+  "muster-benchmarks",
+)
