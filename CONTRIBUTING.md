@@ -115,14 +115,21 @@ build gets only its signing subkey, `46BA04A6815A97C7`, never the primary key. T
 environment holds it in two secrets:
 
 - `SIGNING_KEY`: the subkey, exported with
-  `gpg --armor --export-secret-subkeys '46BA04A6815A97C7!'`. The `!` exports that subkey alone.
+  `gpg --armor --export-secret-subkeys '46BA04A6815A97C7!'`. The `!` exports that subkey alone;
+  without it, the secrets of the other subkeys would reach the build too.
 - `SIGNING_KEY_PASSWORD`: its passphrase.
 
 The release workflow names the subkey by its short id, `815A97C7`, the last 8 hex digits of its
-id. The subkey expires on 2028-10-21. When it is extended, upload the public key to
-[keys.openpgp.org](https://keys.openpgp.org) again, so that signatures still verify. When it is
-replaced, export the new subkey into `SIGNING_KEY` and update the id in
-`.github/workflows/release.yml` in the same pull request.
+id. The secrets live in the environment, not in the repository, and a change to them applies to
+the next run.
+
+The subkey expires on 2028-10-21. Extend it before then: the build does not check expiry and would
+sign with an expired subkey. After extending it, upload the public key to
+[keys.openpgp.org](https://keys.openpgp.org) again; `SIGNING_KEY` stays as it is, because an
+extension changes only the public key. When the subkey is replaced, upload the public key with the
+new subkey, export the new subkey into `SIGNING_KEY`, and in one pull request update its id in
+`.github/workflows/release.yml`, in this section and in SECURITY.md. Do both before the next tag; a
+mismatch fails at signing, before anything is uploaded.
 
 ## License
 
