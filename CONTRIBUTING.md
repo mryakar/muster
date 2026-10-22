@@ -35,10 +35,11 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 
 Gradle verifies every dependency against the SHA-256 checksums in
 `gradle/verification-metadata.xml`. When you add or update a dependency, update the file with the
-tasks that resolve it, and review what changed:
+tasks that resolve it, and review what changed. `--refresh-dependencies` makes Gradle read parent
+and BOM POMs again, which it would otherwise take from its cache without recording them:
 
 ```bash
-./gradlew --write-verification-metadata sha256 --no-configuration-cache --rerun-tasks build pitest publishToMavenLocal
+./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks build pitest publishToMavenLocal
 ```
 
 Dependabot does not update the file, so its pull requests need the same step.
