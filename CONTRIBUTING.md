@@ -108,6 +108,22 @@ To check the artifacts locally, publish them to the local repository and run the
 ./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)" -PpomOnly
 ```
 
+### Signing key
+
+Releases are signed with the OpenPGP key in [SECURITY.md](SECURITY.md#verifying-a-release). The
+build gets only its signing subkey, `46BA04A6815A97C7`, never the primary key. The `release`
+environment holds it in two secrets:
+
+- `SIGNING_KEY`: the subkey, exported with
+  `gpg --armor --export-secret-subkeys '46BA04A6815A97C7!'`. The `!` exports that subkey alone.
+- `SIGNING_KEY_PASSWORD`: its passphrase.
+
+The release workflow names the subkey by its short id, `815A97C7`, the last 8 hex digits of its
+id. The subkey expires on 2028-10-21. When it is extended, upload the public key to
+[keys.openpgp.org](https://keys.openpgp.org) again, so that signatures still verify. When it is
+replaced, export the new subkey into `SIGNING_KEY` and update the id in
+`.github/workflows/release.yml` in the same pull request.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the
