@@ -41,9 +41,10 @@ against the same rules called by hand. It is not published, and the build only c
 ```
 
 The run takes about six minutes and writes `muster-benchmarks/build/results/jmh/results.csv`, with
-the time and the allocation per call. `--args` selects benchmarks and overrides their settings, as
-in `./gradlew jmh --args="CheckBenchmark -f 1"`. For numbers worth comparing, run on a machine
-plugged in and otherwise idle, with a fixed CPU frequency.
+the time and the allocation per call. `--args` selects benchmarks and overrides their settings,
+except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -f 1"`. For numbers
+worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a fixed CPU
+frequency.
 
 ## Dependencies
 
