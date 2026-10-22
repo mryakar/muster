@@ -42,3 +42,16 @@ tasks.register<JavaExec>("jmh") {
   }
   doFirst { results.get().asFile.parentFile.mkdirs() }
 }
+
+// Copies the results of the last run to docs/benchmarks and draws the chart that the README shows.
+tasks.register<JavaExec>("jmhReport") {
+  description = "Publishes the results of the last JMH run to docs/benchmarks, with a chart."
+  group = "benchmark"
+  classpath = sourceSets.main.get().runtimeClasspath
+  mainClass = "me.yakar.muster.benchmark.ResultsChart"
+  val results = layout.buildDirectory.file("results/jmh/results.csv")
+  val docs = layout.settingsDirectory.dir("docs/benchmarks")
+  inputs.file(results)
+  outputs.dir(docs)
+  args(results.get().asFile.absolutePath, docs.asFile.absolutePath)
+}
