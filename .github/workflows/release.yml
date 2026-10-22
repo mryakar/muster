@@ -140,6 +140,7 @@ jobs:
   # Runs after a maintainer has published the upload in the Central Portal and approved this job in
   # the release-publish environment. It publishes the draft only once Maven Central serves the jar
   # that was tested, so that a release on GitHub never points at a version Central does not have.
+  # Until it ends, the next tag's run waits in the concurrency group.
   publish-github-release:
     name: Publish the GitHub Release
     needs: [verify, github-release]
@@ -149,25 +150,38 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Wait until Maven Central serves the tested jar
+      - name: Wait until Maven Central serves the version
+        shell: bash
         run: |
-          url="https://repo1.maven.org/maven2/me/yakar/muster/muster-core/$VERSION/muster-core-$VERSION.jar"
-          until curl -fsS -o muster-core.jar "$url"; do
-            echo "Maven Central does not serve $url yet"
+          central="https://repo1.maven.org/maven2/me/yakar/muster"
+          core="$central/muster-core/$VERSION/muster-core-$VERSION.jar"
+          bom="$central/muster-bom/$VERSION/muster-bom-$VERSION.pom"
+          until curl -fsS --max-time 60 -o muster-core.jar "$core" &&
+            curl -fsS --max-time 60 -o /dev/null "$bom"; do
+            echo "Maven Central does not serve $VERSION yet"
             sleep 60
           done
           echo "$TESTED  muster-core.jar" | sha256sum --check
         env:
           VERSION: ${{ needs.verify.outputs.version }}
           TESTED: ${{ needs.verify.outputs.jar-sha256 }}
+      # By id, from the same listing that is checked: a lookup by tag could find another release.
       - name: Publish the draft
+        shell: bash
         run: |
-          drafts="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
-            --jq ".[] | select(.draft and .tag_name == \"$GITHUB_REF_NAME\") | .id" | wc -l)"
+          releases="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq '.[] | select(.tag_name == env.GITHUB_REF_NAME) | "\(.id) \(.draft)"')"
+          drafts="$(grep -c ' true$' <<< "$releases" || true)"
+          published="$(grep -c ' false$' <<< "$releases" || true)"
+          if [[ "$published" -ne 0 ]]; then
+            echo "$GITHUB_REF_NAME already has a published release" >&2
+            exit 1
+          fi
           if [[ "$drafts" -ne 1 ]]; then
             echo "expected one draft release for $GITHUB_REF_NAME, found $drafts" >&2
             exit 1
           fi
-          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+          id="$(grep ' true$' <<< "$releases" | cut -d' ' -f1)"
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$id" -F draft=false --jq .html_url
         env:
           GH_TOKEN: ${{ github.token }}
