@@ -80,7 +80,7 @@ A rule that needs the time takes a `Clock` in its constructor, so that its tests
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 370 ns and muster.check(target) 425 ns, against 268 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 369 ns and muster.check(target) 383 ns, against 274 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
 </picture>
 
 Muster checks and orders the rules of a chain once, when the chain is created, and does no
