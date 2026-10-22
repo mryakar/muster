@@ -16,8 +16,10 @@
 package me.yakar.muster
 
 import java.lang.ref.WeakReference
+import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 
 /** Checking rule targets with rules bound by type. */
@@ -166,6 +168,48 @@ class TypeBindingSpec extends EngineSpecification {
     then:
     logged*.message == [
       "Rules bound to ${CreateVehicle.name}: [vehicle.name-unique]"
+    ]
+
+    cleanup:
+    pool.shutdownNow()
+    log.level = null
+  }
+
+  def 'threads that keep checking classes, bound or not yet, each get the rules of their class'() {
+    given:
+    log.level = Level.FINE
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(16)
+    def runs = (1..16).collect {
+      pool.submit({
+        start.await()
+        def wrong = 0
+        1_000.times {
+          try {
+            muster.check(INVALID)
+            wrong++
+          } catch (BusinessRuleViolationException e) {
+            if (e.violations()*.ruleId() != ['vehicle.code-format']) {
+              wrong++
+            }
+          }
+          muster.check(VALID)
+          muster.check(new Unbound('text'))
+        }
+        wrong
+      } as Callable<Integer>)
+    }
+
+    when:
+    start.countDown()
+    def mistakes = runs.collect { it.get(1, TimeUnit.MINUTES) }
+
+    then: 'every check saw the rules of its class, and each class was bound once'
+    mistakes.every { it == 0 }
+    logged*.message.toSorted() == [
+      "No rule binds to ${Unbound.name}; check that its rules are registered, enabled and accept it",
+      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
     ]
 
     cleanup:
