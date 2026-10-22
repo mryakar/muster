@@ -125,7 +125,8 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release
-      # A draft: a maintainer publishes it together with the release in the Central Portal.
+      # A draft, so that the files are in place before the release becomes immutable. The next job
+      # publishes it.
       - run: |
           prerelease=()
           if [[ "$VERSION" == *-* ]]; then prerelease=(--prerelease); fi
@@ -135,3 +136,38 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.verify.outputs.version }}
+
+  # Runs after a maintainer has published the upload in the Central Portal and approved this job in
+  # the release-publish environment. It publishes the draft only once Maven Central serves the jar
+  # that was tested, so that a release on GitHub never points at a version Central does not have.
+  publish-github-release:
+    name: Publish the GitHub Release
+    needs: [verify, github-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: release-publish
+    permissions:
+      contents: write
+    steps:
+      - name: Wait until Maven Central serves the tested jar
+        run: |
+          url="https://repo1.maven.org/maven2/me/yakar/muster/muster-core/$VERSION/muster-core-$VERSION.jar"
+          until curl -fsS -o muster-core.jar "$url"; do
+            echo "Maven Central does not serve $url yet"
+            sleep 60
+          done
+          echo "$TESTED  muster-core.jar" | sha256sum --check
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          TESTED: ${{ needs.verify.outputs.jar-sha256 }}
+      - name: Publish the draft
+        run: |
+          drafts="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.draft and .tag_name == \"$GITHUB_REF_NAME\") | .id" | wc -l)"
+          if [[ "$drafts" -ne 1 ]]; then
+            echo "expected one draft release for $GITHUB_REF_NAME, found $drafts" >&2
+            exit 1
+          fi
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+        env:
+          GH_TOKEN: ${{ github.token }}
