@@ -16,6 +16,7 @@
 plugins { `kotlin-dsl` }
 
 dependencies {
+  implementation(libs.cyclonedx.gradle.plugin)
   implementation(libs.maven.publish.gradle.plugin)
   implementation(libs.pitest.gradle.plugin)
   implementation(libs.spotless.gradle.plugin)
