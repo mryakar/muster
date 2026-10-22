@@ -21,6 +21,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Switching rules off by id with `disable`, without changing code.
 - Check modes: `FAIL_FAST`, the default, stops at the first violated rule; `COLLECT_ALL` reports the violations of every rule. Muster has a mode, and a chain can override it with `withMode`.
 - `muster-core` depends only on the JSpecify annotations, which carry the API's null contract.
+- Releases of `me.yakar:muster-core` and `me.yakar:muster-bom` on Maven Central, signed, with sources, API docs and, for the core, a CycloneDX SBOM.
 - The API is split by audience: `me.yakar.muster` for the calling side, `me.yakar.muster.rule` for writing rules, `me.yakar.muster.spi` for integrations.
 
 [Unreleased]: https://github.com/mryakar/muster/commits/main
