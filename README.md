@@ -31,8 +31,8 @@ Gradle:
 
 ```kotlin
 dependencies {
-  implementation(platform("me.yakar:muster-bom:0.1.0"))
-  implementation("me.yakar:muster-core")
+  implementation(platform("me.yakar.muster:muster-bom:0.1.0"))
+  implementation("me.yakar.muster:muster-core")
 }
 ```
 
@@ -42,7 +42,7 @@ Maven:
 <dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>me.yakar</groupId>
+      <groupId>me.yakar.muster</groupId>
       <artifactId>muster-bom</artifactId>
       <version>0.1.0</version>
       <type>pom</type>
@@ -53,7 +53,7 @@ Maven:
 
 <dependencies>
   <dependency>
-    <groupId>me.yakar</groupId>
+    <groupId>me.yakar.muster</groupId>
     <artifactId>muster-core</artifactId>
   </dependency>
 </dependencies>

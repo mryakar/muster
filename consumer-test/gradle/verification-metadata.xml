@@ -5,7 +5,7 @@
       <verify-signatures>false</verify-signatures>
       <trusted-artifacts>
          <!-- Muster's own artifacts, freshly published to the local repository: the test checks them. -->
-         <trust group="me.yakar"/>
+         <trust group="me.yakar.muster"/>
       </trusted-artifacts>
    </configuration>
    <components>

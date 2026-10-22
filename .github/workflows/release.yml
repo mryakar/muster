@@ -50,7 +50,7 @@ jobs:
       - id: jar
         name: Record the checksum of the tested jar
         run: |
-          sha256="$(sha256sum ~/.m2/repository/me/yakar/muster-core/"$VERSION"/muster-core-"$VERSION".jar | cut -d' ' -f1)"
+          sha256="$(sha256sum ~/.m2/repository/me/yakar/muster/muster-core/"$VERSION"/muster-core-"$VERSION".jar | cut -d' ' -f1)"
           echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -86,13 +86,13 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Check that the jar is the one that was tested
         run: |
-          echo "$TESTED  $HOME/.m2/repository/me/yakar/muster-core/$VERSION/muster-core-$VERSION.jar" | sha256sum --check
+          echo "$TESTED  $HOME/.m2/repository/me/yakar/muster/muster-core/$VERSION/muster-core-$VERSION.jar" | sha256sum --check
         env:
           TESTED: ${{ needs.verify.outputs.jar-sha256 }}
       - name: Collect the release files
         run: |
           mkdir -p release
-          cp ~/.m2/repository/me/yakar/muster-*/"$VERSION"/muster-* release/
+          cp ~/.m2/repository/me/yakar/muster/muster-*/"$VERSION"/muster-* release/
           .github/scripts/release-notes.sh "$VERSION" > release-notes.md
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

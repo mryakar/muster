@@ -27,7 +27,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Switching rules off by id with `disable`, without changing code.
 - Check modes: `FAIL_FAST`, the default, stops at the first violated rule; `COLLECT_ALL` reports the violations of every rule. Muster has a mode, and a chain can override it with `withMode`.
 - `muster-core` depends only on the JSpecify annotations, which carry the API's null contract.
-- Releases of `me.yakar:muster-core` and `me.yakar:muster-bom` on Maven Central, signed, with sources, API docs and, for the core, a CycloneDX SBOM.
+- Releases of `me.yakar.muster:muster-core` and `me.yakar.muster:muster-bom` on Maven Central, signed, with sources, API docs and, for the core, a CycloneDX SBOM.
 - The API is split by audience: `me.yakar.muster` for the calling side, `me.yakar.muster.rule` for writing rules, `me.yakar.muster.spi` for integrations.
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call, also from many threads at once. `./gradlew jmh` runs them.
 - The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 100 ns over calling them by hand.
