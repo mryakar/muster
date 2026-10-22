@@ -26,8 +26,8 @@ public final class RuleIds {
   private RuleIds() {}
 
   /**
-   * Returns whether a string is a valid rule id. Rule contexts are built on every check, so this
-   * walks the characters once instead of running a regular expression.
+   * Returns whether a string is a valid rule id. It walks the characters once instead of running a
+   * regular expression, since tests and applications may build many rule contexts.
    *
    * @param id the string
    * @return whether it is a valid rule id
