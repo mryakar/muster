@@ -7,11 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- Releases are signed with the release key's signing subkey, `46BA04A6815A97C7`. Signatures still verify against the key `4C3AF91B1B7F67BD50D28A406CCE03949E2A4A49` in SECURITY.md.
-
-## [0.1.0] - 2026-10-22
+## [0.1.0] - 2026-10-23
 
 ### Added
 
