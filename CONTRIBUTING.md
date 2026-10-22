@@ -83,8 +83,8 @@ contain only related changes. CI checks every commit message in a pull request.
 
 ## Releases
 
-The maintainer releases a version from a `vX.Y.Z` tag; the release workflow publishes it to Maven
-Central and GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
+The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uploads it to Maven
+Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
 
 To check what a build would publish, publish it to the local repository and run the consumer test,
 which uses Muster the way an application does:
