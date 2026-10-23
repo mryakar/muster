@@ -67,10 +67,25 @@ check() {
   fi
 }
 
-check "key $fingerprint" "$(grep -m1 '^pub:' <<<"$listing")"
-line="$(grep -E "^sub:[^:]*:[^:]*:[^:]*:$subkey:" <<<"$listing" || true)"
+# The lines of the key whose own fingerprint is the one asked for. gpg also lists a key that only
+# has it as the fingerprint of a subkey.
+key_lines="$(awk -F: -v fpr="$fingerprint" '
+  /^pub:/ { pub = $0; keep = 0; next }
+  /^fpr:/ && pub != "" { keep = ($10 == fpr); if (keep) print pub; pub = ""; next }
+  keep' <<<"$listing")"
+if [[ -z "$key_lines" ]]; then
+  echo "$fingerprint is not the fingerprint of a primary key on keys.openpgp.org" >&2
+  exit 1
+fi
+
+check "key $fingerprint" "$(head -n1 <<<"$key_lines")"
+line="$(grep -E "^sub:[^:]*:[^:]*:[^:]*:$subkey:" <<<"$key_lines" || true)"
 if [[ -z "$line" ]]; then
   echo "key $fingerprint has no subkey $subkey" >&2
+  exit 1
+fi
+if [[ "$(wc -l <<<"$line")" -ne 1 ]]; then
+  echo "key $fingerprint has more than one subkey $subkey" >&2
   exit 1
 fi
 if [[ "$(cut -d: -f12 <<<"$line")" != *s* ]]; then
