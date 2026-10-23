@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Checks, on keys.openpgp.org, that the release signing key and its signing subkey are published,
-# not revoked and not expired. Gradle signs with an expired key as well, and users verify the
-# signatures against the published key, so a release must not start with a key that fails there.
+# Checks, on keys.openpgp.org, that the release signing key and its signing subkey are published
+# and valid: neither is revoked, expired, invalid or disabled, and the subkey can sign. Gradle signs
+# with an expired key as well, and users verify the signatures against the published key, so a
+# release must not start with a key that fails there.
 set -euo pipefail
 
 fingerprint="${1:?usage: check-signing-key.sh <key fingerprint> <signing subkey id>}"
