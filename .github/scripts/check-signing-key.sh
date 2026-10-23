@@ -27,8 +27,8 @@ subkey="${subkey^^}"
 home="$(mktemp -d)"
 trap 'rm -rf "$home"' EXIT
 
-if ! key="$(curl -fsS --retry 3 "https://keys.openpgp.org/vks/v1/by-fingerprint/$fingerprint")"; then
-  echo "key $fingerprint is not on keys.openpgp.org" >&2
+if ! key="$(curl -fsS --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors "https://keys.openpgp.org/vks/v1/by-fingerprint/$fingerprint")"; then
+  echo "could not fetch key $fingerprint from keys.openpgp.org; a 404 means it is not there" >&2
   exit 1
 fi
 if ! errors="$(gpg --homedir "$home" --batch --quiet --import <<<"$key" 2>&1)"; then
