@@ -31,9 +31,15 @@ if ! key="$(curl -fsS --retry 3 "https://keys.openpgp.org/vks/v1/by-fingerprint/
   echo "key $fingerprint is not on keys.openpgp.org" >&2
   exit 1
 fi
-gpg --homedir "$home" --batch --quiet --import <<<"$key" 2>/dev/null
+if ! errors="$(gpg --homedir "$home" --batch --quiet --import <<<"$key" 2>&1)"; then
+  echo "keys.openpgp.org answered with no key that gpg can import for $fingerprint:" >&2
+  echo "$errors" >&2
+  exit 1
+fi
+# keys.openpgp.org serves a key without its user IDs until the address is verified, and gpg skips
+# such a key, as it would for a user who follows SECURITY.md.
 if ! listing="$(gpg --homedir "$home" --batch --with-colons --fixed-list-mode --list-keys "$fingerprint" 2>/dev/null)"; then
-  echo "key $fingerprint is not on keys.openpgp.org" >&2
+  echo "key $fingerprint is not on keys.openpgp.org, or is there without a verified user ID" >&2
   exit 1
 fi
 
