@@ -36,6 +36,7 @@ import me.yakar.muster.spring.fixture.prototype.PrototypeRule
 import org.springframework.aop.framework.ProxyFactory
 import org.springframework.beans.factory.FactoryBean
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
+import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -189,6 +190,37 @@ class MusterAutoConfigurationSpec extends Specification {
   @Configuration(proxyBeanMethods = false)
   @AutoConfigurationPackage(basePackageClasses = DependsOnMissing)
   static class DependsOnPackage {}
+
+  @Configuration(proxyBeanMethods = false)
+  static class SameRuleTwice {
+    @Bean
+    OtherRule first() {
+      new OtherRule()
+    }
+
+    @Bean
+    OtherRule second() {
+      new OtherRule()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class RuleBehindInterfaceProxy {
+    @Bean
+    OtherRule otherRule() {
+      new OtherRule()
+    }
+
+    /** Wraps the rule in a proxy based on its interfaces, as Spring does without class proxies. */
+    @Bean
+    static BeanPostProcessor interfaceProxies() {
+      new BeanPostProcessor() {
+            Object postProcessAfterInitialization(Object bean, String name) {
+              bean instanceof OtherRule ? new ProxyFactory(bean).proxy : bean
+            }
+          }
+    }
+  }
 
   @Configuration(proxyBeanMethods = false)
   static class OwnMuster {
@@ -457,6 +489,22 @@ class MusterAutoConfigurationSpec extends Specification {
     configuration || message
     RuleDeclaredAsInterface || "the rule bean 'vague' is declared as me.yakar.muster.rule.BusinessRule, which has no @Rule; declare the rule's own class as the type of its @Bean method"
     UnannotatedRule || "the rule bean 'unannotated' is a me.yakar.muster.spring.fixture.app.Unannotated, which has no @Rule; give the rule an id with @Rule"
+  }
+
+  def 'two rule beans of one class stop the application'() {
+    expect:
+    runner.withUserConfiguration(SameRuleTwice).run { context ->
+      assert rootCause(context.startupFailure).message ==
+      "the rule beans 'first' and 'second' are both a me.yakar.muster.spring.fixture.other.OtherRule; Muster creates each rule once, so define it once"
+    }
+  }
+
+  def 'a rule bean behind a proxy based on interfaces stops the application with a hint'() {
+    expect:
+    runner.withUserConfiguration(RuleBehindInterfaceProxy).run { context ->
+      assert rootCause(context.startupFailure).message ==
+      "the rule bean 'otherRule' is a proxy based on interfaces, which is no me.yakar.muster.spring.fixture.other.OtherRule; let Spring proxy classes, as spring.aop.proxy-target-class=true does"
+    }
   }
 
   def 'a Muster of the application replaces the one built here'() {

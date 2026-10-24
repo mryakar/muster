@@ -86,11 +86,14 @@ public final class MusterAutoConfiguration {
       ConfigurableListableBeanFactory beanFactory,
       Environment environment,
       ObjectProvider<SecurityCaller> securityCaller) {
-    var ruleClasses = RuleCatalog.ruleClasses(beanFactory);
+    var ruleBeans = RuleCatalog.ruleBeans(beanFactory);
+    var ruleClasses = RuleCatalog.classes(ruleBeans);
     var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
     Supplier<? extends @Nullable Principal> noCaller = () -> null;
     return Muster.builder()
-        .rules(ruleClass -> beanFactory.getBean(ruleClass), ruleClasses)
+        .rules(
+            ruleClass -> RuleCatalog.instance(beanFactory, ruleBeans.get(ruleClass), ruleClass),
+            ruleClasses)
         .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
         .mode(RuleSwitches.mode(environment))
         .caller(
