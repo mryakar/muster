@@ -193,6 +193,19 @@ class RuleGraphSpec extends Specification {
     ]
   }
 
+  def 'a rule that no listed rule requires comes after its requirements, whatever their ids'() {
+    expect:
+    order([
+      rule(A, 'z-listed'),
+      rule(B, 'a-tail', [C]),
+      rule(C, 'b-tail-needed')
+    ], [A])*.id() == [
+      'z-listed',
+      'b-tail-needed',
+      'a-tail'
+    ]
+  }
+
   def 'a rule that requires several rules comes after all of them'() {
     expect:
     order([
