@@ -276,8 +276,9 @@ abstract class EngineSpecification extends Specification {
 
   def amo = { 'amo' } as Principal
 
-  List<String> ran = []
-  // Threads log at the same time in the concurrency tests; a plain list would lose records.
+  List<String> ran = new CopyOnWriteArrayList<String>()
+  // Threads run rules and log at the same time in the concurrency tests; a plain list would lose
+  // entries.
   List<LogRecord> logged = new CopyOnWriteArrayList<LogRecord>()
   Logger log = Logger.getLogger('me.yakar.muster')
   Handler handler = new Handler() {
