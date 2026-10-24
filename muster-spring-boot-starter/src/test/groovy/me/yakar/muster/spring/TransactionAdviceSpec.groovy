@@ -27,8 +27,11 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.Ordered
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
+import org.springframework.transaction.interceptor.TransactionAttributeSource
+import org.springframework.transaction.support.AbstractPlatformTransactionManager
 import spock.lang.Specification
 
 class TransactionAdviceSpec extends Specification {
@@ -52,11 +55,28 @@ class TransactionAdviceSpec extends Specification {
   }
 
   @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement
+  static class TransactionsWithoutSynchronization {
+    @Bean
+    PlatformTransactionManager transactionManager() {
+      new FakeTransactionManager(AbstractPlatformTransactionManager.SYNCHRONIZATION_NEVER)
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
   @EnableTransactionManagement(order = 0)
   static class TransactionsWithOrder {
     @Bean
     PlatformTransactionManager transactionManager() {
       new FakeTransactionManager()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class SecondAttributeSource {
+    @Bean
+    TransactionAttributeSource secondAttributeSource() {
+      new AnnotationTransactionAttributeSource()
     }
   }
 
@@ -83,12 +103,36 @@ class TransactionAdviceSpec extends Specification {
     'plain' || false
   }
 
-  def 'without transaction management, nothing is moved or checked'() {
+  def 'a method that requires a transaction fails when its rules run with none active'() {
     expect:
-    runner.run { context ->
+    runner.withUserConfiguration(TransactionsWithoutSynchronization).run { context ->
+      def service = context.getBean(TransactionalService)
+      try {
+        service.required('call')
+        assert false: 'the call passed'
+      } catch (IllegalStateException e) {
+        assert e.message == 'TransactionalService.required(String) runs in a transaction, but its rules ran with none active; the transaction advice must run around Muster\'s'
+      }
+      assert TransactionProbe.IN_TRANSACTION.isEmpty()
+      service.supports('call')
+    }
+  }
+
+  def 'without transaction management, or with a lookup that is not unique, nothing is guarded: #configurations.simpleName'() {
+    expect:
+    runner.withUserConfiguration(configurations as Class[]).run { context ->
       context.getBean(TransactionalService).required('call')
       assert TransactionProbe.IN_TRANSACTION == [false]
     }
+
+    where:
+    configurations << [
+      [],
+      [
+        TransactionsWithoutSynchronization,
+        SecondAttributeSource
+      ]
+    ]
   }
 
   def 'without Spring transactions on the class path, rules still run'() {
