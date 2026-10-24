@@ -17,10 +17,19 @@ plugins { id("muster.java-conventions") }
 
 description = "Spring Boot integration for Muster."
 
+// The Spring Boot to build and test against; -PspringBootVersion tests another one. What is
+// published always names the oldest supported version, and no platform: an application's own
+// Spring Boot manages the versions.
+val springBootVersion =
+  providers
+    .gradleProperty("springBootVersion")
+    .getOrElse(libs.versions.spring.boot.asProvider().get())
+val springBoot = "org.springframework.boot:spring-boot-dependencies:$springBootVersion"
+
 dependencies {
   api(project(":muster-core"))
-  api(platform(libs.spring.boot.dependencies))
-  api("org.springframework.boot:spring-boot-autoconfigure")
+  api(libs.spring.boot.autoconfigure)
+  compileOnly(platform(springBoot))
   // Optional: the caller comes from Spring Security when the application has it.
   compileOnly("org.springframework.security:spring-security-core")
 }
@@ -29,7 +38,7 @@ testing {
   suites {
     named<JvmTestSuite>("test") {
       dependencies {
-        implementation(platform(libs.spring.boot.dependencies))
+        implementation(platform(springBoot))
         implementation("org.springframework.boot:spring-boot-starter-test")
         implementation("org.springframework.security:spring-security-core")
       }
@@ -37,7 +46,7 @@ testing {
     register<JvmTestSuite>("integrationTest") {
       dependencies {
         implementation(project())
-        implementation(platform(libs.spring.boot.dependencies))
+        implementation(platform(springBoot))
         implementation("org.spockframework:spock-spring")
         implementation("org.springframework.boot:spring-boot-starter-jdbc")
         implementation("org.springframework.boot:spring-boot-starter-test")
