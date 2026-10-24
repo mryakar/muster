@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.i18n.LocaleContextHolder
 import org.springframework.security.authentication.AnonymousAuthenticationToken
+import org.springframework.security.authentication.RememberMeAuthenticationToken
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.AuthorityUtils
 import org.springframework.security.core.context.SecurityContext
@@ -135,7 +136,7 @@ class CallerAndLocaleSpec extends Specification {
     runner.run { assert reported(it.getBean(Muster)).caller == 'ece' }
   }
 
-  def 'a call without authentication or with an anonymous one has no caller: #authentication'() {
+  def 'a call that is not authenticated, or anonymously, has no caller: #authentication'() {
     given:
     SecurityContextHolder.context.authentication = authentication
 
@@ -145,8 +146,17 @@ class CallerAndLocaleSpec extends Specification {
     where:
     authentication << [
       null,
-      new AnonymousAuthenticationToken('key', 'anonymousUser', AuthorityUtils.createAuthorityList('ROLE_ANONYMOUS'))
+      new AnonymousAuthenticationToken('key', 'anonymousUser', AuthorityUtils.createAuthorityList('ROLE_ANONYMOUS')),
+      UsernamePasswordAuthenticationToken.unauthenticated('bob', 'password')
     ]
+  }
+
+  def 'a caller remembered from an earlier session is a caller'() {
+    given:
+    SecurityContextHolder.context.authentication = new RememberMeAuthenticationToken('key', 'ece', AuthorityUtils.createAuthorityList('ROLE_USER'))
+
+    expect:
+    runner.run { assert reported(it.getBean(Muster)).caller == 'ece' }
   }
 
   def 'without Spring Security no call has a caller'() {

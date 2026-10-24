@@ -61,7 +61,8 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
  * <ul>
  *   <li>The caller is the authentication of Spring Security, if the application has Spring
  *       Security, read through its {@code SecurityContextHolderStrategy} bean if it has one; an
- *       anonymous call has no caller. A bean of type {@code Supplier<Principal>} replaces it.
+ *       anonymous or not authenticated call has no caller. A bean of type {@code
+ *       Supplier<Principal>} replaces it.
  *   <li>The locale is the one {@link LocaleContextHolder} holds, as Spring MVC sets it for a
  *       request, and otherwise the default locale of the JVM. A bean of type {@code
  *       Supplier<Locale>} replaces it.

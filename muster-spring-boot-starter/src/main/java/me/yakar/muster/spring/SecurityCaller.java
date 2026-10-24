@@ -18,14 +18,17 @@ package me.yakar.muster.spring;
 import java.security.Principal;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationTrustResolver;
+import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 /**
- * Reads the caller from Spring Security: the authentication of the current call, or none for an
- * anonymous call. Used only when Spring Security is on the class path.
+ * Reads the caller from Spring Security: the authentication of the current call, or none for a call
+ * that is anonymous or not authenticated. Used only when Spring Security is on the class path.
  */
 final class SecurityCaller {
+
+  private static final AuthenticationTrustResolver TRUST = new AuthenticationTrustResolverImpl();
 
   private final Supplier<SecurityContextHolderStrategy> strategy;
 
@@ -41,6 +44,6 @@ final class SecurityCaller {
 
   @Nullable Principal current() {
     var authentication = strategy.get().getContext().getAuthentication();
-    return authentication instanceof AnonymousAuthenticationToken ? null : authentication;
+    return TRUST.isAuthenticated(authentication) ? authentication : null;
   }
 }
