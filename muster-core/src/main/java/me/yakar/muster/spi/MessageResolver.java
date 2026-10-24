@@ -38,14 +38,16 @@ import me.yakar.muster.rule.Violation;
  * <ul>
  *   <li>The value is written with {@link String#valueOf(Object)}. To format a number or a date, the
  *       rule formats the value before it adds the argument.
- *   <li>A name that is not a client argument stays as it is, braces included.
+ *   <li>A name that is not a client argument stays as it is, braces included, and so does {@code
+ *       {}}.
  *   <li><code>&#123;&#123;</code> and <code>&#125;&#125;</code> write a single brace, so {@code
  *       {{name}}} writes {@code {name}}. Any other brace is written as it is.
  *   <li>Apostrophes and other characters need no escaping, unlike in {@link
  *       java.text.MessageFormat}.
  * </ul>
  *
- * <p>Filling a template never fails. A resolver is safe to use from many threads at once.
+ * <p>A malformed template never makes filling fail. The resolvers Muster creates are safe to use
+ * from many threads at once; a resolver of your own must be too.
  */
 @FunctionalInterface
 public interface MessageResolver {
@@ -65,7 +67,7 @@ public interface MessageResolver {
    *
    * @param violation the violation
    * @param locale the locale of the caller
-   * @return the message, or the code if there is no message for it
+   * @return the message, or the code if there is no message for it; never {@code null}
    */
   default String resolve(Violation violation, Locale locale) {
     return resolve(violation.code(), violation.clientArgs(), locale);
@@ -106,7 +108,8 @@ public interface MessageResolver {
    * messages.properties}. Unlike {@link ResourceBundle#getBundle(String, Locale)}, the resolver
    * never uses the bundle of the default locale of the JVM: a server whose default locale is
    * Turkish answers a French client from the base bundle, not in Turkish. The family therefore
-   * needs a base bundle.
+   * needs a base bundle. Its values must be strings: {@link ResourceBundle#getString(String)}
+   * throws a {@link ClassCastException} for a value of another type.
    *
    * @param bundles returns the bundle for a locale, as loaded by {@link
    *     ResourceBundle#getBundle(String, Locale)}, such as {@code locale ->
