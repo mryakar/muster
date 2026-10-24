@@ -38,7 +38,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
-import org.springframework.transaction.interceptor.TransactionAttributeSource;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -155,9 +154,8 @@ public final class MusterAutoConfiguration {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     static TransactionGuard musterTransactionGuard(
-        ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor,
-        ObjectProvider<TransactionAttributeSource> attributes) {
-      return new TransactionGuard(advisor, attributes);
+        ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
+      return new TransactionGuard(advisor);
     }
   }
 

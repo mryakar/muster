@@ -161,21 +161,24 @@ class TransactionAdviceSpec extends Specification {
     }
   }
 
-  def 'without transaction management, or with a lookup that is not unique, nothing is guarded: #configurations.simpleName'() {
+  def 'without transaction management nothing is guarded'() {
     expect:
-    runner.withUserConfiguration(configurations as Class[]).run { context ->
+    runner.run { context ->
       context.getBean(TransactionalService).required('call')
       assert TransactionProbe.IN_TRANSACTION == [false]
     }
+  }
 
-    where:
-    configurations << [
-      [],
-      [
-        TransactionsWithoutSynchronization,
-        SecondAttributeSource
-      ]
-    ]
+  def 'the guard reads the attribute source of the transaction advice, whatever other sources exist'() {
+    expect:
+    runner.withUserConfiguration(TransactionsWithoutSynchronization, SecondAttributeSource).run { context ->
+      try {
+        context.getBean(TransactionalService).required('call')
+        assert false: 'the call passed'
+      } catch (IllegalStateException e) {
+        assert e.message.startsWith('TransactionalService.required(String) runs in a transaction')
+      }
+    }
   }
 
   def 'without Spring transactions on the class path, rules still run'() {

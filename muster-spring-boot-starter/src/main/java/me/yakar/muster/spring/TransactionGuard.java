@@ -15,12 +15,14 @@
  */
 package me.yakar.muster.spring;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Method;
 import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
-import org.springframework.transaction.interceptor.TransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
@@ -39,21 +41,24 @@ final class TransactionGuard {
           TransactionDefinition.PROPAGATION_NESTED);
 
   private final ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor;
-  private final ObjectProvider<TransactionAttributeSource> attributes;
 
-  TransactionGuard(
-      ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor,
-      ObjectProvider<TransactionAttributeSource> attributes) {
+  TransactionGuard(ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
     this.advisor = advisor;
-    this.attributes = attributes;
   }
 
-  /** Returns whether a method must run in a transaction that the transaction advice starts. */
+  /**
+   * Returns whether a method must run in a transaction that the transaction advice starts, as the
+   * advice itself reads the method's transaction attribute.
+   */
   boolean requiresTransaction(Method method, Class<?> targetClass) {
-    var source = attributes.getIfUnique();
-    if (advisor.getIfUnique() == null || source == null) {
+    var transactionAdvisor = advisor.getIfUnique();
+    if (transactionAdvisor == null) {
       return false;
     }
+    var source =
+        requireNonNull(
+            ((TransactionInterceptor) transactionAdvisor.getAdvice())
+                .getTransactionAttributeSource());
     var attribute = source.getTransactionAttribute(method, targetClass);
     return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
   }
