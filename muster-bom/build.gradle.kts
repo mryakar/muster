@@ -21,6 +21,8 @@ plugins {
 description = "Bill of materials that aligns the versions of the Muster modules."
 
 dependencies {
-  // The Spring Boot starter joins once it is published, in 0.2.0.
-  constraints { api(project(":muster-core")) }
+  constraints {
+    api(project(":muster-core"))
+    api(project(":muster-spring-boot-starter"))
+  }
 }
