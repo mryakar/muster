@@ -21,6 +21,8 @@ import me.yakar.muster.spring.fixture.app.NameUnique
 import me.yakar.muster.spring.fixture.app.Names
 import me.yakar.muster.spring.fixture.app.Vehicle
 import me.yakar.muster.spring.fixture.other.InvalidId
+import me.yakar.muster.spring.fixture.other.WithHyphen
+import me.yakar.muster.spring.fixture.other.WithoutHyphen
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -49,6 +51,19 @@ class RuleSwitchesSpec extends Specification {
     @Bean
     InvalidId invalidId() {
       new InvalidId()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class IdsOneHyphenApart {
+    @Bean
+    WithHyphen withHyphen() {
+      new WithHyphen()
+    }
+
+    @Bean
+    WithoutHyphen withoutHyphen() {
+      new WithoutHyphen()
     }
   }
 
@@ -176,6 +191,16 @@ class RuleSwitchesSpec extends Specification {
     runner.withPropertyValues('muster.mode=lenient').run { context ->
       assert context.startupFailure != null
     }
+  }
+
+  def 'two rule ids that configuration cannot tell apart stop the application'() {
+    expect:
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
+        .withUserConfiguration(IdsOneHyphenApart).run { context ->
+          assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+          "the rules 'vehicle.name-unique' and 'vehicle.nameunique' share the key muster.rules.vehicle.nameunique.enabled, since configuration ignores hyphens; give one of them another id"
+        }
   }
 
   def 'a rule with an invalid id is rejected by Muster, not by the configuration'() {

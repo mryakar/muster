@@ -17,7 +17,7 @@ package me.yakar.muster.spring;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TreeSet;
 import me.yakar.muster.CheckMode;
@@ -55,12 +55,22 @@ final class RuleSwitches {
    */
   static List<String> disabled(Environment environment, Collection<String> ids) {
     var binder = Binder.get(environment);
-    var keys = new HashSet<ConfigurationPropertyName>();
+    var keys = new HashMap<ConfigurationPropertyName, String>();
     var disabled = new ArrayList<String>();
     for (var id : ids) {
       // An id that is no valid name is not a valid rule id either, which Muster reports.
       var key = ConfigurationPropertyName.adapt(RULES + "." + id + ".enabled", '.');
-      keys.add(key);
+      var other = keys.putIfAbsent(key, id);
+      if (other != null) {
+        throw new IllegalStateException(
+            "the rules '"
+                + other
+                + "' and '"
+                + id
+                + "' share the key "
+                + key
+                + ", since configuration ignores hyphens; give one of them another id");
+      }
       if (!binder.bind(key, Bindable.of(Boolean.class)).orElse(true)) {
         disabled.add(id);
       }
@@ -69,7 +79,7 @@ final class RuleSwitches {
     for (var source : ConfigurationPropertySources.get(environment)) {
       if (source instanceof IterableConfigurationPropertySource iterable) {
         iterable.filter(RULES::isAncestorOf).stream()
-            .filter(name -> !keys.contains(name))
+            .filter(name -> !keys.containsKey(name))
             .forEach(name -> unknown.add(name.toString()));
       }
     }
