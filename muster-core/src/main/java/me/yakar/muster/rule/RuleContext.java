@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.security.Principal;
 import java.util.Locale;
 import java.util.Optional;
+import me.yakar.muster.internal.RuleDefinition;
 import me.yakar.muster.internal.RuleIds;
 import org.jspecify.annotations.Nullable;
 
@@ -56,6 +57,30 @@ public final class RuleContext {
    */
   public static RuleContext forRule(String ruleId) {
     return builder(ruleId).build();
+  }
+
+  /**
+   * Creates a context for the given rule class, with no caller and the root locale. Use it to test
+   * a rule on its own without repeating its id.
+   *
+   * @param ruleClass the class of the rule being checked
+   * @return the context
+   * @throws IllegalArgumentException if the class has no {@code @Rule} or its id is invalid
+   */
+  public static RuleContext forRule(Class<? extends BusinessRule<?>> ruleClass) {
+    return builder(ruleClass).build();
+  }
+
+  /**
+   * Starts a context for the given rule class, reading the id from its {@code @Rule}. Unless set,
+   * the context has no caller and the root locale.
+   *
+   * @param ruleClass the class of the rule being checked
+   * @return a builder for the context
+   * @throws IllegalArgumentException if the class has no {@code @Rule} or its id is invalid
+   */
+  public static Builder builder(Class<? extends BusinessRule<?>> ruleClass) {
+    return builder(RuleDefinition.idOf(requireNonNull(ruleClass, "ruleClass")));
   }
 
   /**
