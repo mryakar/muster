@@ -35,7 +35,10 @@ import org.springframework.context.i18n.LocaleContextHolder
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.AuthorityUtils
+import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.context.SecurityContextHolderStrategy
+import org.springframework.security.core.context.SecurityContextImpl
 import spock.lang.Specification
 
 class CallerAndLocaleSpec extends Specification {
@@ -67,6 +70,38 @@ class CallerAndLocaleSpec extends Specification {
     @Bean
     Supplier<String> greeting() {
       { -> 'hello' } as Supplier<String>
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class RawSupplier {
+    @Bean
+    @SuppressWarnings('rawtypes')
+    Supplier raw() {
+      { -> 'a string' } as Supplier
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class WildcardSupplier {
+    @Bean
+    Supplier<?> wildcard() {
+      { -> 'a string' } as Supplier<String>
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class OwnSecurityContextStrategy {
+    @Bean
+    SecurityContextHolderStrategy securityContextHolderStrategy() {
+      def context = new SecurityContextImpl(user('from-strategy'))
+      [
+        getContext       : { -> context },
+        getDeferredContext: { -> { -> context } as Supplier<SecurityContext> },
+        clearContext     : { -> },
+        setContext       : { SecurityContext ignored -> },
+        createEmptyContext: { -> new SecurityContextImpl() }
+      ] as SecurityContextHolderStrategy
     }
   }
 
@@ -160,14 +195,31 @@ class CallerAndLocaleSpec extends Specification {
     }
   }
 
-  def 'a supplier of something else is not taken for the caller or the locale'() {
+  def 'a supplier of something else is not taken for the caller or the locale: #configuration.simpleName'() {
     given:
     SecurityContextHolder.context.authentication = user('ece')
     LocaleContextHolder.locale = TURKISH
 
     expect:
-    runner.withUserConfiguration(UnrelatedSupplier).run {
+    runner.withUserConfiguration(configuration).run {
       assert reported(it.getBean(Muster)) == [caller: 'ece', locale: 'tr-TR']
+    }
+
+    where:
+    configuration << [
+      UnrelatedSupplier,
+      RawSupplier,
+      WildcardSupplier
+    ]
+  }
+
+  def 'the caller comes through the SecurityContextHolderStrategy bean of the application'() {
+    given:
+    SecurityContextHolder.context.authentication = user('ece')
+
+    expect:
+    runner.withUserConfiguration(OwnSecurityContextStrategy).run {
+      assert reported(it.getBean(Muster)).caller == 'from-strategy'
     }
   }
 
