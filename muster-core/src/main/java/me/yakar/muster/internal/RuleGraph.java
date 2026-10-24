@@ -147,23 +147,11 @@ public final class RuleGraph {
   }
 
   /**
-   * Orders rules so that each comes after the rules it requires; rules that do not depend on each
-   * other come in the order of their ids. Every required rule must be among the given ones, and
-   * there must be no cycle.
-   *
-   * @param rules the rules
-   * @return the rules in order
-   */
-  public static List<RuleDefinition> order(Collection<RuleDefinition> rules) {
-    return order(rules, List.of());
-  }
-
-  /**
    * Orders rules so that each comes after the rules it requires; otherwise listed rules come in the
    * order they are listed, and a rule that is not listed takes the place of the first listed rule
    * that requires it, directly or through other rules, so it comes just before that rule. Rules in
    * the same place, and rules that no listed rule requires, come in the order of their ids. Every
-   * required rule must be among the given ones, and there must be no cycle.
+   * listed and every required rule must be among the given ones, and there must be no cycle.
    *
    * @param rules the rules
    * @param listed the classes of the listed rules, in the order they are listed
