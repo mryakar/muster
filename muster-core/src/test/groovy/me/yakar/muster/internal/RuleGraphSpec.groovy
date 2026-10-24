@@ -93,7 +93,7 @@ class RuleGraphSpec extends Specification {
     ]
   }
 
-  def 'a rule that is not listed takes its place through the rules that require it'() {
+  def 'a rule that is not listed comes just before the first listed rule that requires it through other rules'() {
     expect:
     order([
       rule(A, 'started', [B]),
@@ -121,28 +121,62 @@ class RuleGraphSpec extends Specification {
     ]
   }
 
-  def 'rules in the same place come in the order of their ids'() {
+  def 'listed rules that a listed rule requires come before it in the order they are listed'() {
     expect:
     order([
-      rule(A, 'closable', [B, C]),
+      rule(A, 'closable', [C, B]),
       rule(B, 'locked'),
-      rule(C, 'exists'),
-      rule(D, 'audited')
-    ], [A, D])*.id() == [
-      'exists',
+      rule(C, 'exists')
+    ], [A, B, C])*.id() == [
       'locked',
-      'closable',
-      'audited'
+      'exists',
+      'closable'
     ]
   }
 
-  def 'rules that no listed rule requires come after the listed ones, in the order of their ids'() {
+  def 'of the rules a listed rule requires, listed ones come first, then the others in the order of their ids'() {
     expect:
     order([
-      rule(A, 'z'),
-      rule(B, 'b'),
-      rule(C, 'a')
-    ], [A])*.id() == ['z', 'a', 'b']
+      rule(A, 'closable', [B, C, D]),
+      rule(B, 'locked'),
+      rule(C, 'audit'),
+      rule(D, 'exists'),
+      rule(E, 'archived')
+    ], [A, E, D])*.id() == [
+      'exists',
+      'audit',
+      'locked',
+      'closable',
+      'archived'
+    ]
+  }
+
+  def 'a rule required through a listed rule that is not ready yet still waits for the listing'() {
+    expect:
+    order([
+      rule(A, 'top', [B, D]),
+      rule(B, 'second', [C]),
+      rule(C, 'a-unlisted'),
+      rule(D, 'third')
+    ], [A, B, D])*.id() == [
+      'a-unlisted',
+      'second',
+      'third',
+      'top'
+    ]
+  }
+
+  def 'with rules listed, every rule must be listed or required by a listed rule'() {
+    when:
+    order([
+      rule(A, 'listed'),
+      rule(B, 'stray-b'),
+      rule(C, 'stray-a')
+    ], [A])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == 'rules neither listed nor required by a listed rule: stray-a, stray-b'
   }
 
   def 'a rule that requires several rules comes after all of them'() {

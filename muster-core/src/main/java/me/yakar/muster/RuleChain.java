@@ -31,12 +31,13 @@ import org.jspecify.annotations.Nullable;
  * The rules an input is checked against, prepared for repeated use. Get one from {@link
  * Muster#chain}.
  *
- * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires};
- * otherwise rules run in the order the chain lists them, and a rule the chain adds because a listed
- * rule requires it runs just before the first listed rule that needs it. {@link Muster#check},
- * which lists no rules, runs them in the order of their ids. Either way the violations come in the
- * same order on every call. Muster has no notion of cost: in {@link CheckMode#FAIL_FAST} mode, the
- * order alone decides which violation is reported, so list cheap rules first.
+ * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires}. Muster
+ * runs the listed rules in the order they are listed, and before each one the rules it requires
+ * that have not run yet: listed ones in the order they are listed, the others in the order of their
+ * ids. {@link Muster#check}, which lists no rules, runs rules that do not depend on each other in
+ * the order of their ids. Either way the violations come in the same order on every call. Muster
+ * has no notion of cost: in {@link CheckMode#FAIL_FAST} mode, the order alone decides which
+ * violation is reported, so list cheap rules first.
  *
  * <p>A chain checks in the {@linkplain #mode() mode} of the Muster that created it, unless {@link
  * #withMode} gives it its own.

@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -147,33 +148,73 @@ public final class RuleGraph {
   }
 
   /**
-   * Orders rules so that each comes after the rules it requires; otherwise listed rules come in the
-   * order they are listed, and a rule that is not listed takes the place of the first listed rule
-   * that requires it, directly or through other rules, so it comes just before that rule. Rules in
-   * the same place, and rules that no listed rule requires, come in the order of their ids. Every
-   * listed and every required rule must be among the given ones, and there must be no cycle.
+   * Orders rules so that each comes after the rules it requires. With rules listed, it takes the
+   * listed rules in the order they are listed, and before each one the rules it requires that are
+   * not ordered yet: listed ones in the order they are listed, the others in the order of their
+   * ids. Every rule must then be listed or required by a listed rule. With no rules listed, rules
+   * that do not depend on each other come in the order of their ids. Every required rule must be
+   * among the given ones, and there must be no cycle.
    *
    * @param rules the rules
    * @param listed the classes of the listed rules, in the order they are listed
    * @return the rules in order
+   * @throws IllegalArgumentException if rules are listed and a rule is neither listed nor required
+   *     by a listed rule
    */
   public static List<RuleDefinition> order(
       Collection<RuleDefinition> rules, List<Class<?>> listed) {
+    if (listed.isEmpty()) {
+      return byIdAfterRequired(rules);
+    }
     var byClass = new HashMap<Class<?>, RuleDefinition>();
     for (var rule : rules) {
       byClass.put(rule.ruleClass(), rule);
     }
-    var places = new HashMap<Class<?>, Integer>();
-    for (var place = 0; place < listed.size(); place++) {
-      assignPlace(listed.get(place), place, byClass, places);
+    var positions = new HashMap<Class<?>, Integer>();
+    for (var position = 0; position < listed.size(); position++) {
+      positions.put(listed.get(position), position);
     }
+    Comparator<Class<?>> requiredFirst =
+        Comparator.<Class<?>>comparingInt(
+                ruleClass -> positions.getOrDefault(ruleClass, Integer.MAX_VALUE))
+            .thenComparing(ruleClass -> byClass.get(ruleClass).id());
+    var ordered = new LinkedHashMap<Class<?>, RuleDefinition>();
+    for (var ruleClass : listed) {
+      addAfterRequired(byClass.get(ruleClass), byClass, requiredFirst, ordered);
+    }
+    if (ordered.size() != byClass.size()) {
+      throw new IllegalArgumentException(
+          "rules neither listed nor required by a listed rule: "
+              + byId(byClass.values()).stream()
+                  .filter(rule -> !ordered.containsKey(rule.ruleClass()))
+                  .map(RuleDefinition::id)
+                  .collect(Collectors.joining(", ")));
+    }
+    return List.copyOf(ordered.values());
+  }
+
+  /** Adds a rule after the rules it requires that are not added yet, unless it is added. */
+  private static void addAfterRequired(
+      RuleDefinition rule,
+      Map<Class<?>, RuleDefinition> byClass,
+      Comparator<Class<?>> requiredFirst,
+      Map<Class<?>, RuleDefinition> ordered) {
+    if (ordered.containsKey(rule.ruleClass())) {
+      return;
+    }
+    var required = new ArrayList<>(rule.requires());
+    required.sort(requiredFirst);
+    for (var requiredClass : required) {
+      addAfterRequired(byClass.get(requiredClass), byClass, requiredFirst, ordered);
+    }
+    ordered.put(rule.ruleClass(), rule);
+  }
+
+  /** Orders rules after the rules they require, and otherwise in the order of their ids. */
+  private static List<RuleDefinition> byIdAfterRequired(Collection<RuleDefinition> rules) {
     var waitingFor = new HashMap<Class<?>, Integer>();
     var dependents = new HashMap<Class<?>, List<RuleDefinition>>();
-    var ready =
-        new PriorityQueue<RuleDefinition>(
-            Comparator.<RuleDefinition>comparingInt(
-                    rule -> places.getOrDefault(rule.ruleClass(), Integer.MAX_VALUE))
-                .thenComparing(RuleDefinition::id));
+    var ready = new PriorityQueue<RuleDefinition>(comparing(RuleDefinition::id));
     for (var rule : rules) {
       waitingFor.put(rule.ruleClass(), rule.requires().size());
       for (var required : rule.requires()) {
@@ -194,19 +235,6 @@ public final class RuleGraph {
       }
     }
     return ordered;
-  }
-
-  /** Gives a rule and the rules it requires, directly or not, a place unless they have one. */
-  private static void assignPlace(
-      Class<?> ruleClass,
-      int place,
-      Map<Class<?>, RuleDefinition> byClass,
-      Map<Class<?>, Integer> places) {
-    if (places.putIfAbsent(ruleClass, place) == null) {
-      for (var required : byClass.get(ruleClass).requires()) {
-        assignPlace(required, place, byClass, places);
-      }
-    }
   }
 
   private static List<RuleDefinition> byId(Collection<RuleDefinition> rules) {
