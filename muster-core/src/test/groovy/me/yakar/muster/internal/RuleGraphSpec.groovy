@@ -151,7 +151,7 @@ class RuleGraphSpec extends Specification {
     ]
   }
 
-  def 'a rule required through a listed rule that is not ready yet still waits for the listing'() {
+  def 'a required listed rule brings its own requirements just before it'() {
     expect:
     order([
       rule(A, 'top', [B, D]),
@@ -164,6 +164,16 @@ class RuleGraphSpec extends Specification {
       'third',
       'top'
     ]
+  }
+
+  def 'a required rule brings its own requirements just before it, also through rules that are not listed'() {
+    expect:
+    order([
+      rule(A, 'listed', [B, C]),
+      rule(B, 'p'),
+      rule(C, 'q', [D]),
+      rule(D, 'a')
+    ], [A])*.id() == ['p', 'a', 'q', 'listed']
   }
 
   def 'with rules listed, every rule must be listed or required by a listed rule'() {
