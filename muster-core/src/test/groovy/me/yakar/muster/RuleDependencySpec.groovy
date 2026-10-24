@@ -57,6 +57,21 @@ class RuleDependencySpec extends EngineSpecification {
     ]
   }
 
+  def 'listed rules that a listed rule requires run before it in the order they are listed'() {
+    given:
+    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran), new TaskClosable(ran)).build()
+
+    when:
+    muster.chain(Long, TaskClosable, TaskLocked, TaskExists).check(1L)
+
+    then:
+    ran == [
+      'task.locked',
+      'task.exists',
+      'task.closable'
+    ]
+  }
+
   def 'when task #task fails #failing, the rules that require it are skipped'() {
     when:
     tasks().chain(Long, TaskStarted, TaskAssignable, TaskExists).check(task)
