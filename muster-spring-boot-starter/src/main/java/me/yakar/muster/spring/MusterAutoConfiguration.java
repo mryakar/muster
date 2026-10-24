@@ -15,11 +15,14 @@
  */
 package me.yakar.muster.spring;
 
+import java.util.Arrays;
 import me.yakar.muster.Muster;
+import me.yakar.muster.rule.Rule;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -30,6 +33,17 @@ import org.springframework.context.annotation.Bean;
  * {@code @Component}; a rule elsewhere joins once it is a bean, for example through {@code @Bean}
  * or {@code @Import}. Every rule bean must be a singleton, since Muster creates each rule once and
  * keeps it.
+ *
+ * <p>Configuration switches rules off and sets the mode:
+ *
+ * <ul>
+ *   <li>{@code muster.rules.<rule id>.enabled=false} switches a rule off, as {@link
+ *       Muster.Builder#disable} does; as an environment variable, {@code
+ *       MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED=false} switches {@code vehicle.name-unique} off. A
+ *       key under {@code muster.rules} that switches no rule, such as a misspelled id, stops the
+ *       application.
+ *   <li>{@code muster.mode} is {@code fail-fast}, the default, or {@code collect-all}.
+ * </ul>
  *
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
@@ -45,9 +59,13 @@ public final class MusterAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  Muster muster(ConfigurableListableBeanFactory beanFactory) {
+  Muster muster(ConfigurableListableBeanFactory beanFactory, Environment environment) {
+    var ruleClasses = RuleCatalog.ruleClasses(beanFactory);
+    var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
     return Muster.builder()
-        .rules(ruleClass -> beanFactory.getBean(ruleClass), RuleCatalog.ruleClasses(beanFactory))
+        .rules(ruleClass -> beanFactory.getBean(ruleClass), ruleClasses)
+        .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
+        .mode(RuleSwitches.mode(environment))
         .build();
   }
 }
