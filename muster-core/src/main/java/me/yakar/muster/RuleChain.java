@@ -102,6 +102,11 @@ public final class RuleChain<I> {
    * @throws IllegalStateException if a rule reports a violation under another rule's id
    */
   public void check(I input) {
+    check(input, mode);
+  }
+
+  /** Checks an input as {@link #check(Object)} does, in the given mode instead of the chain's. */
+  void check(I input, CheckMode mode) {
     requireNonNull(input, "input");
     if (!inputType.isInstance(input)) {
       throw new IllegalArgumentException(

@@ -49,6 +49,114 @@ class TypeBindingSpec extends EngineSpecification {
     ]
   }
 
+  def 'a check in #mode mode overrides the mode of the Muster, #musterMode'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(musterMode).build()
+
+    when:
+    muster.check(INVALID, mode)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == reported
+
+    where:
+    musterMode            | mode || reported
+    CheckMode.FAIL_FAST   | CheckMode.COLLECT_ALL || [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
+    CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['vehicle.code-format']
+    CheckMode.FAIL_FAST   | CheckMode.FAIL_FAST || ['vehicle.code-format']
+  }
+
+  def 'a valid target passes a check in #mode mode'() {
+    when:
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).build().check(VALID, mode)
+
+    then:
+    noExceptionThrown()
+
+    where:
+    mode << CheckMode.values()
+  }
+
+  def 'the mode of one check does not change the next'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+
+    when:
+    muster.check(INVALID, CheckMode.COLLECT_ALL)
+
+    then:
+    thrown(BusinessRuleViolationException)
+
+    when:
+    muster.check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == ['vehicle.code-format']
+  }
+
+  def 'a check with a mode rejects a null #name'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique()).build()
+
+    when:
+    muster.check(input, mode)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == name
+
+    where:
+    name    | input   | mode
+    'input' | null    | CheckMode.FAIL_FAST
+    'mode'  | INVALID | null
+  }
+
+  def 'threads that check a new class in different modes at the same time bind its rules once, and each checks in its mode'() {
+    given:
+    log.level = Level.FINE
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(16)
+    def modes = (1..16).collect {
+      it % 2 == 0 ? CheckMode.FAIL_FAST : CheckMode.COLLECT_ALL
+    }
+    def checks = modes.collect { mode ->
+      pool.submit({
+        start.await()
+        try {
+          muster.check(INVALID, mode)
+          []
+        } catch (BusinessRuleViolationException e) {
+          e.violations()*.ruleId()
+        }
+      } as java.util.concurrent.Callable)
+    }
+
+    when:
+    start.countDown()
+    def reported = checks*.get()
+
+    then:
+    reported == modes.collect {
+      it == CheckMode.FAIL_FAST ? ['vehicle.code-format'] : [
+        'vehicle.code-format',
+        'vehicle.name-unique'
+      ]
+    }
+    logged*.message == [
+      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
+    ]
+
+    cleanup:
+    pool.shutdownNow()
+    log.level = null
+  }
+
   def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
     given:
     log.level = Level.FINE
