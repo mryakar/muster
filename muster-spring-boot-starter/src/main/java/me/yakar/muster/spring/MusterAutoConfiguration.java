@@ -23,12 +23,15 @@ import me.yakar.muster.Muster;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Role;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
@@ -71,6 +74,7 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
+@Import(ProxyCreatorRegistrar.class)
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
@@ -78,6 +82,19 @@ public final class MusterAutoConfiguration {
   @Bean
   static RuleScanner musterRuleScanner() {
     return new RuleScanner();
+  }
+
+  @Bean
+  @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+  static RulesInterceptor musterRulesInterceptor(ObjectProvider<Muster> muster) {
+    return new RulesInterceptor(muster);
+  }
+
+  // Infrastructure, so that the proxy creator that transaction management registers applies it.
+  @Bean
+  @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+  static RulesAdvisor musterRulesAdvisor(RulesInterceptor musterRulesInterceptor) {
+    return new RulesAdvisor(musterRulesInterceptor);
   }
 
   @Bean
