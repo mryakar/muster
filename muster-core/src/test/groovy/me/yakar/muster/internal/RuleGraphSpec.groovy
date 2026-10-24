@@ -34,13 +34,17 @@ class RuleGraphSpec extends Specification {
     rules.collectEntries { [it.ruleClass(), it] }
   }
 
+  static List<RuleDefinition> order(List<RuleDefinition> rules, List<Class<?>> listed = []) {
+    RuleGraph.order(rules, listed)
+  }
+
   static void validate(Map<Class<?>, RuleDefinition> rules, Set<Class<?>> disabled = [] as Set) {
     RuleGraph.validate(rules, disabled)
   }
 
   def 'rules that do not depend on each other come in the order of their ids'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'b'),
       rule(B, 'c'),
       rule(C, 'a')
@@ -49,7 +53,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a rule comes after the rules it requires, whatever its id'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'task.assignable', [B]),
       rule(B, 'task.exists')
     ])*.id() == [
@@ -60,7 +64,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a rule that becomes ready waits for ready rules with lower ids'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'b', [B]),
       rule(B, 'x'),
       rule(C, 'c')
@@ -69,7 +73,7 @@ class RuleGraphSpec extends Specification {
 
   def 'listed rules that do not depend on each other come in the order they are listed'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'b'),
       rule(B, 'c'),
       rule(C, 'a')
@@ -78,7 +82,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a rule that is not listed comes just before the first listed rule that requires it'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'name-unique', [C]),
       rule(B, 'plate-format'),
       rule(C, 'vehicle.exists')
@@ -91,22 +95,22 @@ class RuleGraphSpec extends Specification {
 
   def 'a rule that is not listed takes its place through the rules that require it'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'started', [B]),
       rule(B, 'ready', [C]),
       rule(C, 'exists'),
       rule(D, 'audited')
-    ], [D, A])*.id() == [
-      'audited',
+    ], [A, D])*.id() == [
       'exists',
       'ready',
-      'started'
+      'started',
+      'audited'
     ]
   }
 
   def 'a listed rule that an earlier listed rule requires comes before it'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'assignable', [B]),
       rule(B, 'exists'),
       rule(C, 'audited')
@@ -119,7 +123,7 @@ class RuleGraphSpec extends Specification {
 
   def 'rules in the same place come in the order of their ids'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'closable', [B, C]),
       rule(B, 'locked'),
       rule(C, 'exists'),
@@ -134,7 +138,7 @@ class RuleGraphSpec extends Specification {
 
   def 'rules that no listed rule requires come after the listed ones, in the order of their ids'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'z'),
       rule(B, 'b'),
       rule(C, 'a')
@@ -143,7 +147,7 @@ class RuleGraphSpec extends Specification {
 
   def 'a rule that requires several rules comes after all of them'() {
     expect:
-    RuleGraph.order([
+    order([
       rule(A, 'top', [B, C]),
       rule(B, 'left', [D]),
       rule(C, 'right', [D]),
