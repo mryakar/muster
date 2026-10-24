@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The Spring Boot starter builds a `Muster` bean from the rules of the application. Rule classes with `@Rule` in the packages of the application, the packages that `@SpringBootApplication` scans, become beans without `@Component`, named after their class; a rule elsewhere joins once it is a bean. A rule bean must be a singleton and be declared with its own class, so that Muster can read its `@Rule`. A `Muster` bean of the application's own replaces the starter's.
 - `muster.binding(type)` builds a `Binding`: the rules it lists, and for a rule target the rules that bind to its class by type, less the rules it excludes, in a mode and under a name of its own. A binding for a final type prepares its rules when it is built; for another type, on the first check of each class. A listed rule cannot require an excluded rule; a rule bound by type that requires one is left out and logged.
 - `muster.check(target, mode)` checks a rule target in a mode other than the Muster's, without a second Muster. The rules of a class are still bound once.
 - `RuleContext.forRule(Class)` and `RuleContext.builder(Class)`, which read the rule id from `@Rule`, so a rule's test does not repeat it.

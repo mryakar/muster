@@ -25,6 +25,12 @@ dependencies {
 
 testing {
   suites {
+    named<JvmTestSuite>("test") {
+      dependencies {
+        implementation(platform(libs.spring.boot.dependencies))
+        implementation("org.springframework.boot:spring-boot-starter-test")
+      }
+    }
     register<JvmTestSuite>("integrationTest") {
       dependencies {
         implementation(project())
