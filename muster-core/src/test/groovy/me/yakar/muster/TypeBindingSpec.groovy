@@ -49,7 +49,7 @@ class TypeBindingSpec extends EngineSpecification {
     ]
   }
 
-  def 'a check in #mode mode overrides the mode of the Muster, #musterMode'() {
+  def 'a check in #mode mode is reported in that mode, whatever the mode of the Muster, #musterMode'() {
     given:
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(musterMode).build()
 
@@ -68,6 +68,10 @@ class TypeBindingSpec extends EngineSpecification {
     ]
     CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['vehicle.code-format']
     CheckMode.FAIL_FAST   | CheckMode.FAIL_FAST || ['vehicle.code-format']
+    CheckMode.COLLECT_ALL | CheckMode.COLLECT_ALL || [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
   }
 
   def 'a valid target passes a check in #mode mode'() {
@@ -81,8 +85,9 @@ class TypeBindingSpec extends EngineSpecification {
     mode << CheckMode.values()
   }
 
-  def 'the mode of one check does not change the next'() {
+  def 'the mode of one check does not change the next, and the rules of a class are bound once for every mode'() {
     given:
+    log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
 
     when:
@@ -97,6 +102,12 @@ class TypeBindingSpec extends EngineSpecification {
     then:
     def e = thrown(BusinessRuleViolationException)
     e.violations()*.ruleId() == ['vehicle.code-format']
+    logged*.message == [
+      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
+    ]
+
+    cleanup:
+    log.level = null
   }
 
   def 'a check with a mode rejects a null #name'() {
@@ -127,6 +138,7 @@ class TypeBindingSpec extends EngineSpecification {
     }
     def checks = modes.collect { mode ->
       pool.submit({
+        ->
         start.await()
         try {
           muster.check(INVALID, mode)
@@ -134,12 +146,12 @@ class TypeBindingSpec extends EngineSpecification {
         } catch (BusinessRuleViolationException e) {
           e.violations()*.ruleId()
         }
-      } as java.util.concurrent.Callable)
+      } as Callable<List<String>>)
     }
 
     when:
     start.countDown()
-    def reported = checks*.get()
+    def reported = checks.collect { it.get(1, TimeUnit.MINUTES) }
 
     then:
     reported == modes.collect {
