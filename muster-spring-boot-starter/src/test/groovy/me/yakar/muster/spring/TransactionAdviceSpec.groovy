@@ -18,6 +18,8 @@ package me.yakar.muster.spring
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import me.yakar.muster.spring.fixture.transaction.TransactionProbe
 import me.yakar.muster.spring.fixture.transaction.TransactionalService
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.support.RootBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -27,6 +29,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Lazy
 import org.springframework.core.Ordered
+import org.springframework.core.PriorityOrdered
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.annotation.EnableTransactionManagement
@@ -96,6 +99,29 @@ class TransactionAdviceSpec extends Specification {
       new TransactionalService()
     }
   }
+
+  /** Sets an order on the definition of the transaction advisor, as XML configuration does. */
+  @Configuration(proxyBeanMethods = false)
+  static class OrderOnDefinition {
+    @Bean
+    static BeanFactoryPostProcessor orderOnDefinition() {
+      new OrderOnDefinitionPostProcessor()
+    }
+  }
+
+  static class OrderOnDefinitionPostProcessor implements BeanFactoryPostProcessor, PriorityOrdered {
+    void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+      beanFactory.getBeanDefinition('org.springframework.transaction.config.internalTransactionAdvisor').propertyValues.add('order', 100)
+    }
+
+    int getOrder() {
+      Ordered.HIGHEST_PRECEDENCE
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement(order = 0)
+  static class SecondTransactionManagement {}
 
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
@@ -203,6 +229,20 @@ class TransactionAdviceSpec extends Specification {
             assert MusterAutoConfigurationSpec.rootCause(e).message.startsWith('the transaction advice has the order')
           }
         }
+  }
+
+  def 'an order set on the definition of the transaction advisor is left alone'() {
+    expect:
+    runner.withUserConfiguration(Transactions, OrderOnDefinition).run { context ->
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == 100
+    }
+  }
+
+  def 'an order that one of several @EnableTransactionManagement gives is left alone'() {
+    expect:
+    runner.withUserConfiguration(Transactions, SecondTransactionManagement).run { context ->
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order != Ordered.LOWEST_PRECEDENCE - 1
+    }
   }
 
   def 'an application without advised methods starts even if the transaction advice comes after Muster'() {
