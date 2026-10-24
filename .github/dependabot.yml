@@ -4,6 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Versions younger than two weeks are left alone; security updates are not held back.
+    cooldown:
+      default-days: 14
     commit-message:
       prefix: build
       include: scope
@@ -11,9 +14,9 @@ updates:
       # Groovy follows the Spock variant (spock-*-groovy-5.0) and Spring Boot; move all three together.
       - dependency-name: org.apache.groovy:groovy-bom
         update-types: [version-update:semver-major]
-      # The catalog names Spring Boot twice, the oldest version the starter supports and the newest;
-      # Dependabot cannot tell them apart, so it offers patches only. Move spring-boot-latest to a
-      # new minor version by hand.
+      # The starter is built against the oldest Spring Boot it supports, so Dependabot offers
+      # patches of it only. Dependabot does not see spring-boot-latest in the catalog, which no
+      # library refers to: move it to new versions by hand.
       - dependency-name: org.springframework.boot:*
         update-types: [version-update:semver-major, version-update:semver-minor]
       # google-java-format 1.37 fails under Spotless 8.10 with NoSuchMethodError; move up with Spotless.
@@ -26,6 +29,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Versions younger than two weeks are left alone; security updates are not held back.
+    cooldown:
+      default-days: 14
     commit-message:
       prefix: ci
       include: scope

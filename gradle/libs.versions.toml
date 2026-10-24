@@ -11,7 +11,8 @@ pitest = "1.30.1"
 pitest-junit5-plugin = "1.2.3"
 spock = "2.5-groovy-5.0"
 # The starter is built and published against the oldest Spring Boot it supports, so that it never
-# pulls an application up to a newer one; CI also tests it against the newest.
+# pulls an application up to a newer one; CI also tests it against the newest, which Dependabot
+# does not update.
 spring-boot = "4.0.8"
 spring-boot-latest = "4.1.1"
 
