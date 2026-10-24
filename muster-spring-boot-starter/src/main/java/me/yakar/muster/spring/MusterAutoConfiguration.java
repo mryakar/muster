@@ -30,7 +30,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -57,8 +60,8 @@ import org.springframework.core.env.Environment;
  *
  * <ul>
  *   <li>The caller is the authentication of Spring Security, if the application has Spring
- *       Security; an anonymous call has no caller. A bean of type {@code Supplier<Principal>}
- *       replaces it.
+ *       Security, read through its {@code SecurityContextHolderStrategy} bean if it has one; an
+ *       anonymous call has no caller. A bean of type {@code Supplier<Principal>} replaces it.
  *   <li>The locale is the one {@link LocaleContextHolder} holds, as Spring MVC sets it for a
  *       request, and otherwise the default locale of the JVM. A bean of type {@code
  *       Supplier<Locale>} replaces it.
@@ -81,9 +84,7 @@ public final class MusterAutoConfiguration {
   Muster muster(
       ConfigurableListableBeanFactory beanFactory,
       Environment environment,
-      ObjectProvider<Supplier<? extends @Nullable Principal>> callers,
-      ObjectProvider<SecurityCaller> securityCaller,
-      ObjectProvider<Supplier<Locale>> locales) {
+      ObjectProvider<SecurityCaller> securityCaller) {
     var ruleClasses = RuleCatalog.ruleClasses(beanFactory);
     var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
     Supplier<? extends @Nullable Principal> noCaller = () -> null;
@@ -92,13 +93,27 @@ public final class MusterAutoConfiguration {
         .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
         .mode(RuleSwitches.mode(environment))
         .caller(
-            callers.getIfAvailable(
-                () -> {
-                  var security = securityCaller.getIfAvailable();
-                  return security == null ? noCaller : security::current;
-                }))
-        .locale(locales.getIfAvailable(() -> LocaleContextHolder::getLocale))
+            this.<Supplier<? extends @Nullable Principal>>supplier(beanFactory, Principal.class)
+                .getIfAvailable(
+                    () -> {
+                      var security = securityCaller.getIfAvailable();
+                      return security == null ? noCaller : security::current;
+                    }))
+        .locale(
+            this.<Supplier<Locale>>supplier(beanFactory, Locale.class)
+                .getIfAvailable(() -> LocaleContextHolder::getLocale))
         .build();
+  }
+
+  /**
+   * Looks up a {@code Supplier} of exactly the given type. Unlike an injected {@code
+   * ObjectProvider}, the lookup does not fall back to a raw {@code Supplier} or a {@code
+   * Supplier<?>}, which supplies something else.
+   */
+  private <T> ObjectProvider<T> supplier(
+      ConfigurableListableBeanFactory beanFactory, Class<?> suppliedType) {
+    return beanFactory.getBeanProvider(
+        ResolvableType.forClassWithGenerics(Supplier.class, suppliedType));
   }
 
   /** Reads the caller from Spring Security when the application has it. */
@@ -107,8 +122,10 @@ public final class MusterAutoConfiguration {
   static class SecurityConfiguration {
 
     @Bean
-    SecurityCaller musterSecurityCaller() {
-      return new SecurityCaller();
+    SecurityCaller musterSecurityCaller(ObjectProvider<SecurityContextHolderStrategy> strategy) {
+      var own = strategy.getIfAvailable();
+      return new SecurityCaller(
+          own == null ? SecurityContextHolder::getContextHolderStrategy : () -> own);
     }
   }
 }
