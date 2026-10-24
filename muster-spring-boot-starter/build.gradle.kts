@@ -38,6 +38,8 @@ dependencies {
   compileOnly("org.springframework:spring-tx")
   // Optional: violations become problem details in a Spring MVC application.
   compileOnly("org.springframework:spring-webmvc")
+  // Annotations that keep problem details whole whatever the JSON settings; Jackson reads them.
+  compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 }
 
 testing {

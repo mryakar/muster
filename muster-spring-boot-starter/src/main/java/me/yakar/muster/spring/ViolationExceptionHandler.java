@@ -16,10 +16,8 @@
 package me.yakar.muster.spring;
 
 import java.lang.System.Logger.Level;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Supplier;
 import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.rule.Violation;
@@ -150,17 +148,12 @@ class ViolationExceptionHandler {
     return status.value();
   }
 
-  /**
-   * Returns what the response says about a violation. It is a map, not a type of its own, so that
-   * the response looks the same whichever JSON library writes it and however it is configured.
-   */
-  private Map<String, Object> entry(Violation violation, Locale callerLocale) {
-    var entry = new LinkedHashMap<String, Object>();
-    entry.put("code", violation.code());
-    entry.put("message", messages.resolve(violation, callerLocale));
-    violation.target().ifPresent(target -> entry.put("target", target));
-    violation.category().ifPresent(category -> entry.put("category", category.name()));
-    entry.put("args", violation.clientArgs());
-    return entry;
+  private ViolationEntry entry(Violation violation, Locale callerLocale) {
+    return new ViolationEntry(
+        violation.code(),
+        messages.resolve(violation, callerLocale),
+        violation.target().orElse(null),
+        violation.category().map(Enum::name).orElse(null),
+        violation.clientArgs());
   }
 }
