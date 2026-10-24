@@ -29,8 +29,10 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
@@ -88,6 +90,32 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  * instead. A message source that formats every message with {@link java.text.MessageFormat}, as
  * {@code spring.messages.always-use-message-format=true} makes it, stops the application, since
  * {@code MessageFormat} rejects the placeholders.
+ *
+ * <p>In a Spring MVC application, a {@link me.yakar.muster.BusinessRuleViolationException} is
+ * answered with problem details (RFC 9457):
+ *
+ * <ul>
+ *   <li>Violations of one category are answered with its status: 403 for {@code FORBIDDEN}, 404 for
+ *       {@code NOT_FOUND}, 409 for {@code CONFLICT}, and 422 for {@code INVALID_STATE} and for
+ *       violations without a category. Violations of different categories are answered with 422, or
+ *       with the client error from 400 to 499 that {@code muster.problem-details.mixed-status}
+ *       sets.
+ *   <li>The title is the name of the status, the instance the path of the request, and there is no
+ *       type, which stands for {@code about:blank}.
+ *   <li>The {@code violations} property lists the violations, each with its {@code code}, its
+ *       {@code message} in the locale that rules see, its {@code target} and {@code category} if it
+ *       has them, and its client arguments as {@code args}, written as the JSON library of the
+ *       application writes them. Make a client argument a value, such as a string or a number, not
+ *       an entity. Neither the rule id, nor internal arguments, nor the severity are in the
+ *       response; violations are logged at DEBUG, with all three.
+ *   <li>The handler comes before the controller advice of the application, as Spring Boot's own
+ *       problem details do, so that a handler of every {@code Exception} does not answer violations
+ *       as errors of the server. A controller advice that names {@code
+ *       BusinessRuleViolationException} in an {@code @ExceptionHandler} replaces it, for every
+ *       controller, even if the advice applies to some controllers only; inject the {@code
+ *       MessageResolver} bean there to resolve the messages. A controller's own handler of the
+ *       exception comes first anyway.
+ * </ul>
  *
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
@@ -188,6 +216,23 @@ public final class MusterAutoConfiguration {
     static TransactionGuard musterTransactionGuard(
         ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
       return new TransactionGuard(advisor);
+    }
+  }
+
+  /** Answers violations with problem details in a Spring MVC application. */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+  @ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
+  static class ProblemDetailsConfiguration {
+
+    @Bean
+    @Conditional(NoViolationHandlerCondition.class)
+    ViolationExceptionHandler musterViolationExceptionHandler(
+        MessageResolver messages,
+        ConfigurableListableBeanFactory beanFactory,
+        Environment environment) {
+      return new ViolationExceptionHandler(
+          messages, locale(beanFactory), ViolationExceptionHandler.mixedStatus(environment));
     }
   }
 

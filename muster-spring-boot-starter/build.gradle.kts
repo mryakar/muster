@@ -36,6 +36,8 @@ dependencies {
   compileOnly("org.springframework.security:spring-security-core")
   // Optional: rules run inside the transaction when the application has Spring's transactions.
   compileOnly("org.springframework:spring-tx")
+  // Optional: violations become problem details in a Spring MVC application.
+  compileOnly("org.springframework:spring-webmvc")
 }
 
 testing {
@@ -46,6 +48,7 @@ testing {
         implementation("org.springframework.boot:spring-boot-starter-test")
         implementation("org.springframework.security:spring-security-core")
         implementation("org.springframework:spring-tx")
+        implementation("org.springframework.boot:spring-boot-starter-webmvc")
       }
     }
     register<JvmTestSuite>("integrationTest") {
@@ -55,6 +58,7 @@ testing {
         implementation("org.spockframework:spock-spring")
         implementation("org.springframework.boot:spring-boot-starter-jdbc")
         implementation("org.springframework.boot:spring-boot-starter-test")
+        implementation("org.springframework.boot:spring-boot-starter-webmvc")
         implementation("org.springframework.boot:spring-boot-testcontainers")
         implementation("org.testcontainers:testcontainers-postgresql")
         runtimeOnly("org.postgresql:postgresql")

@@ -61,7 +61,7 @@ final class RuleSwitches {
    * Rejects a key that is set to nothing, such as {@code muster.mode=}, which Spring Boot would
    * read as not set at all.
    */
-  private static void requireValue(Binder binder, ConfigurationPropertyName key, String values) {
+  static void requireValue(Binder binder, ConfigurationPropertyName key, String values) {
     if (binder.bind(key, Bindable.of(String.class)).map(String::isBlank).orElse(false)) {
       throw new IllegalStateException(key + " is set to nothing; set it to " + values);
     }
