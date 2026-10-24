@@ -62,6 +62,11 @@ class MessageTemplateSpec extends Specification {
     Optional.of('x') || 'Optional[x]'
   }
 
+  def 'an empty placeholder stays as it is, even for an argument with an empty name'() {
+    expect:
+    MessageTemplate.fill('Empty {} stays', ['': 'X']) == 'Empty {} stays'
+  }
+
   def 'fills an argument whose name lies outside the basic plane'() {
     expect:
     MessageTemplate.fill('Truck {name🚚}', ['name🚚': 'Atlas']) == 'Truck Atlas'
