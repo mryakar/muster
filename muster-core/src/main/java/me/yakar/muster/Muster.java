@@ -201,7 +201,6 @@ public final class Muster {
     return chain;
   }
 
-  /** Adds the rules that the included ones require, and orders them. */
   /**
    * Adds the rules that the included ones require and orders them all; {@code listed} gives the
    * order of the rules the caller listed, if any.
