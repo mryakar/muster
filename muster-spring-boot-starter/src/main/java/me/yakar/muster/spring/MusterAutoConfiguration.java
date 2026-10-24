@@ -37,6 +37,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -86,8 +87,9 @@ public final class MusterAutoConfiguration {
 
   @Bean
   @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-  static RulesInterceptor musterRulesInterceptor(ObjectProvider<Muster> muster) {
-    return new RulesInterceptor(muster);
+  static RulesInterceptor musterRulesInterceptor(
+      ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
+    return new RulesInterceptor(muster, transactions);
   }
 
   // Infrastructure, so that the proxy creator that transaction management registers applies it.
@@ -135,6 +137,26 @@ public final class MusterAutoConfiguration {
       ConfigurableListableBeanFactory beanFactory, Class<?> suppliedType) {
     return beanFactory.getBeanProvider(
         ResolvableType.forClassWithGenerics(Supplier.class, suppliedType));
+  }
+
+  /** Keeps rules inside the transaction when the application has Spring's transactions. */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(
+      name =
+          "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor")
+  static class TransactionConfiguration {
+
+    @Bean
+    static TransactionOrdering musterTransactionOrdering() {
+      return new TransactionOrdering();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    static TransactionGuard musterTransactionGuard(
+        ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
+      return new TransactionGuard(advisor);
+    }
   }
 
   /** Reads the caller from Spring Security when the application has it. */

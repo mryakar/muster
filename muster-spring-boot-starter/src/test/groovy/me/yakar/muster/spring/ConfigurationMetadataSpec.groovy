@@ -25,7 +25,11 @@ class ConfigurationMetadataSpec extends Specification {
 
   def 'describes the properties of Muster for IDEs'() {
     expect:
-    metadata.read('$.properties[*].name') == ['muster.mode', 'muster.rules']
+    metadata.read('$.properties[*].name') == [
+      'muster.mode',
+      'muster.transaction.reorder-advisor',
+      'muster.rules'
+    ]
     metadata.read('$..sourceType').every { it == MusterAutoConfiguration.name }
   }
 

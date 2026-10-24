@@ -14,6 +14,13 @@
       "defaultValue": "fail-fast"
     },
     {
+      "name": "muster.transaction.reorder-advisor",
+      "type": "java.lang.Boolean",
+      "description": "Whether to move the transaction advice one step ahead of Muster's, so that rules run inside the transaction, unless @EnableTransactionManagement has an order of its own. Either way, the application does not start if the transaction advice would not run around Muster's.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
+      "defaultValue": true
+    },
+    {
       "name": "muster.rules",
       "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
       "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application.",
