@@ -24,6 +24,14 @@ package me.yakar.muster.rule;
  */
 public enum Category {
 
+  /**
+   * The caller may not do this to the data the request refers to, for example close a task that
+   * only its owner may close. Role checks belong to the security framework; this is for checks that
+   * depend on the data. A rule that must not reveal that the data exists reports {@link #NOT_FOUND}
+   * instead.
+   */
+  FORBIDDEN,
+
   /** Something the request refers to does not exist. */
   NOT_FOUND,
 
