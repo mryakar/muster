@@ -127,7 +127,10 @@ public final class RuleContext {
 
   /**
    * Returns the locale of the call. Messages are resolved elsewhere; use the locale for business
-   * logic that depends on it, such as comparing names without regard to case.
+   * logic that depends on the caller's language. Do not use it to normalize data that must stay
+   * unique: compared without regard to case in the caller's locale, the same name can pass for one
+   * language and fail for another, as Turkish dotted and dotless i do. Normalize stored data in one
+   * fixed locale instead.
    *
    * @return the locale
    */
