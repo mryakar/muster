@@ -21,6 +21,13 @@
       "defaultValue": true
     },
     {
+      "name": "muster.problem-details.mixed-status",
+      "type": "java.lang.Integer",
+      "description": "The status that answers business rule violations of different categories in a Spring MVC application, a client error from 400 to 499. Violations of one category are answered with its status: 403 for forbidden, 404 for not found, 409 for conflict, and 422 for invalid state or no category.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
+      "defaultValue": 422
+    },
+    {
       "name": "muster.rules",
       "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
       "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application.",

@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring
 
+import org.springframework.boot.WebApplicationType
 import org.springframework.boot.builder.SpringApplicationBuilder
 import spock.lang.Specification
 
@@ -29,6 +30,7 @@ class MusterLogSpec extends Specification {
 
     when:
     def context = new SpringApplicationBuilder(IntegrationTestApplication)
+        .web(WebApplicationType.NONE)
         .properties('muster.rules.vehicle.name-unique.enabled=false')
         .run()
     context.close()

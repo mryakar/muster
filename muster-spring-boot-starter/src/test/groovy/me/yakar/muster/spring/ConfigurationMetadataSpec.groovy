@@ -28,6 +28,7 @@ class ConfigurationMetadataSpec extends Specification {
     metadata.read('$.properties[*].name') == [
       'muster.mode',
       'muster.transaction.reorder-advisor',
+      'muster.problem-details.mixed-status',
       'muster.rules'
     ]
     metadata.read('$..sourceType').every { it == MusterAutoConfiguration.name }
@@ -42,5 +43,10 @@ class ConfigurationMetadataSpec extends Specification {
     expect:
     metadata.read('$.hints[?(@.name == "muster.mode")].values[*].value') == modes
     metadata.read('$.properties[?(@.name == "muster.mode")].defaultValue') == ['fail-fast']
+  }
+
+  def 'gives the default mixed status'() {
+    expect:
+    metadata.read('$.properties[?(@.name == "muster.problem-details.mixed-status")].defaultValue') == [422]
   }
 }
