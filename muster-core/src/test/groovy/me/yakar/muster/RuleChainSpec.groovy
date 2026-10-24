@@ -57,7 +57,7 @@ class RuleChainSpec extends EngineSpecification {
     noExceptionThrown()
   }
 
-  def 'in COLLECT_ALL mode, all violations are collected, in the order of the rule ids'() {
+  def 'in COLLECT_ALL mode, all violations are collected, in the order the chain lists the rules'() {
     given:
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(CheckMode.COLLECT_ALL).build()
 
@@ -66,23 +66,44 @@ class RuleChainSpec extends EngineSpecification {
 
     then:
     def e = thrown(BusinessRuleViolationException)
-    e.violations()*.ruleId() == [
+    e.violations()*.ruleId() == ruleIds
+    e.violations().find {
+      it.ruleId() == 'vehicle.name-unique'
+    }.clientArgs() == [name: 'taken']
+
+    where:
+    ruleClasses || ruleIds
+    [NameUnique, CodeFormat] || [
+      'vehicle.name-unique',
+      'vehicle.code-format'
+    ]
+    [CodeFormat, NameUnique] || [
       'vehicle.code-format',
       'vehicle.name-unique'
     ]
-    e.violations()[1].clientArgs() == [name: 'taken']
+  }
+
+  def 'in FAIL_FAST mode, the first listed rule that is violated is reported'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+
+    when:
+    muster.chain(CreateVehicle, *ruleClasses).check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == [reported]
 
     where:
-    ruleClasses << [
-      [NameUnique, CodeFormat],
-      [CodeFormat, NameUnique]
-    ]
+    ruleClasses || reported
+    [NameUnique, CodeFormat] || 'vehicle.name-unique'
+    [CodeFormat, NameUnique] || 'vehicle.code-format'
   }
 
   def 'Muster checks in FAIL_FAST mode unless told otherwise'() {
     given:
     def muster = Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).build()
-    def chain = muster.chain(Long, TaskBilled, TaskAudited)
+    def chain = muster.chain(Long, TaskAudited, TaskBilled)
 
     expect:
     chain.mode() == CheckMode.FAIL_FAST
@@ -99,7 +120,7 @@ class RuleChainSpec extends EngineSpecification {
   def 'in COLLECT_ALL mode, every rule runs'() {
     when:
     Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).mode(CheckMode.COLLECT_ALL).build()
-        .chain(Long, TaskBilled, TaskAudited).check(500L)
+        .chain(Long, TaskAudited, TaskBilled).check(500L)
 
     then:
     def e = thrown(BusinessRuleViolationException)
@@ -135,7 +156,7 @@ class RuleChainSpec extends EngineSpecification {
   def 'a chain checks in its own mode, whatever the mode of the Muster: #global, then #own'() {
     given:
     def chain = Muster.builder().rules(new TaskAudited(ran), new TaskBilled(ran)).mode(global).build()
-        .chain(Long, TaskBilled, TaskAudited)
+        .chain(Long, TaskAudited, TaskBilled)
 
     when:
     def overridden = chain.withMode(own)
@@ -313,7 +334,7 @@ class RuleChainSpec extends EngineSpecification {
   def 'a chain describes itself for logs'() {
     given:
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
-    def vehicles = muster.chain(CreateVehicle, NameUnique, CodeFormat)
+    def vehicles = muster.chain(CreateVehicle, CodeFormat, NameUnique)
     def nothing = muster.chain(long).withMode(CheckMode.COLLECT_ALL)
 
     expect:
