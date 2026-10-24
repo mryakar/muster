@@ -18,7 +18,10 @@ package me.yakar.muster.spi;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import me.yakar.muster.internal.ResourceBundleTemplates;
 import me.yakar.muster.internal.TemplateMessageResolver;
 import me.yakar.muster.rule.Violation;
 
@@ -29,8 +32,8 @@ import me.yakar.muster.rule.Violation;
  * edge of the application, such as an exception handler, resolves them for the response. A resolver
  * sees the client arguments only; internal arguments never reach a message.
  *
- * <p>The resolvers Muster creates with {@link #ofTemplates} fill a template in which {@code {name}}
- * stands for the client argument of that name:
+ * <p>The resolvers Muster creates, {@link #ofTemplates} and {@link #ofResourceBundles}, fill a
+ * template in which {@code {name}} stands for the client argument of that name:
  *
  * <ul>
  *   <li>The value is written with {@link String#valueOf(Object)}. To format a number or a date, the
@@ -81,5 +84,37 @@ public interface MessageResolver {
    */
   static MessageResolver ofTemplates(BiFunction<String, Locale, Optional<String>> templates) {
     return new TemplateMessageResolver(templates);
+  }
+
+  /**
+   * Creates a resolver that reads templates from a family of resource bundles, with the code as the
+   * key, and fills them with the client arguments. If the bundle has no template for the code, the
+   * message is the code.
+   *
+   * <p>Load the bundles in your own module, so that they are found on the module path as well as on
+   * the class path:
+   *
+   * {@snippet :
+   * var messages =
+   *     MessageResolver.ofResourceBundles(
+   *         locale -> ResourceBundle.getBundle("com.example.messages", locale));
+   * String message = messages.resolve(violation, locale);
+   * }
+   *
+   * <p>The bundle for a locale is the bundle of that locale or of a more general one, such as
+   * {@code messages_tr.properties} for {@code tr-TR}, and otherwise the base bundle, {@code
+   * messages.properties}. Unlike {@link ResourceBundle#getBundle(String, Locale)}, the resolver
+   * never uses the bundle of the default locale of the JVM: a server whose default locale is
+   * Turkish answers a French client from the base bundle, not in Turkish. The family therefore
+   * needs a base bundle.
+   *
+   * @param bundles returns the bundle for a locale, such as {@code locale ->
+   *     ResourceBundle.getBundle("com.example.messages", locale)}; it is called on every resolve,
+   *     and {@link ResourceBundle#getBundle(String, Locale)} keeps the bundles it loads
+   * @return the resolver
+   * @throws IllegalArgumentException if the family has no base bundle
+   */
+  static MessageResolver ofResourceBundles(Function<Locale, ResourceBundle> bundles) {
+    return new TemplateMessageResolver(new ResourceBundleTemplates(bundles));
   }
 }
