@@ -17,12 +17,14 @@ plugins { id("muster.java-conventions") }
 
 description = "Spring Boot integration for Muster."
 
-// The Spring Boot to build and test against; -PspringBootVersion tests another one. What is
-// published always names the oldest supported version, and no platform: an application's own
-// Spring Boot manages the versions.
+// The Spring Boot to build and test against; -PspringBootVersion tests another one, and
+// -PspringBootVersion=latest the newest that the catalog names. What is published always names the
+// oldest supported version, and no platform: an application's own Spring Boot manages the
+// versions.
 val springBootVersion =
   providers
     .gradleProperty("springBootVersion")
+    .map { if (it == "latest") libs.versions.spring.boot.latest.get() else it }
     .getOrElse(libs.versions.spring.boot.asProvider().get())
 val springBoot = "org.springframework.boot:spring-boot-dependencies:$springBootVersion"
 

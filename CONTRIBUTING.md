@@ -13,7 +13,7 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 | `./gradlew spotlessApply` | Formats the code and adds license headers |
 | `./gradlew pitest` | Mutation testing |
 | `./gradlew check -PtestJavaVersion=25` | Runs the tests on another JDK (the code is still compiled for 21) |
-| `./gradlew :muster-spring-boot-starter:check -PspringBootVersion=4.1.1` | Tests the starter against another Spring Boot (the build uses the oldest supported, `spring-boot` in `gradle/libs.versions.toml`) |
+| `./gradlew :muster-spring-boot-starter:check -PspringBootVersion=latest` | Tests the starter against the newest Spring Boot, `spring-boot-latest` in `gradle/libs.versions.toml`, or against the version given (the build uses the oldest supported, `spring-boot`) |
 
 ## Code
 
