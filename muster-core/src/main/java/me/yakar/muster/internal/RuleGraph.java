@@ -150,10 +150,11 @@ public final class RuleGraph {
   /**
    * Orders rules so that each comes after the rules it requires. With rules listed, it takes the
    * listed rules in the order they are listed, and before each one the rules it requires that are
-   * not ordered yet: listed ones in the order they are listed, the others in the order of their
-   * ids. Every rule must then be listed or required by a listed rule. With no rules listed, rules
-   * that do not depend on each other come in the order of their ids. Every required rule must be
-   * among the given ones, and there must be no cycle.
+   * not ordered yet, each after its own requirements, ordered the same way: listed ones in the
+   * order they are listed, the others in the order of their ids. Every rule must then be listed or
+   * required by a listed rule. With no rules listed, rules that do not depend on each other come in
+   * the order of their ids. Every required rule must be among the given ones, and there must be no
+   * cycle.
    *
    * @param rules the rules
    * @param listed the classes of the listed rules, in the order they are listed
