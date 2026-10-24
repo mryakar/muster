@@ -16,6 +16,7 @@
 package me.yakar.muster
 
 import java.security.Principal
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Handler
 import java.util.logging.LogRecord
 import java.util.logging.Logger
@@ -276,7 +277,8 @@ abstract class EngineSpecification extends Specification {
   def amo = { 'amo' } as Principal
 
   List<String> ran = []
-  List<LogRecord> logged = []
+  // Threads log at the same time in the concurrency tests; a plain list would lose records.
+  List<LogRecord> logged = new CopyOnWriteArrayList<LogRecord>()
   Logger log = Logger.getLogger('me.yakar.muster')
   Handler handler = new Handler() {
     void publish(LogRecord record) {
