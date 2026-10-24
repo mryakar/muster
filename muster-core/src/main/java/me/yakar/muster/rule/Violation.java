@@ -16,6 +16,7 @@
 package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
+import static me.yakar.muster.rule.Checks.requireArgumentName;
 import static me.yakar.muster.rule.Checks.requireKey;
 import static me.yakar.muster.rule.Checks.requireNonBlank;
 
@@ -232,7 +233,8 @@ public final class Violation implements Serializable {
      * @param name the name the message template refers to, as in {@code {name}}
      * @param value the value
      * @return this builder
-     * @throws IllegalArgumentException if {@code name} is blank or already used
+     * @throws IllegalArgumentException if {@code name} is blank or already used, or contains
+     *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
      */
     public Builder clientArg(String name, Object value) {
       put(clientArgs, name, value);
@@ -245,7 +247,8 @@ public final class Violation implements Serializable {
      * @param name the name
      * @param value the value
      * @return this builder
-     * @throws IllegalArgumentException if {@code name} is blank or already used
+     * @throws IllegalArgumentException if {@code name} is blank or already used, or contains
+     *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
      */
     public Builder internalArg(String name, Object value) {
       put(internalArgs, name, value);
@@ -253,7 +256,7 @@ public final class Violation implements Serializable {
     }
 
     private void put(SequencedMap<String, Object> args, String name, Object value) {
-      requireNonBlank(name, "argument name");
+      requireArgumentName(name);
       requireNonNull(value, () -> "value of argument '" + name + "'");
       if (clientArgs.containsKey(name)) {
         throw new IllegalArgumentException("'" + name + "' is already a client argument");

@@ -54,4 +54,22 @@ final class Checks {
     }
     return value;
   }
+
+  /**
+   * Requires a name a message template can refer to, as in {@code {name}}: a {@linkplain
+   * #requireKey key} with no brace.
+   */
+  static void requireArgumentName(String value) {
+    requireKey(value, "argument name");
+    for (var i = 0; i < value.length(); i++) {
+      var c = value.charAt(i);
+      if (c == '{' || c == '}') {
+        throw new IllegalArgumentException(
+            String.format(
+                "argument name '%s' contains U+%04X; it cannot contain braces, which mark arguments"
+                    + " in message templates",
+                value, (int) c));
+      }
+    }
+  }
 }

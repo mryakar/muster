@@ -138,6 +138,51 @@ class ViolationSpec extends Specification {
     'internalArg' | 'ownerId' | null || NullPointerException     | "value of argument 'ownerId'"
   }
 
+  def 'an argument name cannot contain #kind: #method'() {
+    when:
+    context.violation()."$method"(name, 1)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "argument name '$name' contains $character; it cannot contain whitespace, spaces, control or format characters, or unpaired surrogates"
+
+    where:
+    kind                         | method        | name || character
+    'a space'                    | 'clientArg'   | 'vehicle name' || 'U+0020'
+    'a space'                    | 'internalArg' | 'vehicle name' || 'U+0020'
+    'a no-break space'           | 'clientArg'   | 'vehicle name' || 'U+00A0'
+    'a trailing newline'         | 'clientArg'   | 'name\n' || 'U+000A'
+    'a zero-width space'         | 'clientArg'   | 'vehicle​name' || 'U+200B'
+    'an unpaired high surrogate' | 'internalArg' | 'name\uD83D' || 'U+D83D'
+  }
+
+  def 'an argument name cannot contain a brace: #method(#name)'() {
+    when:
+    context.violation()."$method"(name, 1)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "argument name '$name' contains $character; it cannot contain braces, which mark arguments in message templates"
+
+    where:
+    method        | name || character
+    'clientArg'   | '{name}' || 'U+007B'
+    'clientArg'   | 'na}me' || 'U+007D'
+    'internalArg' | 'name{' || 'U+007B'
+    'internalArg' | '}' || 'U+007D'
+  }
+
+  def 'an argument name can be #kind'() {
+    expect:
+    context.violation().clientArg(name, 1).build().clientArgs().keySet() == [name] as Set
+
+    where:
+    kind                      | name
+    'camel case'              | 'conflictingVehicleId'
+    'dotted'                  | 'vehicle.name'
+    'outside the basic plane' | 'name🚚'
+  }
+
   def 'a violation can name a target and a category'() {
     when:
     def violation = context.violation().target('name').category(Category.CONFLICT).build()
