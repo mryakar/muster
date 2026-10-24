@@ -1,0 +1,495 @@
+/*
+ * Copyright 2026 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package me.yakar.muster
+
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.logging.Level
+import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.RequiresRule
+import me.yakar.muster.rule.Rule
+import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.RuleResult
+
+/** Bindings: listed rules together with the rules that bind by type, less the excluded ones. */
+class BindingSpec extends EngineSpecification {
+
+  static final String FIELDS = VehicleFields.name
+  static final String CREATE = CreateVehicle.name
+  static final String UPDATE = UpdateVehicle.name
+
+  /** A rule that notes when it runs and passes. */
+  static abstract class Noted<T> implements BusinessRule<T> {
+    final List<String> ran
+
+    Noted(List<String> ran) {
+      this.ran = ran
+    }
+
+    RuleResult check(T input, RuleContext ctx) {
+      ran << ctx.ruleId()
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'fields.listed')
+  static class FieldsListed extends Noted<EngineSpecification.VehicleFields> {
+    FieldsListed(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'fields.bound')
+  static class FieldsBound extends Noted<EngineSpecification.VehicleFields> {
+    FieldsBound(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'fields.base')
+  static class FieldsBase extends Noted<EngineSpecification.VehicleFields> {
+    FieldsBase(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'fields.needs-base')
+  @RequiresRule(FieldsBase)
+  static class FieldsNeedsBase extends Noted<EngineSpecification.VehicleFields> {
+    FieldsNeedsBase(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'fields.top')
+  @RequiresRule(FieldsNeedsBase)
+  static class FieldsTop extends Noted<EngineSpecification.VehicleFields> {
+    FieldsTop(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'identified.bound')
+  static class IdentifiedBound extends Noted<EngineSpecification.Identified> {
+    IdentifiedBound(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'long.listed')
+  static class LongListed extends Noted<Long> {
+    LongListed(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'long.bound')
+  static class LongBound extends Noted<Long> {
+    LongBound(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'long.base')
+  static class LongBase extends Noted<Long> {
+    LongBase(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  @Rule(id = 'long.needs-base')
+  @RequiresRule(LongBase)
+  static class LongNeedsBase extends Noted<Long> {
+    LongNeedsBase(List<String> ran) {
+      super(ran)
+    }
+  }
+
+  Muster muster(Class<?>... ruleClasses) {
+    Muster.builder().rules({
+      it.getDeclaredConstructor(List).newInstance(ran)
+    }, *ruleClasses).build()
+  }
+
+  def 'a binding runs the listed rules, then the rules that bind by type to the class of the input'() {
+    given:
+    def binding = muster(FieldsListed, FieldsBound, IdentifiedBound).binding(VehicleFields).rules(FieldsListed).build()
+
+    when:
+    binding.check(new CreateVehicle('TR-1', 'Atlas'))
+
+    then:
+    ran == [
+      'fields.listed',
+      'fields.bound'
+    ]
+
+    when:
+    ran.clear()
+    binding.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
+
+    then:
+    ran == [
+      'fields.listed',
+      'fields.bound',
+      'identified.bound'
+    ]
+  }
+
+  def 'for an input that is not a rule target, a binding runs only the listed rules'() {
+    given:
+    def binding = muster(LongListed, LongBound).binding(type).rules(LongListed).build()
+
+    when:
+    binding.check(1L)
+
+    then:
+    ran == ['long.listed']
+
+    where:
+    type << [Long, long]
+  }
+
+  def 'the listed rules and their requirements run first; the rules bound by type follow, after theirs, in the order of their ids'() {
+    given:
+    def binding = muster(FieldsListed, FieldsBound, FieldsBase, FieldsNeedsBase, FieldsTop).binding(VehicleFields).rules(FieldsTop, FieldsListed).build()
+
+    when:
+    binding.check(VALID)
+
+    then:
+    ran == [
+      'fields.base',
+      'fields.needs-base',
+      'fields.top',
+      'fields.listed',
+      'fields.bound'
+    ]
+  }
+
+  def 'rules bound by type run after their requirements, in the order of their ids'() {
+    given:
+    def binding = muster(FieldsListed, FieldsBase, FieldsNeedsBase).binding(VehicleFields).rules(FieldsListed).build()
+
+    when:
+    binding.check(VALID)
+
+    then:
+    ran == [
+      'fields.listed',
+      'fields.base',
+      'fields.needs-base'
+    ]
+  }
+
+  def 'an excluded rule does not bind by type'() {
+    given:
+    def binding = muster(FieldsListed, FieldsBound).binding(VehicleFields).rules(FieldsListed).exclude(FieldsBound).build()
+
+    when:
+    binding.check(VALID)
+
+    then:
+    ran == ['fields.listed']
+  }
+
+  def 'a rule bound by type that requires an excluded rule is left out too, and logged once for each class'() {
+    given:
+    def binding = muster(FieldsListed, FieldsBase, FieldsNeedsBase, FieldsTop).binding(VehicleFields).rules(FieldsListed).exclude(FieldsBase).build()
+
+    when:
+    binding.check(VALID)
+    binding.check(VALID)
+
+    then:
+    ran == [
+      'fields.listed',
+      'fields.listed'
+    ]
+    logged*.message == [
+      "The chain for ${FIELDS} (${CREATE}) leaves out rules that require excluded rules: 'fields.needs-base' requires 'fields.base'; 'fields.top' requires 'fields.base'"
+    ]
+    logged*.level == [Level.INFO]
+  }
+
+  def 'a listed rule that requires an excluded rule is rejected when the binding is built: #listedRule.simpleName'() {
+    when:
+    muster(FieldsBase, FieldsNeedsBase, FieldsTop).binding(VehicleFields).rules(listedRule).exclude(FieldsBase).build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "listed rules require excluded rules, directly or through other rules: '${id}' requires 'fields.base'; list other rules, or stop excluding what they require"
+
+    where:
+    listedRule || id
+    FieldsNeedsBase || 'fields.needs-base'
+    FieldsTop || 'fields.top'
+  }
+
+  def 'a disabled listed rule may require an excluded rule'() {
+    given:
+    def muster = Muster.builder().rules({
+      it.getDeclaredConstructor(List).newInstance(ran)
+    }, FieldsBase, FieldsNeedsBase, FieldsListed).disable('fields.needs-base').build()
+
+    when:
+    muster.binding(VehicleFields).rules(FieldsNeedsBase, FieldsListed).exclude(FieldsBase).build().check(VALID)
+
+    then:
+    ran == ['fields.listed']
+  }
+
+  def 'a binding leaves out disabled rules, listed or bound by type'() {
+    given:
+    def muster = Muster.builder().rules({
+      it.getDeclaredConstructor(List).newInstance(ran)
+    }, FieldsListed, FieldsBound, FieldsBase).disable('fields.listed', 'fields.bound').build()
+
+    when:
+    muster.binding(VehicleFields).rules(FieldsListed).build().check(VALID)
+
+    then:
+    ran == ['fields.base']
+  }
+
+  def 'a binding rejects #problem when it is built'() {
+    when:
+    def builder = muster(FieldsListed, FieldsBound, LongListed).binding(VehicleFields)
+    configure(builder)
+    builder.build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == message
+
+    where:
+    problem                       | configure || message
+    'a listed rule not registered' | {
+      it.rules(FieldsBase)
+    } || "${FieldsBase.name} is not registered"
+    'a listed rule of another type' | {
+      it.rules(LongListed)
+    } || "${LongListed.name} checks java.lang.Long, which ${FIELDS} is not"
+    'an excluded rule not registered' | {
+      it.exclude(FieldsBase)
+    } || "${FieldsBase.name} is not registered"
+    'a rule listed and excluded'  | {
+      it.rules(FieldsBound).exclude(FieldsBound)
+    } || "${FieldsBound.name} is both listed and excluded"
+  }
+
+  def 'a binding rejects a rule #what twice'() {
+    when:
+    muster(FieldsListed).binding(VehicleFields)."$method"(FieldsListed, FieldsListed)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${FieldsListed.name} is ${what} twice"
+
+    where:
+    method    | what
+    'rules'   | 'listed'
+    'exclude' | 'excluded'
+  }
+
+  def 'a binding rejects a null #what'() {
+    when:
+    configure(muster(FieldsListed))
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == what
+
+    where:
+    what         | configure
+    'inputType'  | { it.binding(null) }
+    'rule class' | { it.binding(VehicleFields).rules(FieldsListed, null) }
+    'rule class' | { it.binding(VehicleFields).exclude(FieldsListed, null) }
+    'mode'       | { it.binding(VehicleFields).mode(null) }
+    'name'       | { it.binding(VehicleFields).name(null) }
+  }
+
+  def 'a binding rejects a blank name'() {
+    when:
+    muster(FieldsListed).binding(VehicleFields).name(' ')
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == 'name must not be blank'
+  }
+
+  def 'a binding checks in its own mode, or else in the mode of the Muster'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
+    def builder = muster.binding(VehicleFields)
+    if (mode != null) {
+      builder.mode(mode)
+    }
+    def binding = builder.build()
+
+    when:
+    binding.check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == reported
+    binding.mode() == (mode ?: CheckMode.FAIL_FAST)
+
+    where:
+    mode || reported
+    null || ['vehicle.code-format']
+    CheckMode.COLLECT_ALL || [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
+  }
+
+  def 'a binding for a final type prepares its rules when it is built, and logs them under its name'() {
+    given:
+    log.level = Level.FINE
+    def muster = muster(FieldsBase, FieldsNeedsBase, FieldsBound)
+
+    when:
+    def binding = muster.binding(CreateVehicle).rules(FieldsNeedsBase).name('VehicleService.create').build()
+
+    then:
+    logged*.message == [
+      "Rules bound to VehicleService.create (${CREATE}): [fields.base, fields.needs-base, fields.bound]"
+    ]
+
+    when:
+    logged.clear()
+    binding.check(VALID)
+    binding.check(VALID)
+
+    then:
+    logged.empty
+    ran == [
+      'fields.base',
+      'fields.needs-base',
+      'fields.bound',
+      'fields.base',
+      'fields.needs-base',
+      'fields.bound'
+    ]
+
+    cleanup:
+    log.level = null
+  }
+
+  def 'a binding names itself when it logs a rule that its chain adds'() {
+    when:
+    muster(LongBase, LongNeedsBase).binding(Long).rules(LongNeedsBase).name('TaskService.delete').build()
+
+    then:
+    logged*.message == [
+      "The chain for TaskService.delete (java.lang.Long) includes rule 'long.base' because 'long.needs-base' requires it"
+    ]
+  }
+
+  def 'a binding for another type prepares the rules of a class on its first check, once'() {
+    given:
+    log.level = Level.FINE
+    def binding = muster(FieldsListed, IdentifiedBound).binding(VehicleFields).rules(FieldsListed).build()
+
+    expect:
+    logged.empty
+
+    when:
+    binding.check(VALID)
+    binding.check(VALID)
+    binding.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
+
+    then:
+    logged*.message == [
+      "Rules bound to ${FIELDS} (${CREATE}): [fields.listed]",
+      "Rules bound to ${FIELDS} (${UPDATE}): [fields.listed, identified.bound]"
+    ]
+
+    cleanup:
+    log.level = null
+  }
+
+  def 'a binding warns when no rule binds'() {
+    when:
+    muster(LongListed).binding(Long).build()
+
+    then:
+    logged*.message == [
+      'No rule binds to java.lang.Long; check that its rules are registered, enabled and accept it'
+    ]
+  }
+
+  def 'a binding rejects an input of another type, which only unchecked code can pass'() {
+    given:
+    Binding raw = muster(FieldsListed).binding(VehicleFields).build()
+
+    when:
+    raw.check('text')
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the binding checks ${FIELDS}, not java.lang.String"
+  }
+
+  def 'a binding rejects a null input'() {
+    when:
+    muster(FieldsListed).binding(VehicleFields).build().check(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'input'
+  }
+
+  def 'a binding describes itself for logs'() {
+    expect:
+    muster(FieldsListed, FieldsBound, FieldsBase).binding(VehicleFields).rules(FieldsListed).exclude(FieldsBound, FieldsBase).mode(CheckMode.COLLECT_ALL).name('VehicleService.save').build().toString() ==
+        "Binding[name=VehicleService.save, input=${FIELDS}, mode=COLLECT_ALL, rules=[FieldsListed], excluded=[FieldsBase, FieldsBound]]"
+  }
+
+  def 'threads that check a new class at the same time bind its rules once, and each runs them'() {
+    given:
+    log.level = Level.FINE
+    def binding = muster(FieldsListed, FieldsBound).binding(VehicleFields).rules(FieldsListed).build()
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(16)
+    def checks = (1..16).collect {
+      pool.submit({
+        ->
+        start.await()
+        binding.check(VALID)
+        true
+      } as Callable<Boolean>)
+    }
+
+    when:
+    start.countDown()
+    def done = checks.collect { it.get(1, TimeUnit.MINUTES) }
+
+    then:
+    done.every()
+    ran.size() == 32
+    logged*.message == [
+      "Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"
+    ]
+
+    cleanup:
+    pool.shutdownNow()
+    log.level = null
+  }
+}

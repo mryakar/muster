@@ -176,17 +176,21 @@ class RuleGraphSpec extends Specification {
     ], [A])*.id() == ['p', 'a', 'q', 'listed']
   }
 
-  def 'with rules listed, every rule must be listed or required by a listed rule'() {
-    when:
+  def 'rules that no listed rule requires come after the listed ones, after their requirements, in the order of their ids'() {
+    expect:
     order([
-      rule(A, 'listed'),
-      rule(B, 'stray-b'),
-      rule(C, 'stray-a')
-    ], [A])
-
-    then:
-    def e = thrown(IllegalArgumentException)
-    e.message == 'rules neither listed nor required by a listed rule: stray-a, stray-b'
+      rule(A, 'listed', [B]),
+      rule(B, 'needed'),
+      rule(C, 'z-bound', [D]),
+      rule(D, 'y-bound-needed'),
+      rule(E, 'a-bound', [B])
+    ], [A])*.id() == [
+      'needed',
+      'listed',
+      'a-bound',
+      'y-bound-needed',
+      'z-bound'
+    ]
   }
 
   def 'a rule that requires several rules comes after all of them'() {

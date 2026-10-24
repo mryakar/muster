@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import me.yakar.muster.internal.PreparedRule;
 import me.yakar.muster.internal.RuleDefinition;
 import me.yakar.muster.internal.RuleGraph;
@@ -124,34 +125,41 @@ public final class Muster {
   public final <I> RuleChain<I> chain(
       Class<I> inputType, Class<? extends BusinessRule<?>>... ruleClasses) {
     requireNonNull(inputType, "inputType");
-    // The JDK's own mapping from a primitive type to its wrapper; other types stay as they are.
-    var wrapped = MethodType.methodType(inputType).wrap().returnType();
+    var wrapped = wrap(inputType);
     var included = new LinkedHashMap<Class<?>, PreparedRule>();
     var listed = new HashSet<Class<?>>();
     for (var ruleClass : ruleClasses) {
-      requireNonNull(ruleClass, "rule class");
-      var rule = rules.get(ruleClass);
-      if (rule == null) {
-        throw new IllegalArgumentException(ruleClass.getTypeName() + " is not registered");
-      }
+      var rule = listedRule(ruleClass, inputType, wrapped);
       if (!listed.add(ruleClass)) {
         throw new IllegalArgumentException(ruleClass.getTypeName() + " is listed twice");
-      }
-      var ruleInputType = rule.definition().inputType();
-      if (!ruleInputType.isAssignableFrom(wrapped)) {
-        throw new IllegalArgumentException(
-            ruleClass.getTypeName()
-                + " checks "
-                + ruleInputType.getTypeName()
-                + ", which "
-                + inputType.getTypeName()
-                + " is not");
       }
       if (!disabled.contains(ruleClass)) {
         included.put(ruleClass, rule);
       }
     }
-    return compose(wrapped, included, List.copyOf(included.keySet()));
+    return compose(wrapped.getTypeName(), wrapped, included, List.copyOf(included.keySet()), mode);
+  }
+
+  /**
+   * Starts a binding of inputs of the given type to the rules it lists and to the rules that bind
+   * to their class by type. Build it once, for example per service method, and keep it.
+   *
+   * {@snippet :
+   * Binding<VehicleFields> save = muster.binding(VehicleFields.class)
+   *     .rules(VehicleNameUnique.class)
+   *     .exclude(LegacyCodeFormat.class)
+   *     .build();
+   * save.check(command); // the listed rules, and the rules bound to the class of the command
+   * }
+   *
+   * @param inputType the type of input the binding checks; a primitive type stands for its wrapper
+   * @param <I> the type of input
+   * @return a builder for the binding
+   * @throws NullPointerException if {@code inputType} is {@code null}
+   * @see Binding
+   */
+  public <I> Binding.Builder<I> binding(Class<I> inputType) {
+    return new Binding.Builder<>(this, requireNonNull(inputType, "inputType"));
   }
 
   /**
@@ -201,34 +209,141 @@ public final class Muster {
   }
 
   private RuleChain<Object> bind(Class<?> type) {
+    return bind(type, List.of(), Set.of(), mode, null);
+  }
+
+  /** The JDK's own mapping from a primitive type to its wrapper; other types stay as they are. */
+  static Class<?> wrap(Class<?> type) {
+    return MethodType.methodType(type).wrap().returnType();
+  }
+
+  /** Returns a rule listed for inputs of a type, after checking that it is registered for them. */
+  PreparedRule listedRule(Class<?> ruleClass, Class<?> inputType, Class<?> wrapped) {
+    var rule = registeredRule(ruleClass);
+    var ruleInputType = rule.definition().inputType();
+    if (!ruleInputType.isAssignableFrom(wrapped)) {
+      throw new IllegalArgumentException(
+          ruleClass.getTypeName()
+              + " checks "
+              + ruleInputType.getTypeName()
+              + ", which "
+              + inputType.getTypeName()
+              + " is not");
+    }
+    return rule;
+  }
+
+  /** Returns a registered rule. */
+  PreparedRule registeredRule(Class<?> ruleClass) {
+    requireNonNull(ruleClass, "rule class");
+    var rule = rules.get(ruleClass);
+    if (rule == null) {
+      throw new IllegalArgumentException(ruleClass.getTypeName() + " is not registered");
+    }
+    return rule;
+  }
+
+  /** Whether a rule is switched off. */
+  boolean isDisabled(Class<?> ruleClass) {
+    return disabled.contains(ruleClass);
+  }
+
+  /** The mode of this Muster. */
+  CheckMode mode() {
+    return mode;
+  }
+
+  /**
+   * Returns an excluded rule that a rule requires, directly or through other rules, or {@code null}
+   * if it requires none.
+   */
+  @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
+    for (var required : rules.get(ruleClass).definition().requires()) {
+      if (excluded.contains(required)) {
+        return required;
+      }
+      var further = excludedRequirement(required, excluded);
+      if (further != null) {
+        return further;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Binds a class to the given listed rules and, for a rule target, to the rules that bind to it by
+   * type, leaving out the excluded rules and the rules that require them. A {@code name} names the
+   * binding in the logs.
+   */
+  RuleChain<Object> bind(
+      Class<?> type,
+      List<Class<?>> listed,
+      Set<Class<?>> excluded,
+      CheckMode chainMode,
+      @Nullable String name) {
+    var label =
+        name == null || name.equals(type.getTypeName())
+            ? type.getTypeName()
+            : name + " (" + type.getTypeName() + ")";
     var included = new LinkedHashMap<Class<?>, PreparedRule>();
-    rules.forEach(
-        (ruleClass, rule) -> {
-          if (!disabled.contains(ruleClass)
-              && rule.definition().inputType().isAssignableFrom(type)) {
-            included.put(ruleClass, rule);
-          }
-        });
-    RuleChain<Object> chain = compose(type, included, List.of());
+    for (var ruleClass : listed) {
+      if (!disabled.contains(ruleClass)) {
+        included.put(ruleClass, rules.get(ruleClass));
+      }
+    }
+    var listedOrder = List.copyOf(included.keySet());
+    if (RuleTarget.class.isAssignableFrom(type)) {
+      var byType = new ArrayList<PreparedRule>();
+      rules.forEach(
+          (ruleClass, rule) -> {
+            if (!disabled.contains(ruleClass)
+                && !excluded.contains(ruleClass)
+                && !included.containsKey(ruleClass)
+                && rule.definition().inputType().isAssignableFrom(type)) {
+              byType.add(rule);
+            }
+          });
+      var leftOut = new ArrayList<String>();
+      for (var rule : byType) {
+        var blocking = excludedRequirement(rule.definition().ruleClass(), excluded);
+        if (blocking == null) {
+          included.put(rule.definition().ruleClass(), rule);
+        } else {
+          leftOut.add("'" + rule.id() + "' requires '" + rules.get(blocking).id() + "'");
+        }
+      }
+      if (!leftOut.isEmpty()) {
+        LOGGER.log(
+            Level.INFO,
+            "The chain for "
+                + label
+                + " leaves out rules that require excluded rules: "
+                + leftOut.stream().sorted().collect(Collectors.joining("; ")));
+      }
+    }
+    RuleChain<Object> chain = compose(label, type, included, listedOrder, chainMode);
     if (included.isEmpty()) {
       LOGGER.log(
           Level.WARNING,
           "No rule binds to "
-              + type.getTypeName()
+              + label
               + "; check that its rules are registered, enabled and accept it");
     } else {
-      LOGGER.log(
-          Level.DEBUG, () -> "Rules bound to " + type.getTypeName() + ": " + chain.ruleIds());
+      LOGGER.log(Level.DEBUG, () -> "Rules bound to " + label + ": " + chain.ruleIds());
     }
     return chain;
   }
 
   /**
    * Adds the rules that the included ones require and orders them all; {@code listed} gives the
-   * order of the rules the caller listed, if any.
+   * order of the rules the caller listed, if any, and {@code description} names the chain in logs.
    */
   private <I> RuleChain<I> compose(
-      Class<?> inputType, Map<Class<?>, PreparedRule> included, List<Class<?>> listed) {
+      String description,
+      Class<?> inputType,
+      Map<Class<?>, PreparedRule> included,
+      List<Class<?>> listed,
+      CheckMode chainMode) {
     var pending = new ArrayDeque<>(included.values());
     while (!pending.isEmpty()) {
       var rule = pending.removeFirst();
@@ -240,7 +355,7 @@ public final class Muster {
           LOGGER.log(
               Level.INFO,
               "The chain for "
-                  + inputType.getTypeName()
+                  + description
                   + " includes rule '"
                   + required.id()
                   + "' because '"
@@ -258,7 +373,7 @@ public final class Muster {
       positions.put(definition.ruleClass(), steps.size());
       steps.add(new RuleChain.Step(included.get(definition.ruleClass()), requires));
     }
-    return new RuleChain<>(inputType, steps, caller, locale, mode);
+    return new RuleChain<>(inputType, steps, caller, locale, chainMode);
   }
 
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */

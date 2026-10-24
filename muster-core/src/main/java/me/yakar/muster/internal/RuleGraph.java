@@ -151,21 +151,19 @@ public final class RuleGraph {
    * Orders rules so that each comes after the rules it requires. With rules listed, it takes the
    * listed rules in the order they are listed, and before each one the rules it requires that are
    * not ordered yet, each after its own requirements, ordered the same way: listed ones in the
-   * order they are listed, the others in the order of their ids. Every rule must then be listed or
-   * required by a listed rule. With no rules listed, rules that do not depend on each other come in
-   * the order of their ids. Every required rule must be among the given ones, and there must be no
-   * cycle.
+   * order they are listed, the others in the order of their ids. The rules that no listed rule
+   * requires come after them. Rules that do not depend on each other and come neither from the
+   * listed rules nor from their requirements come in the order of their ids. Every required rule
+   * must be among the given ones, and there must be no cycle.
    *
    * @param rules the rules
    * @param listed the classes of the listed rules, in the order they are listed
    * @return the rules in order
-   * @throws IllegalArgumentException if rules are listed and a rule is neither listed nor required
-   *     by a listed rule
    */
   public static List<RuleDefinition> order(
       Collection<RuleDefinition> rules, List<Class<?>> listed) {
     if (listed.isEmpty()) {
-      return byIdAfterRequired(rules);
+      return byIdAfterRequired(rules, Set.of());
     }
     var byClass = new HashMap<Class<?>, RuleDefinition>();
     for (var rule : rules) {
@@ -183,15 +181,10 @@ public final class RuleGraph {
     for (var ruleClass : listed) {
       addAfterRequired(byClass.get(ruleClass), byClass, requiredFirst, ordered);
     }
-    if (ordered.size() != byClass.size()) {
-      throw new IllegalArgumentException(
-          "rules neither listed nor required by a listed rule: "
-              + byId(byClass.values()).stream()
-                  .filter(rule -> !ordered.containsKey(rule.ruleClass()))
-                  .map(RuleDefinition::id)
-                  .collect(Collectors.joining(", ")));
-    }
-    return List.copyOf(ordered.values());
+    var rest = byClass.values().stream().filter(rule -> !ordered.containsKey(rule.ruleClass()));
+    var all = new ArrayList<>(ordered.values());
+    all.addAll(byIdAfterRequired(rest.toList(), ordered.keySet()));
+    return List.copyOf(all);
   }
 
   /** Adds a rule after the rules it requires that are not added yet, unless it is added. */
@@ -211,17 +204,22 @@ public final class RuleGraph {
     ordered.put(rule.ruleClass(), rule);
   }
 
-  /** Orders rules after the rules they require, and otherwise in the order of their ids. */
-  private static List<RuleDefinition> byIdAfterRequired(Collection<RuleDefinition> rules) {
+  /**
+   * Orders rules after the rules they require, and otherwise in the order of their ids; required
+   * rules that are already ordered do not hold them back.
+   */
+  private static List<RuleDefinition> byIdAfterRequired(
+      Collection<RuleDefinition> rules, Set<Class<?>> done) {
     var waitingFor = new HashMap<Class<?>, Integer>();
     var dependents = new HashMap<Class<?>, List<RuleDefinition>>();
     var ready = new PriorityQueue<RuleDefinition>(comparing(RuleDefinition::id));
     for (var rule : rules) {
-      waitingFor.put(rule.ruleClass(), rule.requires().size());
-      for (var required : rule.requires()) {
+      var pending = rule.requires().stream().filter(required -> !done.contains(required)).toList();
+      waitingFor.put(rule.ruleClass(), pending.size());
+      for (var required : pending) {
         dependents.computeIfAbsent(required, key -> new ArrayList<>()).add(rule);
       }
-      if (rule.requires().isEmpty()) {
+      if (pending.isEmpty()) {
         ready.add(rule);
       }
     }
