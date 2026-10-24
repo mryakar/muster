@@ -17,7 +17,10 @@ package me.yakar.muster.spring;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,18 +94,26 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   private Map<Method, MethodAdvice> adviceOf(Class<?> targetClass) {
     var muster = this.muster.getObject();
     var guard = transactions.getIfAvailable();
+    // Every method a proxy may call for an advised method maps to the advice of the method that
+    // the call runs.
+    var candidates = new LinkedHashSet<Method>();
+    if (!Proxy.isProxyClass(targetClass)) {
+      candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
+    }
+    for (var type : ClassUtils.getAllInterfacesForClassAsSet(targetClass)) {
+      candidates.addAll(List.of(type.getMethods()));
+    }
+    var bySpecific = new HashMap<Method, MethodAdvice>();
     var advice = new HashMap<Method, MethodAdvice>();
-    for (var method : ReflectionUtils.getUniqueDeclaredMethods(targetClass)) {
+    for (var method : candidates) {
       if (AdvisedMethods.advised(method, targetClass)) {
-        var methodAdvice = MethodAdvice.of(muster, guard, method, targetClass);
-        advice.put(method, methodAdvice);
-        for (var type : ClassUtils.getAllInterfacesForClassAsSet(targetClass)) {
-          var declared =
-              ClassUtils.getMethodIfAvailable(type, method.getName(), method.getParameterTypes());
-          if (declared != null) {
-            advice.put(declared, methodAdvice);
-          }
+        var specific = AdvisedMethods.specific(method, targetClass);
+        var methodAdvice = bySpecific.get(specific);
+        if (methodAdvice == null) {
+          methodAdvice = MethodAdvice.of(muster, guard, specific, targetClass);
+          bySpecific.put(specific, methodAdvice);
         }
+        advice.put(method, methodAdvice);
       }
     }
     return Map.copyOf(advice);

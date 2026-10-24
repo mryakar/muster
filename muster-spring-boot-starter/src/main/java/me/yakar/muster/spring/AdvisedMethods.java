@@ -17,33 +17,51 @@ package me.yakar.muster.spring;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import me.yakar.muster.rule.RuleTarget;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Service;
 
 /**
  * Tells which methods Muster advises: those with {@link Rules}, and the public methods of a
  * {@code @Service} bean that take a {@link RuleTarget}, whose rules bind to it by type.
+ *
+ * <p>A call may reach a method through an interface, a bridge method or a method of a base class.
+ * As for {@code @Transactional}, what counts is the method of the target class that the call runs.
  */
 final class AdvisedMethods {
 
   private AdvisedMethods() {}
 
+  /**
+   * Returns the method of the target class that a call of the given method runs, its bridge
+   * resolved. A target that is a proxy based on interfaces itself, such as a Spring Data
+   * repository, has only the methods of its interfaces.
+   */
+  static Method specific(Method method, Class<?> targetClass) {
+    return Proxy.isProxyClass(targetClass)
+        ? method
+        : AopUtils.getMostSpecificMethod(method, targetClass);
+  }
+
   static boolean advised(Method method, Class<?> targetClass) {
-    if (method.getDeclaringClass() == Object.class || method.isBridge() || method.isSynthetic()) {
+    var specific = specific(method, targetClass);
+    if (specific.getDeclaringClass() == Object.class) {
       return false;
     }
-    if (rules(method) != null) {
+    if (rules(specific) != null) {
       return true;
     }
-    var modifiers = method.getModifiers();
+    var modifiers = specific.getModifiers();
     return Modifier.isPublic(modifiers)
         && !Modifier.isStatic(modifiers)
-        && AnnotatedElementUtils.hasAnnotation(targetClass, Service.class)
-        && Arrays.stream(method.getParameterTypes()).anyMatch(RuleTarget.class::isAssignableFrom);
+        // The class itself, or one of its annotations, is a service; its base class is not enough.
+        && AnnotatedElementUtils.isAnnotated(targetClass, Service.class)
+        && Arrays.stream(specific.getParameterTypes()).anyMatch(RuleTarget.class::isAssignableFrom);
   }
 
   /** Finds {@link Rules} as Spring finds {@code @Transactional}. */
@@ -51,9 +69,13 @@ final class AdvisedMethods {
     return AnnotatedElementUtils.findMergedAnnotation(method, Rules.class);
   }
 
-  /** Names a method for logs and errors, such as {@code VehicleService.save(CreateVehicle)}. */
+  /**
+   * Names a method for logs and errors, such as {@code VehicleService.save(CreateVehicle)}: after
+   * the target class, or after the interface for a proxy based on interfaces.
+   */
   static String label(Method method, Class<?> targetClass) {
-    return targetClass.getSimpleName()
+    var named = Proxy.isProxyClass(targetClass) ? method.getDeclaringClass() : targetClass;
+    return named.getSimpleName()
         + "."
         + method.getName()
         + Arrays.stream(method.getParameterTypes())
