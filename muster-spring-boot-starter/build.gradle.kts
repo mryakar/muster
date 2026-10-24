@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins { id("muster.java-conventions") }
+plugins {
+  id("muster.java-conventions")
+  id("muster.publishing-conventions")
+}
 
 description = "Spring Boot integration for Muster."
 
@@ -71,5 +74,8 @@ testing {
 }
 
 tasks.check { dependsOn(testing.suites.named("integrationTest")) }
+
+// The API docs are part of the product; a broken link or a missing comment fails the build.
+tasks.check { dependsOn(tasks.javadoc) }
 
 tasks.jar { manifest { attributes("Automatic-Module-Name" to "me.yakar.muster.spring") } }
