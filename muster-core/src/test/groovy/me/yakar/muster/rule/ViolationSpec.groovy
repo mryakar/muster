@@ -182,7 +182,7 @@ class ViolationSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "code '$code' contains $character; it cannot contain whitespace, spaces or control characters"
+    e.message == "code '$code' contains $character; it cannot contain whitespace, spaces, control or format characters, or unpaired surrogates"
 
     where:
     kind                        | code || character
@@ -193,6 +193,12 @@ class ViolationSpec extends Specification {
     'a line separator'          | 'name\u2028taken' || 'U+2028'
     'a control character'       | 'name\u0000taken' || 'U+0000'
     'a trailing newline'        | 'name-taken\n' || 'U+000A'
+    'a zero-width space'        | 'name\u200btaken' || 'U+200B'
+    'a byte order mark'         | '\ufeffname-taken' || 'U+FEFF'
+    'a soft hyphen'             | 'name\u00adtaken' || 'U+00AD'
+    'a word joiner'             | 'name\u2060taken' || 'U+2060'
+    'an unpaired high surrogate'| 'name\uD83Dtaken' || 'U+D83D'
+    'an unpaired low surrogate' | 'name-taken\uDE9A' || 'U+DE9A'
   }
 
   def 'a code can be #kind'() {

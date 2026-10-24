@@ -15,7 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **Breaking:** `Category` has a new constant, `FORBIDDEN`, listed first so that the categories follow the order of the status codes they stand for. A `switch` over `Category` without a `default` no longer compiles until it handles `FORBIDDEN`.
-- **Breaking:** A violation code cannot contain whitespace, spaces such as the no-break space, or control characters, which break message keys or hide in them unseen. A code is otherwise free, for example `VEHICLE_NAME_TAKEN`. A violation serialized by 0.1.0 with such a code no longer deserializes.
+- **Breaking:** A violation code cannot contain whitespace, spaces such as the no-break space, control characters, format characters such as the zero-width space, or unpaired surrogates, which break message keys or hide in them unseen. A code is otherwise free, for example `VEHICLE_NAME_TAKEN`. A violation serialized by 0.1.0 with such a code no longer deserializes.
 - The Javadoc of `RuleContext.locale()` no longer suggests comparing names in the caller's locale, which lets the same name pass for one language and fail for another; it says to normalize stored data in one fixed locale.
 - When rules that require a disabled rule are still enabled, Muster names all of them at once, also those that require it through other rules, so one change to the configuration fixes the setup.
 
