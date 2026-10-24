@@ -44,6 +44,12 @@ import me.yakar.muster.rule.BusinessRule;
  * with the same input checks the rules again; a call within the same bean, through {@code this},
  * passes no proxy and checks none.
  *
+ * <p>Other advice runs around Muster's as Spring orders it. Method validation with
+ * {@code @Validated} runs after the rules, so rules see input that {@code @Valid} has not checked
+ * yet; a rule should not rely on it. A call answered from the cache of {@code @Cacheable} checks no
+ * rules, and an {@code @Async} method checks them on its own thread, where a violation does not
+ * reach the caller.
+ *
  * <pre>{@code
  * @Rules(value = VehicleExists.class, mode = CheckMode.COLLECT_ALL)
  * public void delete(Long id) { ... }
