@@ -97,7 +97,8 @@ class VehicleNameUnique implements BusinessRule<VehicleFields> {
 
 A command that implements `RuleTarget` is checked by every rule whose input type accepts it. The
 public methods of a `@Service` that take one check its rules before they run, inside their
-transaction, with no call to Muster:
+transaction, with no call to Muster. Such a method takes the command as its only parameter: one
+that takes a rule target among other parameters stops the application.
 
 ```java
 interface VehicleFields extends RuleTarget {
@@ -113,7 +114,7 @@ class VehicleService {
   public void create(CreateVehicle command) { … } // VehicleNameUnique runs first
 
   @Transactional
-  @Rules(value = VehicleExists.class, mode = CheckMode.COLLECT_ALL)
+  @Rules(value = VehicleNotInUse.class, mode = CheckMode.COLLECT_ALL)
   public void delete(Long id) { … } // the listed rules, on any bean
 }
 ```
@@ -163,13 +164,13 @@ build:
 | `muster.mode` | `fail-fast` | `fail-fast` stops at the first violated rule; `collect-all` reports every violation |
 | `muster.rules.<rule id>.enabled` | `true` | Switches a rule off, also as an environment variable such as `MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED` |
 | `muster.problem-details.mixed-status` | `422` | The status of violations of different categories, from 400 to 499 |
-| `muster.transaction.reorder-advisor` | `true` | Moves the transaction advice ahead of Muster's, so that rules run inside the transaction |
+| `muster.transaction.reorder-advisor` | `true` | Moves the transaction advice ahead of Muster's, so that rules run inside the transaction, unless `@EnableTransactionManagement` has an order of its own |
 
 The Javadoc of `MusterAutoConfiguration` describes the starter in full.
 
 ## Usage without Spring
 
-The core needs nothing but Java. Build one `Muster` for the application, then check inputs against
+The core needs no framework. Build one `Muster` for the application, then check inputs against
 chains of rules, in the order you list them, or by type:
 
 ```java
@@ -201,7 +202,9 @@ What the starter does for you is up to you:
   and `clientArgs()`, never the violation itself.
 - **Requirements across types:** a rule that only some inputs need can still be required. To check
   that a vehicle exists before its name is compared, give `VehicleExists` the same input type as
-  `VehicleNameUnique` and let it pass for inputs that have no id; `VehicleNameUnique` requires it.
+  `VehicleNameUnique`, `VehicleFields`, and let it pass for inputs without an id, such as
+  `CreateVehicle`, while it looks up those that have one, such as an `UpdateVehicle` that also
+  implements an interface with `id()`. `VehicleNameUnique` requires it.
 
 A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
 
