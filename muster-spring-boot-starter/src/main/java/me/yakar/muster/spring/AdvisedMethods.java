@@ -16,10 +16,13 @@
 package me.yakar.muster.spring;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import me.yakar.muster.rule.RuleTarget;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.stereotype.Service;
 
 /**
  * Tells which methods Muster advises: those with {@link Rules}, and the public methods of a
@@ -33,7 +36,14 @@ final class AdvisedMethods {
     if (method.getDeclaringClass() == Object.class || method.isBridge() || method.isSynthetic()) {
       return false;
     }
-    return rules(method) != null;
+    if (rules(method) != null) {
+      return true;
+    }
+    var modifiers = method.getModifiers();
+    return Modifier.isPublic(modifiers)
+        && !Modifier.isStatic(modifiers)
+        && AnnotatedElementUtils.hasAnnotation(targetClass, Service.class)
+        && Arrays.stream(method.getParameterTypes()).anyMatch(RuleTarget.class::isAssignableFrom);
   }
 
   /** Finds {@link Rules} as Spring finds {@code @Transactional}. */

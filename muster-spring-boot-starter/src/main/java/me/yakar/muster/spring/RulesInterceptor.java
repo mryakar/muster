@@ -15,8 +15,6 @@
  */
 package me.yakar.muster.spring;
 
-import static java.util.Objects.requireNonNull;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -146,19 +144,20 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
                         + " that holds them, such as a record"));
       }
       var builder = muster.binding((Class<Object>) method.getParameterTypes()[0]).name(label);
-      // Only methods with rules are advised.
-      var rules = requireNonNull(AdvisedMethods.rules(method));
-      builder.rules(rules.value()).exclude(rules.exclude());
-      if (rules.mode().length > 1) {
-        throw new IllegalStateException(
-            "@Rules on "
-                + label
-                + " names "
-                + rules.mode().length
-                + " modes; give one, or none for the mode of Muster");
-      }
-      if (rules.mode().length == 1) {
-        builder.mode(rules.mode()[0]);
+      var rules = AdvisedMethods.rules(method);
+      if (rules != null) {
+        builder.rules(rules.value()).exclude(rules.exclude());
+        if (rules.mode().length > 1) {
+          throw new IllegalStateException(
+              "@Rules on "
+                  + label
+                  + " names "
+                  + rules.mode().length
+                  + " modes; give one, or none for the mode of Muster");
+        }
+        if (rules.mode().length == 1) {
+          builder.mode(rules.mode()[0]);
+        }
       }
       return new MethodAdvice(label, builder.build());
     }

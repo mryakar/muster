@@ -16,20 +16,27 @@
 package me.yakar.muster.spring
 
 import java.lang.reflect.Proxy
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
 import java.util.logging.Logger
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.fixture.advice.FinalMethod
+import me.yakar.muster.spring.fixture.advice.LazyVehicleService
 import me.yakar.muster.spring.fixture.advice.NameFree
 import me.yakar.muster.spring.fixture.advice.NoParameter
 import me.yakar.muster.spring.fixture.advice.NotPublic
 import me.yakar.muster.spring.fixture.advice.OperationsService
+import me.yakar.muster.spring.fixture.advice.RenameVehicle
 import me.yakar.muster.spring.fixture.advice.SaveVehicle
 import me.yakar.muster.spring.fixture.advice.StaticMethod
 import me.yakar.muster.spring.fixture.advice.TwoModes
 import me.yakar.muster.spring.fixture.advice.TwoParametersWithRules
+import me.yakar.muster.spring.fixture.advice.TwoParameters
 import me.yakar.muster.spring.fixture.advice.UnregisteredRule
 import me.yakar.muster.spring.fixture.advice.VehicleComponent
 import me.yakar.muster.spring.fixture.advice.VehicleOperations
@@ -73,6 +80,18 @@ class RulesAdviceSpec extends Specification {
     }
   }
 
+  def 'a service method checks the rules bound to its input by type before it runs'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(VehicleService)
+      assert AopUtils.isAopProxy(service)
+      assert violated { service.save(TAKEN) } == ['advice.name-free']
+      assert service.calls.isEmpty()
+      service.save(FREE)
+      assert service.calls == [FREE]
+    }
+  }
+
   def 'a method checks the rules it lists: #method'() {
     expect:
     runner.run { context ->
@@ -94,6 +113,7 @@ class RulesAdviceSpec extends Specification {
     expect:
     runner.run { context ->
       def service = context.getBean(VehicleService)
+      assert violated { service.save(TAKEN_AND_LONG) } == ['advice.name-free']
       assert violated {
         service.saveAll(TAKEN_AND_LONG)
       } == [
@@ -103,6 +123,13 @@ class RulesAdviceSpec extends Specification {
       assert violated {
         service.saveLong(new SaveVehicle('Boreas'.padRight(11, '!')))
       } == []
+    }
+  }
+
+  def 'a service method that takes no rule target is not advised'() {
+    expect:
+    runner.run {
+      assert it.getBean(VehicleService).describe('anything') == 'anything'
     }
   }
 
@@ -131,6 +158,47 @@ class RulesAdviceSpec extends Specification {
 
     where:
     proxyClasses << [true, false]
+  }
+
+  def 'rule targets of other classes bind on their first check, also from many threads at once'() {
+    given:
+    def threads = 16
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(threads)
+
+    expect:
+    runner.run { context ->
+      def service = context.getBean(VehicleService)
+      def tasks = (0..<threads).collect { index -> {
+
+          ->
+          start.await()
+          def wrong = []
+          100.times {
+            def vehicle = index % 2 == 0 ? new SaveVehicle('Atlas') : new RenameVehicle('Atlas')
+            if (violated { service.update(vehicle) } != ['advice.name-free']) {
+              wrong << vehicle
+            }
+          }
+          wrong
+        } as Callable<List>
+      }
+      def futures = tasks.collect { pool.submit(it) }
+      start.countDown()
+      assert futures.collectMany { it.get(1, TimeUnit.MINUTES) }.isEmpty()
+      assert service.calls.isEmpty()
+    }
+
+    cleanup:
+    pool.shutdownNow()
+  }
+
+  def 'a bean created after the start is advised too'() {
+    expect:
+    runner.withBean(LazyVehicleService).run { context ->
+      def service = context.getBean(LazyVehicleService)
+      assert violated { service.save(TAKEN) } == ['advice.name-free']
+    }
   }
 
   def 'a bean registered after the start is advised too'() {
@@ -194,6 +262,7 @@ class RulesAdviceSpec extends Specification {
 
     where:
     bean || message
+    TwoParameters || 'TwoParameters.rename(Long, SaveVehicle) takes 2 parameters; a method with rules takes one, so pass a command object that holds them, such as a record'
     TwoParametersWithRules || 'TwoParametersWithRules.rename(Long, SaveVehicle) takes 2 parameters; a method with rules takes one, so pass a command object that holds them, such as a record'
     NoParameter || 'NoParameter.deleteAll() has rules but no parameter; rules check the only parameter of a method'
     NotPublic || 'NotPublic.delete(Long) has rules but is not public; a proxy calls public methods only'
