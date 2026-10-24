@@ -88,7 +88,8 @@ The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uplo
 Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
 
 To check what a build would publish, publish it to the local repository and run the consumer test,
-which uses Muster the way an application does:
+which uses Muster the way applications do: one without Spring, on the module path, and a Spring
+Boot application that it calls over HTTP:
 
 ```bash
 ./gradlew publishToMavenLocal

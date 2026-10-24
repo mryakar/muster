@@ -23,12 +23,17 @@ val licenseHeader = file("config/spotless/license-header.txt")
 spotless {
   // The consumer test is a build of its own, outside the projects that format their sources.
   java {
-    target("consumer-test/src/*/java/**/*.java")
+    target("consumer-test/src/*/java/**/*.java", "consumer-test/*/src/*/java/**/*.java")
     googleJavaFormat(libs.findVersion("google-java-format").get().requiredVersion)
     licenseHeaderFile(licenseHeader, "(package|import|module|open|@)")
   }
   kotlinGradle {
-    target("*.gradle.kts", "*/*.gradle.kts", "build-logic/src/main/kotlin/*.gradle.kts")
+    target(
+      "*.gradle.kts",
+      "*/*.gradle.kts",
+      "consumer-test/*/*.gradle.kts",
+      "build-logic/src/main/kotlin/*.gradle.kts",
+    )
     ktfmt(libs.findVersion("ktfmt").get().requiredVersion).googleStyle()
     licenseHeaderFile(
       licenseHeader,
