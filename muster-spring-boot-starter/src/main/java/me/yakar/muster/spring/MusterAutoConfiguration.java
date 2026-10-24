@@ -15,13 +15,21 @@
  */
 package me.yakar.muster.spring;
 
+import java.security.Principal;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.function.Supplier;
 import me.yakar.muster.Muster;
 import me.yakar.muster.rule.Rule;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.env.Environment;
 
 /**
@@ -45,6 +53,17 @@ import org.springframework.core.env.Environment;
  *   <li>{@code muster.mode} is {@code fail-fast}, the default, or {@code collect-all}.
  * </ul>
  *
+ * <p>Rules learn who makes a call and in which locale:
+ *
+ * <ul>
+ *   <li>The caller is the authentication of Spring Security, if the application has Spring
+ *       Security; an anonymous call has no caller. A bean of type {@code Supplier<Principal>}
+ *       replaces it.
+ *   <li>The locale is the one {@link LocaleContextHolder} holds, as Spring MVC sets it for a
+ *       request, and otherwise the default locale of the JVM. A bean of type {@code
+ *       Supplier<Locale>} replaces it.
+ * </ul>
+ *
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
@@ -59,13 +78,37 @@ public final class MusterAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  Muster muster(ConfigurableListableBeanFactory beanFactory, Environment environment) {
+  Muster muster(
+      ConfigurableListableBeanFactory beanFactory,
+      Environment environment,
+      ObjectProvider<Supplier<? extends @Nullable Principal>> callers,
+      ObjectProvider<SecurityCaller> securityCaller,
+      ObjectProvider<Supplier<Locale>> locales) {
     var ruleClasses = RuleCatalog.ruleClasses(beanFactory);
     var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
+    Supplier<? extends @Nullable Principal> noCaller = () -> null;
     return Muster.builder()
         .rules(ruleClass -> beanFactory.getBean(ruleClass), ruleClasses)
         .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
         .mode(RuleSwitches.mode(environment))
+        .caller(
+            callers.getIfAvailable(
+                () -> {
+                  var security = securityCaller.getIfAvailable();
+                  return security == null ? noCaller : security::current;
+                }))
+        .locale(locales.getIfAvailable(() -> LocaleContextHolder::getLocale))
         .build();
+  }
+
+  /** Reads the caller from Spring Security when the application has it. */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(name = "org.springframework.security.core.context.SecurityContextHolder")
+  static class SecurityConfiguration {
+
+    @Bean
+    SecurityCaller musterSecurityCaller() {
+      return new SecurityCaller();
+    }
   }
 }

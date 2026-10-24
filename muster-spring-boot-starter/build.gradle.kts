@@ -21,6 +21,8 @@ dependencies {
   api(project(":muster-core"))
   api(platform(libs.spring.boot.dependencies))
   api("org.springframework.boot:spring-boot-autoconfigure")
+  // Optional: the caller comes from Spring Security when the application has it.
+  compileOnly("org.springframework.security:spring-security-core")
 }
 
 testing {
@@ -29,6 +31,7 @@ testing {
       dependencies {
         implementation(platform(libs.spring.boot.dependencies))
         implementation("org.springframework.boot:spring-boot-starter-test")
+        implementation("org.springframework.security:spring-security-core")
       }
     }
     register<JvmTestSuite>("integrationTest") {
