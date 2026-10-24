@@ -32,16 +32,22 @@ final class Checks {
 
   /**
    * Requires a value that can serve as a key, such as a message key: not blank, and with no
-   * whitespace, space or control character, which would break it or hide in it unseen.
+   * whitespace, space, control or format character and no unpaired surrogate, which would break it
+   * or hide in it unseen.
    */
   static String requireKey(String value, String name) {
     requireNonBlank(value, name);
     for (var i = 0; i < value.length(); ) {
       var c = value.codePointAt(i);
-      if (Character.isWhitespace(c) || Character.isSpaceChar(c) || Character.isISOControl(c)) {
+      if (Character.isWhitespace(c)
+          || Character.isSpaceChar(c)
+          || Character.isISOControl(c)
+          || Character.getType(c) == Character.FORMAT
+          || Character.getType(c) == Character.SURROGATE) {
         throw new IllegalArgumentException(
             String.format(
-                "%s '%s' contains U+%04X; it cannot contain whitespace, spaces or control characters",
+                "%s '%s' contains U+%04X; it cannot contain whitespace, spaces, control or format"
+                    + " characters, or unpaired surrogates",
                 name, value, c));
       }
       i += Character.charCount(c);

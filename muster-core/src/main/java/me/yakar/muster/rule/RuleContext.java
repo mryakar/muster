@@ -153,8 +153,8 @@ public final class RuleContext {
    *
    * @param code the stable, machine-readable code of the violation
    * @return a builder for the violation
-   * @throws IllegalArgumentException if {@code code} is blank or contains whitespace, a space
-   *     character or a control character
+   * @throws IllegalArgumentException if {@code code} is blank or contains whitespace, a space,
+   *     control or format character, or an unpaired surrogate
    */
   public Violation.Builder violation(String code) {
     return new Violation.Builder(ruleId, code);
