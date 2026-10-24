@@ -157,6 +157,34 @@ class RuleSwitchesSpec extends Specification {
     ] || 'muster.rules.a.enabled, muster.rules.b.enabled'
   }
 
+  def 'a key set to nothing stops the application: #property'() {
+    expect:
+    runner.withPropertyValues(property).run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message == message
+    }
+
+    where:
+    property || message
+    'muster.rules.vehicle.name-unique.enabled=' || 'muster.rules.vehicle.name-unique.enabled is set to nothing; set it to true or false'
+    'muster.rules.vehicle.name-unique.enabled= ' || 'muster.rules.vehicle.name-unique.enabled is set to nothing; set it to true or false'
+    'muster.mode=' || 'muster.mode is set to nothing; set it to fail-fast or collect-all'
+  }
+
+  def 'muster.rules itself switches no rule'() {
+    expect:
+    runner.withPropertyValues('muster.rules=false').run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith('no rule has the key muster.rules;')
+    }
+  }
+
+  def 'a key set to nothing is fine where a source that comes first sets it'() {
+    expect: 'test properties come before environment variables'
+    withEnvironmentVariables(runner, [MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED: ''])
+    .withPropertyValues('muster.rules.vehicle.name-unique.enabled=false').run { context ->
+      assert violated(context.getBean(Muster).chain(Vehicle, NameUnique)) == []
+    }
+  }
+
   def 'an environment variable that switches no rule stops the application too'() {
     expect:
     withEnvironmentVariables(runner, [MUSTER_RULES_VEHICLE_NAME_UNIQUE_ENABLED: 'false']).run { context ->

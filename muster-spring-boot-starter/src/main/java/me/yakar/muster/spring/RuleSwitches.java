@@ -44,14 +44,34 @@ final class RuleSwitches {
 
   private RuleSwitches() {}
 
+  private static final ConfigurationPropertyName MODE = ConfigurationPropertyName.of("muster.mode");
+
+  /**
+   * Returns the mode the configuration sets.
+   *
+   * @throws IllegalStateException if {@code muster.mode} is set to an empty value
+   */
   static CheckMode mode(Environment environment) {
-    return Binder.get(environment).bind("muster.mode", CheckMode.class).orElse(CheckMode.FAIL_FAST);
+    var binder = Binder.get(environment);
+    requireValue(binder, MODE, "fail-fast or collect-all");
+    return binder.bind(MODE, Bindable.of(CheckMode.class)).orElse(CheckMode.FAIL_FAST);
+  }
+
+  /**
+   * Rejects a key that is set to nothing, such as {@code muster.mode=}, which Spring Boot would
+   * read as not set at all.
+   */
+  private static void requireValue(Binder binder, ConfigurationPropertyName key, String values) {
+    if (binder.bind(key, Bindable.of(String.class)).map(String::isBlank).orElse(false)) {
+      throw new IllegalStateException(key + " is set to nothing; set it to " + values);
+    }
   }
 
   /**
    * Returns the ids of the rules that the configuration switches off.
    *
-   * @throws IllegalStateException if a key under {@code muster.rules} switches no rule
+   * @throws IllegalStateException if {@code muster.rules} or a key under it switches no rule, or a
+   *     rule's key is set to nothing
    */
   static List<String> disabled(Environment environment, Collection<String> ids) {
     var binder = Binder.get(environment);
@@ -71,6 +91,7 @@ final class RuleSwitches {
                 + key
                 + ", since configuration ignores hyphens; give one of them another id");
       }
+      requireValue(binder, key, "true or false");
       if (!binder.bind(key, Bindable.of(Boolean.class)).orElse(true)) {
         disabled.add(id);
       }
@@ -78,7 +99,7 @@ final class RuleSwitches {
     var unknown = new TreeSet<String>();
     for (var source : ConfigurationPropertySources.get(environment)) {
       if (source instanceof IterableConfigurationPropertySource iterable) {
-        iterable.filter(RULES::isAncestorOf).stream()
+        iterable.filter(name -> RULES.equals(name) || RULES.isAncestorOf(name)).stream()
             .filter(name -> !keys.containsKey(name))
             .forEach(name -> unknown.add(name.toString()));
       }
