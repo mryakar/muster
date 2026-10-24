@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `muster.binding(type)` builds a `Binding`: the rules it lists, and for a rule target the rules that bind to its class by type, less the rules it excludes, in a mode and under a name of its own. A binding for a final type prepares its rules when it is built; for another type, on the first check of each class. A listed rule cannot require an excluded rule; a rule bound by type that requires one is left out and logged.
 - `muster.check(target, mode)` checks a rule target in a mode other than the Muster's, without a second Muster. The rules of a class are still bound once.
 - `RuleContext.forRule(Class)` and `RuleContext.builder(Class)`, which read the rule id from `@Rule`, so a rule's test does not repeat it.
 - The violation category `FORBIDDEN`, for a caller who may not act on the data a request refers to, such as a task that only its owner may close.

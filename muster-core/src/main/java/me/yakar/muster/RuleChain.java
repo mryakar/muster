@@ -34,11 +34,12 @@ import org.jspecify.annotations.Nullable;
  * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires}. Muster
  * runs the listed rules in the order they are listed, and before each one the rules it requires
  * that have not run yet, each after its own requirements, ordered the same way: listed ones in the
- * order they are listed, the others in the order of their ids. {@link Muster#check}, which lists no
- * rules, runs rules that do not depend on each other in the order of their ids. Either way the
- * violations come in the same order on every call. Muster has no notion of cost: in {@link
- * CheckMode#FAIL_FAST} mode, the order alone decides which violation is reported, so list cheap
- * rules first.
+ * order they are listed, the others in the order of their ids. A {@link Binding} runs the rules it
+ * binds by type, and that no listed rule requires, after them, in the order of their ids. {@link
+ * Muster#check}, which lists no rules, runs rules that do not depend on each other in the order of
+ * their ids. Either way the violations come in the same order on every call. Muster has no notion
+ * of cost: in {@link CheckMode#FAIL_FAST} mode, the order alone decides which violation is
+ * reported, so list cheap rules first.
  *
  * <p>A chain checks in the {@linkplain #mode() mode} of the Muster that created it, unless {@link
  * #withMode} gives it its own.
