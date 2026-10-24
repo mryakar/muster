@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The violation category `FORBIDDEN`, for a caller who may not act on the data a request refers to, such as a task that only its owner may close.
+
+### Changed
+
+- **Breaking:** `Category` has a new constant, `FORBIDDEN`, listed first so that the categories follow the order of the status codes they stand for. A `switch` over `Category` without a `default` no longer compiles until it handles `FORBIDDEN`.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added
