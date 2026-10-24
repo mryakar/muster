@@ -127,7 +127,33 @@ class RuleGraphSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "'task.ready' requires 'task.exists', which is disabled; disable 'task.ready' as well, or enable 'task.exists'"
+    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.ready' requires 'task.exists'; disable them as well, or enable the rules they require"
+  }
+
+  def 'every enabled rule that requires a disabled rule through other rules is named at once'() {
+    when:
+    validate(byClass(rule(A, 'task.started', [B]), rule(B, 'task.ready', [C]), rule(C, 'task.exists'), rule(D, 'task.deadline', [C])), [C] as Set)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.deadline', 'task.ready', 'task.started' require 'task.exists'; disable them as well, or enable the rules they require"
+  }
+
+  def 'the rules that require each disabled rule are named for each of them'() {
+    when:
+    validate(byClass(rule(A, 'vehicle.name-unique', [B]), rule(B, 'vehicle.exists'), rule(C, 'task.ready', [D]), rule(D, 'task.exists')), [B, D] as Set)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.ready' requires 'task.exists'; 'vehicle.name-unique' requires 'vehicle.exists'; disable them as well, or enable the rules they require"
+  }
+
+  def 'a rule reached along two paths does not make an unrelated disabled rule a requirement'() {
+    when:
+    validate(byClass(rule(A, 'task.started', [B, C]), rule(B, 'task.ready', [D]), rule(C, 'task.assigned', [D]), rule(D, 'task.exists'), rule(E, 'vehicle.exists')), [E] as Set)
+
+    then:
+    noExceptionThrown()
   }
 
   def 'a disabled rule may require a disabled or an enabled rule'() {

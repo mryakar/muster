@@ -68,7 +68,7 @@ class MusterSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "'task.assignable' requires 'task.exists', which is disabled; disable 'task.assignable' as well, or enable 'task.exists'"
+    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.assignable' requires 'task.exists'; disable them as well, or enable the rules they require"
   }
 
   def 'disabling an unknown id is rejected, so that a typo in configuration is not ignored'() {

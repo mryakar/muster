@@ -331,7 +331,11 @@ public final class Muster {
      * runs in no chain, but it is still checked and created, so that switching it on again cannot
      * reveal a setup error. Muster logs every disabled rule when it is built.
      *
-     * <p>A rule that requires a disabled rule must be disabled as well.
+     * <p>A rule that requires a disabled rule, directly or through other rules, must be disabled as
+     * well; {@link #build()} names every such rule at once.
+     *
+     * <p>Muster reads the ids when it is built and does not change them while it runs: switching a
+     * rule on or off takes a new Muster, which for an application usually means a restart.
      *
      * @param ids the ids of the rules to switch off
      * @return this builder

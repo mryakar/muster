@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- When rules that require a disabled rule are still enabled, Muster names all of them at once, also those that require it through other rules, so one change to the configuration fixes the setup.
 - **Breaking:** A violation code cannot contain whitespace, spaces such as the no-break space, or control characters, which break message keys or hide in them unseen. A code is otherwise free, for example `VEHICLE_NAME_TAKEN`.
 - **Breaking:** `Category` has a new constant, `FORBIDDEN`, listed first so that the categories follow the order of the status codes they stand for. A `switch` over `Category` without a `default` no longer compiles until it handles `FORBIDDEN`.
 
