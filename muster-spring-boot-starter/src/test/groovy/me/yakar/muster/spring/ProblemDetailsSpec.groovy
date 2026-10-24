@@ -508,7 +508,7 @@ class ProblemDetailsSpec extends Specification {
     def level = log.level
     def handler = new Handler() {
           void publish(LogRecord record) {
-            logged << record.message
+            logged << "$record.level $record.message".toString()
           }
 
           void flush() {}
@@ -523,7 +523,7 @@ class ProblemDetailsSpec extends Specification {
     runner.run { answer(it, [violation]) }
 
     then:
-    logged.contains("Answering 409 to the business rule violations [$violation]".toString())
+    logged.contains("FINE Answering 409 to the business rule violations [$violation]".toString())
 
     cleanup:
     log.removeHandler(handler)
