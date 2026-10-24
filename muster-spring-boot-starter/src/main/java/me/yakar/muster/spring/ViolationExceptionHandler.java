@@ -47,12 +47,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * <p>It comes before the controller advice of the application, as Spring Boot's own problem details
  * do, so that a handler of {@link Exception} does not answer violations as errors of the server. An
  * application that handles the exception itself, by naming it in an {@link ExceptionHandler} of a
- * controller advice, has no such handler; see {@link ViolationHandlerRemover}.
+ * controller advice, has no such handler; see {@link ViolationHandlerRemover}. The class is not
+ * final, so that an advisor of the application can proxy it.
  */
 @RestControllerAdvice
 @Order(0)
 @Conditional(ViolationExceptionHandler.NotScanned.class)
-final class ViolationExceptionHandler {
+class ViolationExceptionHandler {
 
   /**
    * Keeps component scanning from registering the handler, since a controller advice is a
