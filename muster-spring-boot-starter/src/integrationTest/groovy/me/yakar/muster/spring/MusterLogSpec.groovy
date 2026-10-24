@@ -34,8 +34,10 @@ class MusterLogSpec extends Specification {
     context.close()
 
     then:
+    // Spring Boot's own line format, with its level and the logger name; the JDK would write
+    // "WARNING:" to standard error instead.
     captured.toString().readLines().any {
-      it.contains('WARN') && it.contains("Rule 'vehicle.name-unique' is disabled")
+      it =~ / WARN .* me\.yakar\.muster +: Rule 'vehicle\.name-unique' is disabled$/
     }
 
     cleanup:
