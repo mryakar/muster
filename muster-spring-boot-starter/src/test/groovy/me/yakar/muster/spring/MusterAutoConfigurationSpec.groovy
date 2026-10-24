@@ -33,6 +33,7 @@ import me.yakar.muster.spring.fixture.conditional.OnProperty
 import me.yakar.muster.spring.fixture.dependson.DependsOnMissing
 import me.yakar.muster.spring.fixture.other.OtherRule
 import me.yakar.muster.spring.fixture.prototype.PrototypeRule
+import org.springframework.aop.framework.ProxyFactory
 import org.springframework.beans.factory.FactoryBean
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.support.GenericBeanDefinition
@@ -279,6 +280,25 @@ class MusterAutoConfigurationSpec extends Specification {
           assert context.getBeanNamesForType(NameShort) as List == ['mine']
           assert context.getBean(Muster).chain(Vehicle, NameShort) != null
         }
+  }
+
+  def 'a rule registered as a CGLIB proxy counts as its rule class: scanned too: #scanned'() {
+    given:
+    def factory = new ProxyFactory(new NameShort())
+    factory.proxyTargetClass = true
+    Object proxy = factory.proxy
+    assert NameShort.isInstance(proxy) && proxy.getClass() != NameShort
+
+    expect:
+    runner.withUserConfiguration(scanned ? [Application] as Class[] : [] as Class[])
+    .withInitializer { it.beanFactory.registerSingleton('proxied', proxy) }
+    .run { context ->
+      assert context.getBeanNamesForType(NameShort) as List == ['proxied']
+      assert context.getBean(Muster).chain(Vehicle, NameShort) != null
+    }
+
+    where:
+    scanned << [true, false]
   }
 
   def 'an abstract bean definition whose class is missing does not stop the scan'() {

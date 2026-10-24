@@ -36,6 +36,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
+import org.springframework.util.ClassUtils;
 
 /**
  * Registers the rule classes in the packages of the application as beans, unless a bean of the
@@ -73,7 +74,9 @@ final class RuleScanner
     // count, abstract definitions and factory beans that are not created yet do not.
     var defined = new HashSet<String>();
     for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
-      defined.add(requireNonNull(beanFactory.getType(name, false)).getName());
+      // A singleton may be a proxy, such as one made with CGLIB, of the rule class.
+      defined.add(
+          ClassUtils.getUserClass(requireNonNull(beanFactory.getType(name, false))).getName());
     }
     // With the registry, conditions such as @ConditionalOnBean apply as in component scanning.
     var scanner =
