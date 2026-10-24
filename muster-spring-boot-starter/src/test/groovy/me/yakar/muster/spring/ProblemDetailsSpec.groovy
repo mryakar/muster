@@ -341,6 +341,33 @@ class ProblemDetailsSpec extends Specification {
     }
   }
 
+  def 'the entries keep their fields whatever the JSON settings leave out: #inclusion'() {
+    expect:
+    runner.withPropertyValues(
+        "spring.jackson.default-property-inclusion=$inclusion",
+        'spring.jackson.mapper.sort-properties-alphabetically=true').run {
+          def entries = answer(it, [
+            violation('vehicle.plate-format').build(),
+            violation('vehicle.name-taken').clientArg('name', '').clientArg('count', 0).build()
+          ]).body.violations
+          assert entries[0] == [code: 'vehicle.plate-format', message: 'The plate {plate} is not valid', args: [:]]
+          assert entries[1].args == [name: '', count: 0]
+          assert entries*.keySet()*.toList() == [
+            ['code', 'message', 'args'],
+            ['code', 'message', 'args']
+          ]
+        }
+
+    where:
+    inclusion << [
+      'always',
+      'non_null',
+      'non_absent',
+      'non_default',
+      'non_empty'
+    ]
+  }
+
   def 'violations come in the order the exception lists them'() {
     expect:
     runner.run {
