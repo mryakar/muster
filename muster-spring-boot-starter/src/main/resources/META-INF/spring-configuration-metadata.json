@@ -1,0 +1,38 @@
+{
+  "groups": [
+    {
+      "name": "muster",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration"
+    }
+  ],
+  "properties": [
+    {
+      "name": "muster.mode",
+      "type": "me.yakar.muster.CheckMode",
+      "description": "How far a check goes once a rule is violated: fail-fast stops at the first violated rule, collect-all runs every rule and reports every violation.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
+      "defaultValue": "fail-fast"
+    },
+    {
+      "name": "muster.rules",
+      "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
+      "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration"
+    }
+  ],
+  "hints": [
+    {
+      "name": "muster.mode",
+      "values": [
+        {
+          "value": "fail-fast",
+          "description": "Stop at the first violated rule."
+        },
+        {
+          "value": "collect-all",
+          "description": "Run every rule and report every violation."
+        }
+      ]
+    }
+  ]
+}
