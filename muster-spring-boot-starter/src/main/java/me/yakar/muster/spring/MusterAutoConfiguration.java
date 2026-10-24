@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.function.Supplier;
 import me.yakar.muster.Muster;
 import me.yakar.muster.rule.Rule;
+import me.yakar.muster.spi.MessageResolver;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -74,6 +76,19 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  *       Supplier<Locale>} replaces it.
  * </ul>
  *
+ * <p>Messages of violations come from the message source of the application, through a {@link
+ * MessageResolver} bean: the message of a violation is the template its code names, such as {@code
+ * vehicle.name-taken=The name {name} is taken} in {@code messages.properties}, with its {@code
+ * {name}} placeholders filled from the client arguments of the violation; without a template, the
+ * message is the code. Inject the bean to resolve messages in an exception handler of your own;
+ * define a {@code MessageResolver} bean of your own to resolve them from elsewhere. Spring Boot's
+ * message source falls back to the default locale of the JVM when it has no messages for the locale
+ * of a request, so a Turkish server answers a French client in Turkish; set {@code
+ * spring.messages.fallback-to-system-locale=false} to answer from {@code messages.properties}
+ * instead. A message source that formats every message with {@link java.text.MessageFormat}, as
+ * {@code spring.messages.always-use-message-format=true} makes it, stops the application, since
+ * {@code MessageFormat} rejects the placeholders.
+ *
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
@@ -118,16 +133,31 @@ public final class MusterAutoConfiguration {
         .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
         .mode(RuleSwitches.mode(environment))
         .caller(
-            this.<Supplier<? extends @Nullable Principal>>supplier(beanFactory, Principal.class)
+            MusterAutoConfiguration.<Supplier<? extends @Nullable Principal>>supplier(
+                    beanFactory, Principal.class)
                 .getIfAvailable(
                     () -> {
                       var security = securityCaller.getIfAvailable();
                       return security == null ? noCaller : security::current;
                     }))
-        .locale(
-            this.<Supplier<Locale>>supplier(beanFactory, Locale.class)
-                .getIfAvailable(() -> LocaleContextHolder::getLocale))
+        .locale(locale(beanFactory))
         .build();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  MessageResolver musterMessageResolver(ApplicationContext context) {
+    // The context resolves messages through the message source of the application.
+    return MessageResolver.ofTemplates(new MessageSourceTemplates(context));
+  }
+
+  /**
+   * Returns where rules, and the messages of their violations, learn the locale of a call: a {@code
+   * Supplier<Locale>} bean of the application, or {@link LocaleContextHolder}.
+   */
+  static Supplier<Locale> locale(ConfigurableListableBeanFactory beanFactory) {
+    return MusterAutoConfiguration.<Supplier<Locale>>supplier(beanFactory, Locale.class)
+        .getIfAvailable(() -> LocaleContextHolder::getLocale);
   }
 
   /**
@@ -135,7 +165,7 @@ public final class MusterAutoConfiguration {
    * ObjectProvider}, the lookup does not fall back to a raw {@code Supplier} or a {@code
    * Supplier<?>}, which supplies something else.
    */
-  private <T> ObjectProvider<T> supplier(
+  private static <T> ObjectProvider<T> supplier(
       ConfigurableListableBeanFactory beanFactory, Class<?> suppliedType) {
     return beanFactory.getBeanProvider(
         ResolvableType.forClassWithGenerics(Supplier.class, suppliedType));
