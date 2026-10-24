@@ -38,64 +38,102 @@ import org.springframework.util.ReflectionUtils;
 /**
  * Checks the input of an advised method against its rules, then calls the method.
  *
- * <p>The pointcut notes each class it advises when Spring creates a proxy for a bean. The bindings
- * of a noted class are prepared once all singletons exist, so that a rule may depend on an advised
- * service, or at once for a bean created later, before its proxy is used; a wrong binding stops the
- * application then. A call only reads them: two lookups in maps that take no lock.
+ * <p>The pointcut notes each class it advises when Spring creates a proxy for a bean. The noted
+ * classes are prepared once all singletons exist, so that a rule may depend on an advised service;
+ * a class noted later, such as that of a lazy bean, is prepared when its proxy is created, and a
+ * class called before the application has started is prepared on that call. A wrong binding fails
+ * then. Preparing takes a lock and may create Muster; a class noted while Muster is created joins
+ * the same pass. A call only reads what is prepared: two lookups in maps that take no lock.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
   private final ObjectProvider<Muster> muster;
   private final ObjectProvider<TransactionGuard> transactions;
 
-  /** The classes the pointcut advises. */
-  private final Set<Class<?>> noted = ConcurrentHashMap.newKeySet();
+  private final Object lock = new Object();
+
+  /** The classes the pointcut advises. Guarded by {@link #lock}. */
+  private final Set<Class<?>> noted = new LinkedHashSet<>();
 
   /**
    * The advice of each method, by the class of the target and then by the method a proxy calls: the
-   * method of the class or, for an interface-based proxy, the method of the interface.
+   * method of the class, a bridge, or a method of an interface or a base class. Written under
+   * {@link #lock}; read without it.
    */
   private final ConcurrentMap<Class<?>, Map<Method, MethodAdvice>> prepared =
       new ConcurrentHashMap<>();
 
-  private volatile boolean started;
+  /** Guarded by {@link #lock}. */
+  private boolean started;
+
+  /**
+   * Whether the holder of {@link #lock} is preparing classes, so that a class it notes on the way
+   * joins its pass. Guarded by {@link #lock}, which the same thread may take again.
+   */
+  private boolean preparing;
+
+  /** Whether the order of the transaction advice has been checked. Guarded by {@link #lock}. */
+  private boolean orderChecked;
 
   RulesInterceptor(ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
     this.muster = muster;
     this.transactions = transactions;
   }
 
-  /** Notes a class the pointcut advises; once singletons exist, prepares it at once. */
+  /** Notes a class the pointcut advises; once the application has started, prepares it at once. */
   void note(Class<?> targetClass) {
-    // Written before started is read, as afterSingletonsInstantiated writes started before it
-    // reads noted: one of them prepares a class noted while the application starts. Preparing is
-    // done once per class.
-    noted.add(targetClass);
-    if (started) {
-      prepare(targetClass);
+    synchronized (lock) {
+      noted.add(targetClass);
+      if (started) {
+        prepareNoted();
+      }
     }
   }
 
   @Override
   public void afterSingletonsInstantiated() {
-    started = true;
-    noted.forEach(this::prepare);
-    var guard = transactions.getIfAvailable();
-    if (guard != null && !prepared.isEmpty()) {
-      guard.checkOrder(RulesAdvisor.ORDER);
+    synchronized (lock) {
+      started = true;
+      prepareNoted();
     }
   }
 
-  private void prepare(Class<?> targetClass) {
-    // The function reads the class and builds bindings; it never touches the map.
-    prepared.computeIfAbsent(targetClass, this::adviceOf);
+  /**
+   * Prepares the noted classes that are not prepared yet. Creating Muster or a bean it needs may
+   * note more classes on this thread; they join the same pass rather than prepare re-entrantly.
+   */
+  private void prepareNoted() {
+    if (preparing) {
+      return;
+    }
+    preparing = true;
+    try {
+      var muster = this.muster.getObject();
+      var guard = transactions.getIfAvailable();
+      for (var pending = unprepared(); !pending.isEmpty(); pending = unprepared()) {
+        for (var targetClass : pending) {
+          prepared.put(targetClass, adviceOf(muster, guard, targetClass));
+        }
+      }
+      if (guard != null && !orderChecked && !prepared.isEmpty()) {
+        orderChecked = true;
+        guard.checkOrder(RulesAdvisor.ORDER);
+      }
+    } finally {
+      preparing = false;
+    }
   }
 
-  private Map<Method, MethodAdvice> adviceOf(Class<?> targetClass) {
-    var muster = this.muster.getObject();
-    var guard = transactions.getIfAvailable();
-    // Every method a proxy may call for an advised method maps to the advice of the method that
-    // the call runs.
+  private List<Class<?>> unprepared() {
+    return noted.stream().filter(targetClass -> !prepared.containsKey(targetClass)).toList();
+  }
+
+  /**
+   * Maps every method that a proxy may call for an advised method of the class to the advice of the
+   * method that the call runs.
+   */
+  private static Map<Method, MethodAdvice> adviceOf(
+      Muster muster, @Nullable TransactionGuard guard, Class<?> targetClass) {
     var candidates = new LinkedHashSet<Method>();
     if (!Proxy.isProxyClass(targetClass)) {
       candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
@@ -122,14 +160,39 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   @Override
   public @Nullable Object invoke(MethodInvocation invocation) throws Throwable {
     var target = invocation.getThis();
-    var methods = target == null ? null : prepared.get(target.getClass());
-    var advice = methods == null ? null : methods.get(invocation.getMethod());
+    if (target == null) {
+      throw new IllegalStateException(
+          "Muster cannot check the rules of "
+              + invocation.getMethod().toGenericString()
+              + " without a target");
+    }
+    var methods = prepared.get(target.getClass());
+    if (methods == null) {
+      methods = prepareOnCall(target.getClass(), invocation.getMethod());
+    }
+    var advice = methods.get(invocation.getMethod());
     if (advice == null) {
       throw new IllegalStateException(
           "Muster has not prepared the rules of " + invocation.getMethod().toGenericString());
     }
     advice.check(invocation.getArguments()[0]);
     return invocation.proceed();
+  }
+
+  /** Prepares a class that is called before the application has started, such as at its start. */
+  private Map<Method, MethodAdvice> prepareOnCall(Class<?> targetClass, Method method) {
+    synchronized (lock) {
+      noted.add(targetClass);
+      prepareNoted();
+    }
+    var methods = prepared.get(targetClass);
+    if (methods == null) {
+      throw new IllegalStateException(
+          method.toGenericString()
+              + " is called while Muster is created, before its rules can be prepared; do not call"
+              + " advised methods from the constructors of rules or of the beans they need");
+    }
+    return methods;
   }
 
   /** What Muster does before an advised method runs. */
