@@ -41,12 +41,18 @@ final class RuleCatalog {
     var classes = new LinkedHashSet<Class<?>>();
     for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
       if (!beanFactory.isSingleton(name)) {
+        var definition = beanFactory.getMergedBeanDefinition(name);
+        // A factory bean that is a singleton itself may still make a new rule each time.
+        var how =
+            definition.isSingleton()
+                ? "is made anew each time by a factory bean"
+                : "has the scope '" + definition.getScope() + "'";
         throw new IllegalStateException(
             "the rule bean '"
                 + name
-                + "' has the scope '"
-                + beanFactory.getMergedBeanDefinition(name).getScope()
-                + "'; Muster creates each rule once and keeps it, so a rule bean must be a"
+                + "' "
+                + how
+                + "; Muster creates each rule once and keeps it, so a rule bean must be a"
                 + " singleton");
       }
       var type = declaredType(beanFactory, name);

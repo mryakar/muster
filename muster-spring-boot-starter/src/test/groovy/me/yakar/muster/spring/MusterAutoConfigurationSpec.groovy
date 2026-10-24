@@ -92,6 +92,26 @@ class MusterAutoConfigurationSpec extends Specification {
   }
 
   @Configuration(proxyBeanMethods = false)
+  static class FactoryOfNewRules {
+    @Bean
+    FactoryBean<OtherRule> otherRule() {
+      new FactoryBean<OtherRule>() {
+            OtherRule getObject() {
+              new OtherRule()
+            }
+
+            Class<?> getObjectType() {
+              OtherRule
+            }
+
+            boolean isSingleton() {
+              false
+            }
+          }
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
   static class RuleDeclaredAsInterface {
     @Bean
     BusinessRule<Object> vague() {
@@ -395,6 +415,14 @@ class MusterAutoConfigurationSpec extends Specification {
     configuration || name
     PrototypePackage || PrototypeRule.name
     PrototypeBean || 'otherRule'
+  }
+
+  def 'a factory bean that makes a new rule each time is rejected'() {
+    expect:
+    runner.withUserConfiguration(FactoryOfNewRules).run { context ->
+      assert rootCause(context.startupFailure).message ==
+      "the rule bean 'otherRule' is made anew each time by a factory bean; Muster creates each rule once and keeps it, so a rule bean must be a singleton"
+    }
   }
 
   def 'a rule bean whose type has no @Rule is rejected: #configuration.simpleName'() {
