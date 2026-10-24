@@ -39,11 +39,11 @@ import org.jspecify.annotations.Nullable;
  * ids. A rule bound by type that requires an excluded rule, directly or through other rules, is
  * left out too, and logged once for each class.
  *
- * <p>The rules bind to the class of the input at run time. For an input type that is final, such as
- * a record, there is only one such class: the binding prepares its rules when it is built, and logs
- * them then. For another type, it prepares the rules of a class on its first check and keeps them
- * for as long as the binding is used. Threads may check at the same time; the check of a class that
- * is already bound takes no lock.
+ * <p>The rules bind to the class of the input at run time. For an input type that is a final class,
+ * such as a record, there is only one such class: the binding prepares its rules when it is built,
+ * and logs them then. For another type, it prepares the rules of a class on its first check and
+ * keeps them for as long as the binding is used. Threads may check at the same time; the check of a
+ * class that is already bound takes no lock.
  *
  * @param <I> the type of input
  */
@@ -74,8 +74,8 @@ public final class Binding<I> {
       String name) {
     this.muster = muster;
     this.inputType = inputType;
-    this.listed = List.copyOf(listed);
-    this.excluded = Set.copyOf(excluded);
+    this.listed = listed;
+    this.excluded = excluded;
     this.mode = mode;
     this.name = name;
     this.only = Modifier.isFinal(inputType.getModifiers()) ? bind(inputType) : null;
@@ -122,8 +122,8 @@ public final class Binding<I> {
   }
 
   /**
-   * Describes the binding for developers and logs: its name, input type, mode, and listed and
-   * excluded rules.
+   * Describes the binding for developers and logs: its name, input type, mode, and the ids of its
+   * listed and excluded rules.
    *
    * @return the description
    */
@@ -136,9 +136,12 @@ public final class Binding<I> {
         + ", mode="
         + mode
         + ", rules="
-        + listed.stream().map(Class::getSimpleName).toList()
+        + listed.stream().map(ruleClass -> muster.registeredRule(ruleClass).id()).toList()
         + ", excluded="
-        + excluded.stream().map(Class::getSimpleName).sorted().toList()
+        + excluded.stream()
+            .map(ruleClass -> muster.registeredRule(ruleClass).id())
+            .sorted()
+            .toList()
         + "]";
   }
 
@@ -208,6 +211,7 @@ public final class Binding<I> {
      *
      * @param mode the mode
      * @return this builder
+     * @throws NullPointerException if {@code mode} is {@code null}
      */
     public Builder<I> mode(CheckMode mode) {
       this.mode = requireNonNull(mode, "mode");
@@ -221,6 +225,7 @@ public final class Binding<I> {
      * @param name the name
      * @return this builder
      * @throws IllegalArgumentException if {@code name} is blank
+     * @throws NullPointerException if {@code name} is {@code null}
      */
     public Builder<I> name(String name) {
       requireNonNull(name, "name");
@@ -276,7 +281,7 @@ public final class Binding<I> {
           muster,
           wrapped,
           List.copyOf(listed),
-          excluded,
+          Set.copyOf(excluded),
           mode == null ? muster.mode() : mode,
           name == null ? wrapped.getTypeName() : name);
     }

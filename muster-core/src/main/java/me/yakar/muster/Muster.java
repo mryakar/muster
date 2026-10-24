@@ -57,9 +57,9 @@ import org.jspecify.annotations.Nullable;
  * update.check(command); // throws BusinessRuleViolationException if a rule is violated
  * }
  *
- * <p>Muster checks the setup when it is built and when a chain is created, and rejects a wrong one
- * with an {@link IllegalArgumentException} or {@link IllegalStateException} that says what is
- * wrong. A chain then only runs its rules.
+ * <p>Muster checks the setup when it is built and when a chain or a binding is created, and rejects
+ * a wrong one with an {@link IllegalArgumentException} or {@link IllegalStateException} that says
+ * what is wrong. A chain then only runs its rules.
  */
 public final class Muster {
 
@@ -141,8 +141,9 @@ public final class Muster {
   }
 
   /**
-   * Starts a binding of inputs of the given type to the rules it lists and to the rules that bind
-   * to their class by type. Build it once, for example per service method, and keep it.
+   * Starts a binding of inputs of the given type to the rules it lists and, for a rule target, to
+   * the rules that bind to its class by type. Build it once, for example per service method, and
+   * keep it.
    *
    * {@snippet :
    * Binding<VehicleFields> save = muster.binding(VehicleFields.class)
