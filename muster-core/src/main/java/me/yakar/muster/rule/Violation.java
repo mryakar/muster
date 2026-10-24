@@ -16,6 +16,7 @@
 package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
+import static me.yakar.muster.rule.Checks.requireKey;
 import static me.yakar.muster.rule.Checks.requireNonBlank;
 
 import java.io.Serial;
@@ -218,7 +219,7 @@ public final class Violation implements Serializable {
 
     Builder(String ruleId, String code) {
       this.ruleId = requireNonBlank(ruleId, "ruleId");
-      this.code = requireNonBlank(code, "code");
+      this.code = requireKey(code, "code");
     }
 
     /**
