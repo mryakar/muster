@@ -62,7 +62,17 @@ and BOM POMs again, which it would otherwise take from its cache without recordi
 ./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks build pitest publishToMavenLocal
 ```
 
-Dependabot does not update the file, so its pull requests need the same step.
+The consumer test has a file of its own, `consumer-test/gradle/verification-metadata.xml`, and its
+Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`. When that
+version changes, update the consumer test's file too:
+
+```bash
+./gradlew publishToMavenLocal
+./gradlew -p consumer-test --write-verification-metadata sha256 --refresh-dependencies run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
+```
+
+Gradle drops the comments of a file it rewrites; keep the one on the trusted Muster artifacts.
+Dependabot updates neither file, so its pull requests need the same steps.
 
 ## Commits
 
