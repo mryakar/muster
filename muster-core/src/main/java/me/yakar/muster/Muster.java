@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -108,10 +109,11 @@ public final class Muster {
    *
    * <p>The chain also includes the rules that the given ones {@linkplain
    * me.yakar.muster.rule.RequiresRule require}, and logs each one it adds. It leaves out the rules
-   * that are {@linkplain Builder#disable disabled}.
+   * that are {@linkplain Builder#disable disabled}. Rules run in the order they are listed, after
+   * the rules they require; see {@link RuleChain} for the order in full.
    *
    * @param inputType the type of input the chain checks; a primitive type stands for its wrapper
-   * @param ruleClasses the rules, registered with this Muster
+   * @param ruleClasses the rules, registered with this Muster, in the order they should run
    * @param <I> the type of input
    * @return the chain
    * @throws IllegalArgumentException if a rule is not registered or listed twice, or does not check
@@ -149,7 +151,7 @@ public final class Muster {
         included.put(ruleClass, rule);
       }
     }
-    return compose(wrapped, included);
+    return compose(wrapped, included, List.copyOf(included.keySet()));
   }
 
   /**
@@ -185,7 +187,7 @@ public final class Muster {
             included.put(ruleClass, rule);
           }
         });
-    RuleChain<Object> chain = compose(type, included);
+    RuleChain<Object> chain = compose(type, included, List.of());
     if (included.isEmpty()) {
       LOGGER.log(
           Level.WARNING,
@@ -200,7 +202,12 @@ public final class Muster {
   }
 
   /** Adds the rules that the included ones require, and orders them. */
-  private <I> RuleChain<I> compose(Class<?> inputType, Map<Class<?>, PreparedRule> included) {
+  /**
+   * Adds the rules that the included ones require and orders them all; {@code listed} gives the
+   * order of the rules the caller listed, if any.
+   */
+  private <I> RuleChain<I> compose(
+      Class<?> inputType, Map<Class<?>, PreparedRule> included, List<Class<?>> listed) {
     var pending = new ArrayDeque<>(included.values());
     while (!pending.isEmpty()) {
       var rule = pending.removeFirst();
@@ -222,7 +229,7 @@ public final class Muster {
       }
     }
     var ordered =
-        RuleGraph.order(included.values().stream().map(PreparedRule::definition).toList());
+        RuleGraph.order(included.values().stream().map(PreparedRule::definition).toList(), listed);
     var positions = new HashMap<Class<?>, Integer>();
     var steps = new ArrayList<RuleChain.Step>();
     for (var definition : ordered) {

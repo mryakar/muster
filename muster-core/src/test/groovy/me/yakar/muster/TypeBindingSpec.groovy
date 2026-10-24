@@ -49,6 +49,30 @@ class TypeBindingSpec extends EngineSpecification {
     ]
   }
 
+  def 'rules bound by type run in the order of their ids, whatever the order they are registered in'() {
+    when:
+    Muster.builder().rules(*rules).mode(CheckMode.COLLECT_ALL).build().check(INVALID)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.ruleId() == [
+      'vehicle.code-format',
+      'vehicle.name-unique'
+    ]
+
+    where:
+    rules << [
+      [
+        new NameUnique(),
+        new CodeFormat()
+      ],
+      [
+        new CodeFormat(),
+        new NameUnique()
+      ]
+    ]
+  }
+
   def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
     given:
     log.level = Level.FINE
