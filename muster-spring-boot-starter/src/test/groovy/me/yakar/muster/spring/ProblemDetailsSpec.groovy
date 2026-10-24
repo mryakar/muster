@@ -39,6 +39,11 @@ import me.yakar.muster.spring.fixture.web.ParameterAdvice
 import me.yakar.muster.spring.fixture.web.UnrelatedAdvice
 import me.yakar.muster.spring.fixture.web.VehicleController
 import me.yakar.muster.spring.fixture.web.Violations
+import org.aopalliance.intercept.MethodInterceptor
+import org.springframework.aop.support.DefaultPointcutAdvisor
+import org.springframework.aop.support.annotation.AnnotationMatchingPointcut
+import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator
+import org.springframework.aop.support.AopUtils
 import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.autoconfigure.context.MessageSourceAutoConfiguration
@@ -59,6 +64,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.servlet.DispatcherServlet
 import spock.lang.Specification
@@ -95,6 +101,25 @@ class ProblemDetailsSpec extends Specification {
     @Bean
     NamingAdvice namingAdvice() {
       new NamingAdvice()
+    }
+  }
+
+  /** Proxies every controller advice, as an aspect that logs exception handlers would. */
+  @Configuration(proxyBeanMethods = false)
+  static class ProxiedAdvice {
+    static final List<String> calls = [].asSynchronized()
+
+    @Bean
+    static DefaultAdvisorAutoProxyCreator proxyCreator() {
+      new DefaultAdvisorAutoProxyCreator()
+    }
+
+    @Bean
+    static DefaultPointcutAdvisor adviceAdvisor() {
+      new DefaultPointcutAdvisor(
+          new AnnotationMatchingPointcut(RestControllerAdvice), { invocation ->
+            calls << invocation.method.name; invocation.proceed()
+          } as MethodInterceptor)
     }
   }
 
@@ -399,6 +424,19 @@ class ProblemDetailsSpec extends Specification {
 
     cleanup:
     parent.close()
+  }
+
+  def 'an advisor of the application can proxy the handler'() {
+    given:
+    ProxiedAdvice.calls.clear()
+
+    expect:
+    runner.withUserConfiguration(ProxiedAdvice).run {
+      assert it.startupFailure == null
+      assert AopUtils.isAopProxy(it.getBean('musterViolationExceptionHandler'))
+      assert answer(it, [nameTaken()]).status == 409
+      assert ProxiedAdvice.calls == ['handle']
+    }
   }
 
   def 'a controller advice of the application that handles every exception does not answer violations'() {
