@@ -15,35 +15,51 @@
  */
 package me.yakar.muster.spring
 
+import me.yakar.muster.Muster
 import org.aopalliance.intercept.MethodInvocation
 import org.springframework.beans.factory.ObjectProvider
 import spock.lang.Specification
 
 class RulesInterceptorSpec extends Specification {
 
-  def interceptor = new RulesInterceptor({
-    -> null
-  } as ObjectProvider, {
-    -> null
-  } as ObjectProvider)
+  def muster = Muster.builder().build()
+  def interceptor = new RulesInterceptor(
+  [getObject: { Object[] args ->
+      muster
+    }, getIfAvailable: { Object[] args ->
+      null
+    }] as ObjectProvider,
+  [getObject: { Object[] args ->
+      null
+    }, getIfAvailable: { Object[] args ->
+      null
+    }] as ObjectProvider)
 
-  def 'a call to a method Muster has not prepared fails rather than skip its rules: target #target'() {
-    given:
-    def method = Object.getMethod('toString')
-    def invocation = [getThis: {
-        -> target
+  def method = Object.getMethod('toString')
+
+  def 'a call without a target fails rather than skip its rules'() {
+    when:
+    interceptor.invoke([getThis: {
+        -> null
       }, getMethod: {
         -> method
-      }] as MethodInvocation
+      }] as MethodInvocation)
 
+    then:
+    def e = thrown(IllegalStateException)
+    e.message == 'Muster cannot check the rules of public java.lang.String java.lang.Object.toString() without a target'
+  }
+
+  def 'a call of a method that Muster does not advise fails rather than skip its rules'() {
     when:
-    interceptor.invoke(invocation)
+    interceptor.invoke([getThis: {
+        -> new Object()
+      }, getMethod: {
+        -> method
+      }] as MethodInvocation)
 
     then:
     def e = thrown(IllegalStateException)
     e.message == 'Muster has not prepared the rules of public java.lang.String java.lang.Object.toString()'
-
-    where:
-    target << [new Object(), null]
   }
 }

@@ -25,6 +25,7 @@ import org.springframework.boot.test.context.FilteredClassLoader
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Lazy
 import org.springframework.core.Ordered
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
@@ -77,6 +78,22 @@ class TransactionAdviceSpec extends Specification {
     @Bean
     TransactionAttributeSource secondAttributeSource() {
       new AnnotationTransactionAttributeSource()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement
+  @AutoConfigurationPackage(basePackageClasses = TransactionProbe)
+  static class LazyTransactionalService {
+    @Bean
+    PlatformTransactionManager transactionManager() {
+      new FakeTransactionManager()
+    }
+
+    @Bean
+    @Lazy
+    TransactionalService lazyService() {
+      new TransactionalService()
     }
   }
 
@@ -169,6 +186,23 @@ class TransactionAdviceSpec extends Specification {
       assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith(
       "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's")
     }
+  }
+
+  def 'a bean created after the start checks the order of the transaction advice when it is created'() {
+    expect:
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
+        .withUserConfiguration(LazyTransactionalService)
+        .withPropertyValues('muster.transaction.reorder-advisor=false')
+        .run { context ->
+          assert context.startupFailure == null
+          try {
+            context.getBean('lazyService')
+            assert false: 'the bean was created'
+          } catch (Exception e) {
+            assert MusterAutoConfigurationSpec.rootCause(e).message.startsWith('the transaction advice has the order')
+          }
+        }
   }
 
   def 'an application without advised methods starts even if the transaction advice comes after Muster'() {
