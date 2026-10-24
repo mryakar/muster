@@ -15,6 +15,8 @@
  */
 package consumer;
 
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.Muster;
@@ -24,8 +26,13 @@ import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.RuleTarget;
+import me.yakar.muster.rule.Violation;
+import me.yakar.muster.spi.MessageResolver;
 
-/** Checks a command the way the README shows, and fails if Muster does not report the violation. */
+/**
+ * Checks a command the way the README shows, and fails if Muster does not report the violation or
+ * does not resolve its message from the bundles of this module.
+ */
 public final class Main {
 
   private Main() {}
@@ -79,18 +86,34 @@ public final class Main {
     muster.check(new CreateVehicle("Boreas"));
     expectViolation(() -> create.check(new CreateVehicle("Atlas")));
     expectViolation(() -> muster.check(new CreateVehicle("Atlas")));
+    var violation = expectViolation(() -> create.check(new CreateVehicle("Atlas")));
+
+    // A server whose default locale is Turkish answers a French client from the base bundle.
+    Locale.setDefault(Locale.forLanguageTag("tr"));
+    var messages =
+        MessageResolver.ofResourceBundles(
+            locale -> ResourceBundle.getBundle("consumer.messages", locale));
+    expectMessage(
+        messages.resolve(violation, Locale.forLanguageTag("tr-TR")), "Atlas adı kullanılıyor");
+    expectMessage(messages.resolve(violation, Locale.FRENCH), "The name Atlas is taken");
     System.out.println("Muster works for a consumer: " + create);
   }
 
-  private static void expectViolation(Runnable check) {
+  private static Violation expectViolation(Runnable check) {
     try {
       check.run();
     } catch (BusinessRuleViolationException e) {
       if (!e.violations().getFirst().code().equals("vehicle.name-unique")) {
         throw new AssertionError("unexpected violation: " + e.getMessage(), e);
       }
-      return;
+      return e.violations().getFirst();
     }
     throw new AssertionError("the taken name passed the check");
+  }
+
+  private static void expectMessage(String message, String expected) {
+    if (!message.equals(expected)) {
+      throw new AssertionError("expected the message '" + expected + "' but got '" + message + "'");
+    }
   }
 }

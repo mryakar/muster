@@ -15,6 +15,10 @@
  */
 package me.yakar.muster.spi
 
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
@@ -140,7 +144,7 @@ class MessageResolverSpec extends Specification {
     }
 
     when:
-    resolver.resolve('VEHICLE_NAME_TAKEN', [:], Locale.forLanguageTag('tr-TR'))
+    resolver.resolve('VEHICLE_NAME_TAKEN', [: ], Locale.forLanguageTag('tr-TR'))
 
     then:
     seen == [
@@ -170,9 +174,9 @@ class MessageResolverSpec extends Specification {
 
     where:
     name         | code                 | args | locale
-    'code'       | null                 | [:]  | Locale.ENGLISH
+    'code'       | null                 | [: ]  | Locale.ENGLISH
     'clientArgs' | 'vehicle.name-taken' | null | Locale.ENGLISH
-    'locale'     | 'vehicle.name-taken' | [:]  | null
+    'locale'     | 'vehicle.name-taken' | [: ]  | null
   }
 
   def 'a lookup that returns null is a mistake that is named'() {
@@ -180,10 +184,83 @@ class MessageResolverSpec extends Specification {
     def resolver = MessageResolver.ofTemplates { code, locale -> null }
 
     when:
-    resolver.resolve('vehicle.name-taken', [:], Locale.ENGLISH)
+    resolver.resolve('vehicle.name-taken', [: ], Locale.ENGLISH)
 
     then:
     def e = thrown(NullPointerException)
     e.message == "the template lookup returned null for 'vehicle.name-taken'; return Optional.empty()"
+  }
+
+  def 'resolves messages from resource bundles'() {
+    given:
+    def messages = MessageResolver.ofResourceBundles { Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.messages', locale)
+    }
+    def violation = RuleContext.forRule('vehicle.name-unique')
+        .violation('vehicle.name-taken')
+        .clientArg('name', 'Atlas')
+        .build()
+
+    expect:
+    messages.resolve(violation, Locale.forLanguageTag('tr-TR')) == 'Atlas adı kullanılıyor'
+    messages.resolve(violation, Locale.FRENCH) == 'The name Atlas is taken'
+    messages.resolve('vehicle.owner-only', [name: 'Atlas'], Locale.GERMAN) == "Atlas's owner may change it"
+    messages.resolve('vehicle.plate-format', [plate: 'X'], Locale.GERMAN) == 'vehicle.plate-format'
+  }
+
+  def 'ofResourceBundles needs a base bundle'() {
+    when:
+    MessageResolver.ofResourceBundles { Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.nobase', locale)
+    }
+
+    then:
+    thrown(IllegalArgumentException)
+  }
+
+  def 'resolves the same messages from many threads at once, while the bundles load'() {
+    given:
+    ResourceBundle.clearCache()
+    def messages = MessageResolver.ofResourceBundles { Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.messages', locale)
+    }
+    def expected = [
+      'tr'   : 'Atlas adı kullanılıyor',
+      'tr-TR': 'Atlas adı kullanılıyor',
+      'de-AT': 'Der Name Atlas ist vergeben',
+      'fr'   : 'The name Atlas is taken',
+      'en'   : 'The name Atlas is taken',
+      'und'  : 'The name Atlas is taken',
+    ]
+    def threads = 16
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(threads)
+    def tasks = (1..threads).collect { thread -> {
+
+        ->
+        start.await()
+        def wrong = []
+        200.times { round ->
+          expected.each { tag, message ->
+            def resolved = messages.resolve('vehicle.name-taken', [name: 'Atlas'], Locale.forLanguageTag(tag))
+            if (resolved != message) {
+              wrong << "$tag: $resolved"
+            }
+          }
+        }
+        wrong
+      } as Callable<List<String>>
+    }
+
+    when:
+    def futures = tasks.collect { pool.submit(it) }
+    start.countDown()
+    def mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
+
+    then:
+    mismatches.isEmpty()
+
+    cleanup:
+    pool.shutdownNow()
   }
 }
