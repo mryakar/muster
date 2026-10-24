@@ -81,7 +81,17 @@ public final class ResourceBundleTemplates implements BiFunction<String, Locale,
   }
 
   private ResourceBundle bundle(Locale locale) {
-    return requireNonNull(
-        bundles.apply(locale), () -> "the function returned no bundle for '" + locale + "'");
+    var bundle =
+        requireNonNull(
+            bundles.apply(locale), () -> "the function returned no bundle for '" + locale + "'");
+    if (bundle.getLocale() == null) {
+      // Only getBundle tells a bundle its locale, and the fallback needs it.
+      throw new IllegalArgumentException(
+          "the function returned a bundle for '"
+              + locale
+              + "' that ResourceBundle.getBundle did not load; return the bundles getBundle loads,"
+              + " or use MessageResolver.ofTemplates for templates from another source");
+    }
+    return bundle;
   }
 }

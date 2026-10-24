@@ -131,6 +131,29 @@ class ResourceBundleTemplatesSpec extends Specification {
     e.message == "the function returned no bundle for ''"
   }
 
+  def 'a bundle that getBundle did not load is rejected, since it does not know its locale'() {
+    given:
+    def handMade = new PropertyResourceBundle(new StringReader('vehicle.name-taken=Taken'))
+
+    when:
+    new ResourceBundleTemplates({ Locale locale -> handMade })
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the function returned a bundle for '' that ResourceBundle.getBundle did not load; return the bundles getBundle loads, or use MessageResolver.ofTemplates for templates from another source"
+
+    when:
+    def base = ResourceBundle.getBundle('me.yakar.muster.messages', Locale.ROOT)
+    new ResourceBundleTemplates({ Locale locale ->
+      locale == Locale.ROOT ? base : handMade
+    })
+    .apply('vehicle.name-taken', TURKISH)
+
+    then:
+    e = thrown(IllegalArgumentException)
+    e.message.startsWith("the function returned a bundle for 'tr' that ResourceBundle.getBundle did not load")
+  }
+
   def 'a bundle that the function no longer returns is named'() {
     given:
     def base = ResourceBundle.getBundle('me.yakar.muster.messages', Locale.ROOT)
