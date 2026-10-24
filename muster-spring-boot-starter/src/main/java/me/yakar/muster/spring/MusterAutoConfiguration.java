@@ -58,6 +58,8 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  *       key under {@code muster.rules} that switches no rule, such as a misspelled id, stops the
  *       application.
  *   <li>{@code muster.mode} is {@code fail-fast}, the default, or {@code collect-all}.
+ *   <li>{@code muster.transaction.reorder-advisor=false} keeps Muster from moving the transaction
+ *       advice ahead of its own; see {@link Rules}.
  * </ul>
  *
  * <p>Rules learn who makes a call and in which locale:

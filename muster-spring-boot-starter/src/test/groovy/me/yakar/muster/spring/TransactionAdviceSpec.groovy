@@ -248,6 +248,14 @@ class TransactionAdviceSpec extends Specification {
     }
   }
 
+  def 'the order check names how to fix it'() {
+    expect:
+    runner.withUserConfiguration(Transactions).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's, ${Ordered.LOWEST_PRECEDENCE}, so rules could run outside the transaction; let Muster move it, with the order of @EnableTransactionManagement at its default and muster.transaction.reorder-advisor on, or give it a lower order"
+    }
+  }
+
   def 'an application without advised methods starts even if the transaction advice comes after Muster'() {
     expect:
     new ApplicationContextRunner()

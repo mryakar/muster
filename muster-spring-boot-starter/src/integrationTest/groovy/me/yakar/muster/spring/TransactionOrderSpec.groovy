@@ -81,7 +81,7 @@ class TransactionOrderSpec extends Specification {
     then:
     def e = thrown(Exception)
     rootCause(e).message ==
-        "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's, ${Ordered.LOWEST_PRECEDENCE}, so rules could run outside the transaction; leave the order of @EnableTransactionManagement at its default for Muster to move it, or give it a lower one"
+        "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's, ${Ordered.LOWEST_PRECEDENCE}, so rules could run outside the transaction; let Muster move it, with the order of @EnableTransactionManagement at its default and muster.transaction.reorder-advisor on, or give it a lower order"
   }
 
   def 'with the reordering switched off, an order the application gives still works'() {

@@ -85,9 +85,9 @@ final class TransactionGuard {
               + transactionAdvisor.getOrder()
               + ", which does not come before Muster's, "
               + musterOrder
-              + ", so rules could run outside the transaction; leave the order of"
-              + " @EnableTransactionManagement at its default for Muster to move it, or give it a"
-              + " lower one");
+              + ", so rules could run outside the transaction; let Muster move it, with the order"
+              + " of @EnableTransactionManagement at its default and"
+              + " muster.transaction.reorder-advisor on, or give it a lower order");
     }
   }
 }

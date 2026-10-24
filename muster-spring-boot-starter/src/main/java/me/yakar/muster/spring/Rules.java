@@ -38,6 +38,12 @@ import me.yakar.muster.rule.BusinessRule;
  * and neither static nor final, so that a proxy can call it. Wrong use stops the application when
  * it starts.
  *
+ * <p>Rules run inside the transaction of the method: Muster moves the transaction advice one step
+ * ahead of its own unless the application gives it an order, and the application does not start if
+ * the transaction advice would not run around Muster's. A call from one advised method to another
+ * with the same input checks the rules again; a call within the same bean, through {@code this},
+ * passes no proxy and checks none.
+ *
  * <pre>{@code
  * @Rules(value = VehicleExists.class, mode = CheckMode.COLLECT_ALL)
  * public void delete(Long id) { ... }
