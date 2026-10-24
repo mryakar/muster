@@ -20,7 +20,8 @@ import java.util.Map;
 /**
  * Fills a message template: {@code {name}} stands for the argument of that name, and <code>
  * &#123;&#123;</code> and <code>&#125;&#125;</code> write a single brace. A name that is not an
- * argument stays as it is, and so does any other brace.
+ * argument stays as it is, and so do {@code {}} and any other brace. Names are taken as they are;
+ * those of a violation's arguments contain no whitespace and no brace.
  */
 final class MessageTemplate {
 
@@ -61,7 +62,8 @@ final class MessageTemplate {
       text.append('{');
       return open + 1;
     }
-    var value = args.get(template.substring(open + 1, close));
+    // An empty name is no placeholder, even if a caller passes an argument named so.
+    var value = close > open + 1 ? args.get(template.substring(open + 1, close)) : null;
     if (value == null) {
       text.append(template, open, close + 1);
     } else {
