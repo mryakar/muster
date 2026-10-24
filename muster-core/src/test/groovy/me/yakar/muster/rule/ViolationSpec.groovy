@@ -176,6 +176,36 @@ class ViolationSpec extends Specification {
     null || NullPointerException     | 'code'
   }
 
+  def 'a code cannot contain #kind'() {
+    when:
+    context.violation(code)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "code '$code' contains $character; it cannot contain whitespace, spaces or control characters"
+
+    where:
+    kind                        | code || character
+    'a space'                   | 'name taken' || 'U+0020'
+    'a tab'                     | 'name\ttaken' || 'U+0009'
+    'a no-break space'          | 'name\u00a0taken' || 'U+00A0'
+    'an ideographic space'      | 'name\u3000taken' || 'U+3000'
+    'a line separator'          | 'name\u2028taken' || 'U+2028'
+    'a control character'       | 'name\u0000taken' || 'U+0000'
+    'a trailing newline'        | 'name-taken\n' || 'U+000A'
+  }
+
+  def 'a code can be #kind'() {
+    expect:
+    context.violation(code).build().code() == code
+
+    where:
+    kind                          | code
+    'a rule id'                   | 'vehicle.name-taken'
+    'in capitals with underscores'| 'VEHICLE_NAME_TAKEN'
+    'outside the basic plane'     | 'name\uD83D\uDE9Ataken'
+  }
+
   def 'violations with the same content are equal'() {
     expect:
     full().build() == full().build()

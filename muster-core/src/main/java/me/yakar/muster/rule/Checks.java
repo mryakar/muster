@@ -29,4 +29,23 @@ final class Checks {
     }
     return value;
   }
+
+  /**
+   * Requires a value that can serve as a key, such as a message key: not blank, and with no
+   * whitespace, space or control character, which would break it or hide in it unseen.
+   */
+  static String requireKey(String value, String name) {
+    requireNonBlank(value, name);
+    for (var i = 0; i < value.length(); ) {
+      var c = value.codePointAt(i);
+      if (Character.isWhitespace(c) || Character.isSpaceChar(c) || Character.isISOControl(c)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "%s '%s' contains U+%04X; it cannot contain whitespace, spaces or control characters",
+                name, value, c));
+      }
+      i += Character.charCount(c);
+    }
+    return value;
+  }
 }
