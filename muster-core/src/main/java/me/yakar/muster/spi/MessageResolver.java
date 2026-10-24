@@ -108,11 +108,13 @@ public interface MessageResolver {
    * Turkish answers a French client from the base bundle, not in Turkish. The family therefore
    * needs a base bundle.
    *
-   * @param bundles returns the bundle for a locale, such as {@code locale ->
+   * @param bundles returns the bundle for a locale, as loaded by {@link
+   *     ResourceBundle#getBundle(String, Locale)}, such as {@code locale ->
    *     ResourceBundle.getBundle("com.example.messages", locale)}; it is called on every resolve,
-   *     and {@link ResourceBundle#getBundle(String, Locale)} keeps the bundles it loads
+   *     and {@code getBundle} keeps the bundles it loads
    * @return the resolver
-   * @throws IllegalArgumentException if the family has no base bundle
+   * @throws IllegalArgumentException if the family has no base bundle, or the function returns a
+   *     bundle that {@code getBundle} did not load, which does not know its locale
    */
   static MessageResolver ofResourceBundles(Function<Locale, ResourceBundle> bundles) {
     return new TemplateMessageResolver(new ResourceBundleTemplates(bundles));
