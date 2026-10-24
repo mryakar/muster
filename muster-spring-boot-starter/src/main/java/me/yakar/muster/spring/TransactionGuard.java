@@ -15,8 +15,13 @@
  */
 package me.yakar.muster.spring;
 
+import java.lang.reflect.Method;
+import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
+import org.springframework.transaction.interceptor.TransactionAttributeSource;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Makes sure that rules run inside the transaction of their method. Used only when Spring's
@@ -25,10 +30,45 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  */
 final class TransactionGuard {
 
-  private final ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor;
+  /** The propagations that run a method in a transaction, whether or not one exists. */
+  private static final Set<Integer> REQUIRING =
+      Set.of(
+          TransactionDefinition.PROPAGATION_REQUIRED,
+          TransactionDefinition.PROPAGATION_REQUIRES_NEW,
+          TransactionDefinition.PROPAGATION_MANDATORY,
+          TransactionDefinition.PROPAGATION_NESTED);
 
-  TransactionGuard(ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
+  private final ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor;
+  private final ObjectProvider<TransactionAttributeSource> attributes;
+
+  TransactionGuard(
+      ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor,
+      ObjectProvider<TransactionAttributeSource> attributes) {
     this.advisor = advisor;
+    this.attributes = attributes;
+  }
+
+  /** Returns whether a method must run in a transaction that the transaction advice starts. */
+  boolean requiresTransaction(Method method, Class<?> targetClass) {
+    var source = attributes.getIfUnique();
+    if (advisor.getIfUnique() == null || source == null) {
+      return false;
+    }
+    var attribute = source.getTransactionAttribute(method, targetClass);
+    return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
+  }
+
+  /**
+   * Fails a call whose method requires a transaction when none is active, which means that the
+   * transaction advice runs inside Muster's rather than around it.
+   */
+  void requireTransaction(String label) {
+    if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+      throw new IllegalStateException(
+          label
+              + " runs in a transaction, but its rules ran with none active; the transaction advice"
+              + " must run around Muster's");
+    }
   }
 
   /** Fails the start of the application if the transaction advice would not run around Muster's. */

@@ -90,10 +90,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   private Map<Method, MethodAdvice> adviceOf(Class<?> targetClass) {
     var muster = this.muster.getObject();
+    var guard = transactions.getIfAvailable();
     var advice = new HashMap<Method, MethodAdvice>();
     for (var method : ReflectionUtils.getUniqueDeclaredMethods(targetClass)) {
       if (AdvisedMethods.advised(method, targetClass)) {
-        var methodAdvice = MethodAdvice.of(muster, method, targetClass);
+        var methodAdvice = MethodAdvice.of(muster, guard, method, targetClass);
         advice.put(method, methodAdvice);
         for (var type : ClassUtils.getAllInterfacesForClassAsSet(targetClass)) {
           var declared =
@@ -121,10 +122,12 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   }
 
   /** What Muster does before an advised method runs. */
-  private record MethodAdvice(String label, Binding<Object> binding) {
+  private record MethodAdvice(
+      String label, Binding<Object> binding, @Nullable TransactionGuard transaction) {
 
     @SuppressWarnings("unchecked")
-    static MethodAdvice of(Muster muster, Method method, Class<?> targetClass) {
+    static MethodAdvice of(
+        Muster muster, @Nullable TransactionGuard guard, Method method, Class<?> targetClass) {
       var label = AdvisedMethods.label(method, targetClass);
       var modifiers = method.getModifiers();
       if (!Modifier.isPublic(modifiers)) {
@@ -165,10 +168,15 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
           builder.mode(rules.mode()[0]);
         }
       }
-      return new MethodAdvice(label, builder.build());
+      var transaction =
+          guard != null && guard.requiresTransaction(method, targetClass) ? guard : null;
+      return new MethodAdvice(label, builder.build(), transaction);
     }
 
     void check(@Nullable Object input) {
+      if (transaction != null) {
+        transaction.requireTransaction(label);
+      }
       binding.check(input);
     }
   }
