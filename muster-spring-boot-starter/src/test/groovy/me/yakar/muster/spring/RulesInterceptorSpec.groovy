@@ -21,7 +21,11 @@ import spock.lang.Specification
 
 class RulesInterceptorSpec extends Specification {
 
-  def interceptor = new RulesInterceptor({ -> null } as ObjectProvider)
+  def interceptor = new RulesInterceptor({
+    -> null
+  } as ObjectProvider, {
+    -> null
+  } as ObjectProvider)
 
   def 'a call to a method Muster has not prepared fails rather than skip its rules: target #target'() {
     given:

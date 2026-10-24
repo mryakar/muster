@@ -43,6 +43,7 @@ import org.springframework.util.ReflectionUtils;
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
   private final ObjectProvider<Muster> muster;
+  private final ObjectProvider<TransactionGuard> transactions;
 
   /** The classes the pointcut advises. */
   private final Set<Class<?>> noted = ConcurrentHashMap.newKeySet();
@@ -56,8 +57,9 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   private volatile boolean started;
 
-  RulesInterceptor(ObjectProvider<Muster> muster) {
+  RulesInterceptor(ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
     this.muster = muster;
+    this.transactions = transactions;
   }
 
   /** Notes a class the pointcut advises; once singletons exist, prepares it at once. */
@@ -75,6 +77,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   public void afterSingletonsInstantiated() {
     started = true;
     noted.forEach(this::prepare);
+    var guard = transactions.getIfAvailable();
+    if (guard != null && !prepared.isEmpty()) {
+      guard.checkOrder(RulesAdvisor.ORDER);
+    }
   }
 
   private void prepare(Class<?> targetClass) {

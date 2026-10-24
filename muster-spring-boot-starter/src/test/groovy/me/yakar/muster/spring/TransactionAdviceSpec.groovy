@@ -1,0 +1,138 @@
+/*
+ * Copyright 2026 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package me.yakar.muster.spring
+
+import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
+import me.yakar.muster.spring.fixture.transaction.TransactionProbe
+import me.yakar.muster.spring.fixture.transaction.TransactionalService
+import org.springframework.beans.factory.support.RootBeanDefinition
+import org.springframework.boot.autoconfigure.AutoConfigurationPackage
+import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.test.context.FilteredClassLoader
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.core.Ordered
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.annotation.EnableTransactionManagement
+import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
+import spock.lang.Specification
+
+class TransactionAdviceSpec extends Specification {
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = TransactionProbe)
+  static class Application {
+    @Bean
+    TransactionalService service() {
+      new TransactionalService()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement
+  static class Transactions {
+    @Bean
+    PlatformTransactionManager transactionManager() {
+      new FakeTransactionManager()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement(order = 0)
+  static class TransactionsWithOrder {
+    @Bean
+    PlatformTransactionManager transactionManager() {
+      new FakeTransactionManager()
+    }
+  }
+
+  def runner = new ApplicationContextRunner()
+  .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
+  .withUserConfiguration(Application)
+
+  def setup() {
+    TransactionProbe.IN_TRANSACTION.clear()
+  }
+
+  def 'rules run inside the transaction, which moved one step ahead: #method'() {
+    expect:
+    runner.withUserConfiguration(Transactions).run { context ->
+      context.getBean(TransactionalService)."$method"('call')
+      assert TransactionProbe.IN_TRANSACTION == [inside]
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == Ordered.LOWEST_PRECEDENCE - 1
+    }
+
+    where:
+    method || inside
+    'required' || true
+    'supports' || false
+    'plain' || false
+  }
+
+  def 'without transaction management, nothing is moved or checked'() {
+    expect:
+    runner.run { context ->
+      context.getBean(TransactionalService).required('call')
+      assert TransactionProbe.IN_TRANSACTION == [false]
+    }
+  }
+
+  def 'without Spring transactions on the class path, rules still run'() {
+    expect:
+    runner.withClassLoader(new FilteredClassLoader('org.springframework.transaction')).run { context ->
+      assert !context.containsBean('musterTransactionGuard')
+      context.getBean(TransactionalService).plain('call')
+      assert TransactionProbe.IN_TRANSACTION == [false]
+    }
+  }
+
+  def 'transactions woven in with AspectJ stop the application'() {
+    expect:
+    runner.withInitializer {
+      it.registerBeanDefinition('org.springframework.transaction.config.internalTransactionAspect', new RootBeanDefinition(Object))
+    }.run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      'transactions are woven in with AspectJ, so they cannot run around Muster\'s advice, and rules would run outside them; use @EnableTransactionManagement in proxy mode'
+    }
+  }
+
+  def 'an order the application gives the transaction advice is left alone'() {
+    expect:
+    runner.withUserConfiguration(TransactionsWithOrder).run { context ->
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == 0
+      context.getBean(TransactionalService).required('call')
+      assert TransactionProbe.IN_TRANSACTION == [true]
+    }
+  }
+
+  def 'with the reordering switched off, equal orders stop the application'() {
+    expect:
+    runner.withUserConfiguration(Transactions).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith(
+      "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's")
+    }
+  }
+
+  def 'an application without advised methods starts even if the transaction advice comes after Muster'() {
+    expect:
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
+        .withUserConfiguration(Transactions)
+        .withPropertyValues('muster.transaction.reorder-advisor=false')
+        .run { context -> assert context.startupFailure == null }
+  }
+}

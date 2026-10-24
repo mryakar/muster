@@ -34,6 +34,8 @@ dependencies {
   compileOnly(platform(springBoot))
   // Optional: the caller comes from Spring Security when the application has it.
   compileOnly("org.springframework.security:spring-security-core")
+  // Optional: rules run inside the transaction when the application has Spring's transactions.
+  compileOnly("org.springframework:spring-tx")
 }
 
 testing {
@@ -43,6 +45,7 @@ testing {
         implementation(platform(springBoot))
         implementation("org.springframework.boot:spring-boot-starter-test")
         implementation("org.springframework.security:spring-security-core")
+        implementation("org.springframework:spring-tx")
       }
     }
     register<JvmTestSuite>("integrationTest") {
