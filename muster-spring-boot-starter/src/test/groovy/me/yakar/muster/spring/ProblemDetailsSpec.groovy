@@ -31,6 +31,7 @@ import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.Violation
 import me.yakar.muster.spi.MessageResolver
 import me.yakar.muster.spring.fixture.web.CatchAllAdvice
+import me.yakar.muster.spring.fixture.web.LaterErrorsAutoConfiguration
 import me.yakar.muster.spring.fixture.web.ListingAdvice
 import me.yakar.muster.spring.fixture.web.LocalHandlerController
 import me.yakar.muster.spring.fixture.web.NamingAdvice
@@ -53,6 +54,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.FilterType
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -362,6 +364,41 @@ class ProblemDetailsSpec extends Specification {
       ListingAdvice,
       AdviceFromBeanMethod
     ]
+  }
+
+  def 'a controller advice that names the exception replaces the handler also from an auto-configuration after Muster\'s'() {
+    expect:
+    runner.withConfiguration(AutoConfigurations.of(LaterErrorsAutoConfiguration)).run {
+      assert !it.containsBean('musterViolationExceptionHandler')
+      assert answer(it, [nameTaken()]).body == 'own'
+    }
+  }
+
+  def 'a controller advice that names the exception replaces the handler also from a parent context'() {
+    given:
+    def parent = new AnnotationConfigApplicationContext(NamingAdvice)
+
+    expect:
+    runner.withParent(parent).run {
+      assert !it.containsBean('musterViolationExceptionHandler')
+      assert answer(it, [nameTaken()]).body == 'own'
+    }
+
+    cleanup:
+    parent.close()
+  }
+
+  def 'a parent context without such an advice leaves the handler in place'() {
+    given:
+    def parent = new AnnotationConfigApplicationContext(CatchAllAdvice)
+
+    expect:
+    runner.withParent(parent).run {
+      assert answer(it, [nameTaken()]).status == 409
+    }
+
+    cleanup:
+    parent.close()
   }
 
   def 'a controller advice of the application that handles every exception does not answer violations'() {

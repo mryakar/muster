@@ -17,6 +17,9 @@ package me.yakar.muster.spring.fixture.web
 
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.rule.Violation
+import me.yakar.muster.spring.MusterAutoConfiguration
+import org.springframework.boot.autoconfigure.AutoConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PostMapping
@@ -108,5 +111,14 @@ class UnrelatedAdvice {
   @ExceptionHandler(IllegalArgumentException)
   ResponseEntity<String> other(IllegalArgumentException e) {
     ResponseEntity.status(400).body('other')
+  }
+}
+
+/** An auto-configuration of an error handling library, which comes after Muster's. */
+@AutoConfiguration(after = MusterAutoConfiguration)
+class LaterErrorsAutoConfiguration {
+  @Bean
+  NamingAdvice laterNamingAdvice() {
+    new NamingAdvice()
   }
 }

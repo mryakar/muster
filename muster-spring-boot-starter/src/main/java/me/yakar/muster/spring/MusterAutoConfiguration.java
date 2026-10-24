@@ -32,7 +32,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
@@ -226,7 +225,11 @@ public final class MusterAutoConfiguration {
   static class ProblemDetailsConfiguration {
 
     @Bean
-    @Conditional(NoViolationHandlerCondition.class)
+    static ViolationHandlerRemover musterViolationHandlerRemover() {
+      return new ViolationHandlerRemover();
+    }
+
+    @Bean(ViolationHandlerRemover.HANDLER)
     ViolationExceptionHandler musterViolationExceptionHandler(
         MessageResolver messages,
         ConfigurableListableBeanFactory beanFactory,
