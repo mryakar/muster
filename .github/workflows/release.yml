@@ -11,6 +11,10 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  # The modules whose jars are released: each job checks that it handles the jar that was tested.
+  JARS: muster-core muster-spring-boot-starter
+
 jobs:
   # Everything that runs third-party build code happens here, away from the secrets.
   verify:
@@ -19,7 +23,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       version: ${{ steps.version.outputs.version }}
-      jar-sha256: ${{ steps.jar.outputs.sha256 }}
+      jars-sha256: ${{ steps.jars.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,11 +55,15 @@ jobs:
           ./gradlew -p consumer-test run -PmusterVersion="$VERSION" -PpomOnly
         env:
           VERSION: ${{ steps.version.outputs.version }}
-      - id: jar
-        name: Record the checksum of the tested jar
+      - id: jars
+        name: Record the checksums of the tested jars
         run: |
-          sha256="$(sha256sum ~/.m2/repository/me/yakar/muster/muster-core/"$VERSION"/muster-core-"$VERSION".jar | cut -d' ' -f1)"
-          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          cd ~/.m2/repository/me/yakar/muster
+          {
+            echo 'sha256<<EOF'
+            for jar in $JARS; do sha256sum "$jar/$VERSION/$jar-$VERSION.jar"; done
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ steps.version.outputs.version }}
 
@@ -89,11 +97,12 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-      - name: Check that the jar is the one that was tested
+      - name: Check that the jars are the ones that were tested
         run: |
-          echo "$TESTED  $HOME/.m2/repository/me/yakar/muster/muster-core/$VERSION/muster-core-$VERSION.jar" | sha256sum --check
+          cd ~/.m2/repository/me/yakar/muster
+          sha256sum --check <<< "$TESTED"
         env:
-          TESTED: ${{ needs.verify.outputs.jar-sha256 }}
+          TESTED: ${{ needs.verify.outputs.jars-sha256 }}
       - name: Collect the release files
         run: |
           mkdir -p release
@@ -143,8 +152,8 @@ jobs:
           VERSION: ${{ needs.verify.outputs.version }}
 
   # Runs after a maintainer has published the upload in the Central Portal and approved this job in
-  # the release-publish environment. It publishes the draft only once Maven Central serves the jar
-  # that was tested, so that a release on GitHub never points at a version Central does not have.
+  # the release-publish environment. It publishes the draft only once Maven Central serves the jars
+  # that were tested, so that a release on GitHub never points at a version Central does not have.
   # Until it ends, the next tag's run waits in the concurrency group.
   publish-github-release:
     name: Publish the GitHub Release
@@ -159,17 +168,21 @@ jobs:
         shell: bash
         run: |
           central="https://repo1.maven.org/maven2/me/yakar/muster"
-          core="$central/muster-core/$VERSION/muster-core-$VERSION.jar"
-          bom="$central/muster-bom/$VERSION/muster-bom-$VERSION.pom"
-          until curl -fsS --max-time 60 -o muster-core.jar "$core" &&
-            curl -fsS --max-time 60 -o /dev/null "$bom"; do
+          served() {
+            curl -fsS --max-time 60 -o /dev/null "$central/muster-bom/$VERSION/muster-bom-$VERSION.pom" || return 1
+            for jar in $JARS; do
+              curl -fsS --max-time 60 --create-dirs -o "$jar/$VERSION/$jar-$VERSION.jar" \
+                "$central/$jar/$VERSION/$jar-$VERSION.jar" || return 1
+            done
+          }
+          until served; do
             echo "Maven Central does not serve $VERSION yet"
             sleep 60
           done
-          echo "$TESTED  muster-core.jar" | sha256sum --check
+          sha256sum --check <<< "$TESTED"
         env:
           VERSION: ${{ needs.verify.outputs.version }}
-          TESTED: ${{ needs.verify.outputs.jar-sha256 }}
+          TESTED: ${{ needs.verify.outputs.jars-sha256 }}
       # By id, from the same listing that is checked: a lookup by tag could find another release.
       - name: Publish the draft
         shell: bash
