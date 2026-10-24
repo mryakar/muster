@@ -19,7 +19,7 @@ package me.yakar.muster.rule;
  * Marks the inputs that rules bind to by type. When a rule target is passed to {@link
  * me.yakar.muster.Muster#check}, every enabled rule whose input type accepts it checks it, without
  * being listed anywhere. A chain created with {@link me.yakar.muster.Muster#chain} runs only the
- * rules it lists, and the rules they require.
+ * rules it lists, and the rules they require; a {@link me.yakar.muster.Binding} runs both.
  *
  * {@snippet :
  * interface VehicleFields extends RuleTarget {

@@ -510,7 +510,7 @@ class BindingSpec extends EngineSpecification {
   def 'a binding describes itself for logs'() {
     expect:
     muster(FieldsListed, FieldsBound, FieldsBase).binding(VehicleFields).rules(FieldsListed).exclude(FieldsBound, FieldsBase).mode(CheckMode.COLLECT_ALL).name('VehicleService.save').build().toString() ==
-        "Binding[name=VehicleService.save, input=${FIELDS}, mode=COLLECT_ALL, rules=[FieldsListed], excluded=[FieldsBase, FieldsBound]]"
+        "Binding[name=VehicleService.save, input=${FIELDS}, mode=COLLECT_ALL, rules=[fields.listed], excluded=[fields.base, fields.bound]]"
   }
 
   def 'threads that check a new class at the same time bind its rules once, and each runs them'() {
