@@ -258,13 +258,21 @@ public final class Muster {
    * if it requires none.
    */
   @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
+    return excluded.isEmpty() ? null : excludedRequirement(ruleClass, excluded, new HashSet<>());
+  }
+
+  /** Searches each required rule once, so that rules required along many paths cost no more. */
+  private @Nullable Class<?> excludedRequirement(
+      Class<?> ruleClass, Set<Class<?>> excluded, Set<Class<?>> searched) {
     for (var required : rules.get(ruleClass).definition().requires()) {
       if (excluded.contains(required)) {
         return required;
       }
-      var further = excludedRequirement(required, excluded);
-      if (further != null) {
-        return further;
+      if (searched.add(required)) {
+        var further = excludedRequirement(required, excluded, searched);
+        if (further != null) {
+          return further;
+        }
       }
     }
     return null;
