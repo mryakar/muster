@@ -36,7 +36,7 @@ import org.springframework.transaction.config.TransactionManagementConfigUtils;
  * <p>Both advisors have the lowest precedence by default, and with equal orders the one registered
  * first runs outside, which depends on how the application is configured. Before any bean is
  * created, this sets the order of the transaction advisor's definition to one less, unless the
- * application gave {@code @EnableTransactionManagement} an order of its own, or {@code
+ * application gave the transaction advice an order of its own, or {@code
  * muster.transaction.reorder-advisor} is {@code false}. Muster checks the outcome once the
  * application has started. Transactions woven in with AspectJ cannot run around a proxy's advice,
  * so they stop the application.
@@ -63,7 +63,11 @@ final class TransactionOrdering implements BeanFactoryPostProcessor, Environment
         Binder.get(requireNonNull(environment))
             .bind("muster.transaction.reorder-advisor", Boolean.class)
             .orElse(true);
-    if (!reorder || !beanFactory.containsBeanDefinition(advisor)) {
+    if (!reorder
+        || !beanFactory.containsBeanDefinition(advisor)
+        // An order set on the definition, as with <tx:annotation-driven order="...">, is the
+        // application's.
+        || beanFactory.getBeanDefinition(advisor).getPropertyValues().contains("order")) {
       return;
     }
     var orders = new ArrayList<Object>();
