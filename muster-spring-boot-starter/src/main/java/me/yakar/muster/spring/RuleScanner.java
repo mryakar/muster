@@ -22,12 +22,14 @@ import java.util.HashSet;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
+import org.springframework.context.annotation.AnnotationConfigUtils;
 import org.springframework.context.annotation.AnnotationScopeMetadataResolver;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.env.Environment;
@@ -37,9 +39,10 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 
 /**
  * Registers the rule classes in the packages of the application as beans, unless a bean of the
- * class is already defined. It runs after the configuration classes of the application have defined
- * their beans. A rule bean is named after its class, so it cannot clash with a bean of the
- * application.
+ * class is already defined. Their annotations, such as {@code @Lazy}, {@code @DependsOn},
+ * {@code @Scope} and conditions, apply as they do to components. It runs after the configuration
+ * classes of the application have defined their beans. A rule bean is named after its class, so it
+ * cannot clash with a bean of the application.
  */
 final class RuleScanner
     implements BeanDefinitionRegistryPostProcessor, EnvironmentAware, ResourceLoaderAware {
@@ -72,8 +75,14 @@ final class RuleScanner
     for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
       defined.add(requireNonNull(beanFactory.getType(name, false)).getName());
     }
+    // With the registry, conditions such as @ConditionalOnBean apply as in component scanning.
     var scanner =
-        new ClassPathScanningCandidateComponentProvider(false, requireNonNull(environment));
+        new ClassPathScanningCandidateComponentProvider(false, requireNonNull(environment)) {
+          @Override
+          protected BeanDefinitionRegistry getRegistry() {
+            return registry;
+          }
+        };
     scanner.setResourceLoader(resourceLoader);
     var annotated = new AnnotationTypeFilter(Rule.class);
     var rule = new AssignableTypeFilter(BusinessRule.class);
@@ -85,6 +94,9 @@ final class RuleScanner
         var className = requireNonNull(candidate.getBeanClassName());
         if (defined.add(className)) {
           candidate.setScope(scopes.resolveScopeMetadata(candidate).getScopeName());
+          // @Lazy, @DependsOn, @Primary and the like, as in component scanning.
+          AnnotationConfigUtils.processCommonDefinitionAnnotations(
+              (AnnotatedBeanDefinition) candidate);
           registry.registerBeanDefinition(className, candidate);
           LOGGER.log(Level.DEBUG, () -> "Registered the rule " + className + " as a bean");
         }

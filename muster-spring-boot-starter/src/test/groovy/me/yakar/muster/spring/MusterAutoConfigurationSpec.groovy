@@ -22,11 +22,15 @@ import java.util.logging.Logger
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
 import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.spring.fixture.annotated.AnnotatedRule
 import me.yakar.muster.spring.fixture.app.NameCapitalized
 import me.yakar.muster.spring.fixture.app.NameShort
 import me.yakar.muster.spring.fixture.app.NameUnique
 import me.yakar.muster.spring.fixture.app.Names
 import me.yakar.muster.spring.fixture.app.Vehicle
+import me.yakar.muster.spring.fixture.conditional.OnBean
+import me.yakar.muster.spring.fixture.conditional.OnProperty
+import me.yakar.muster.spring.fixture.dependson.DependsOnMissing
 import me.yakar.muster.spring.fixture.other.OtherRule
 import me.yakar.muster.spring.fixture.prototype.PrototypeRule
 import org.springframework.beans.factory.FactoryBean
@@ -147,6 +151,23 @@ class MusterAutoConfigurationSpec extends Specification {
       null
     }
   }
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = AnnotatedRule)
+  static class AnnotatedPackage {
+    @Bean
+    Names names() {
+      new Names([] as Set)
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = OnProperty)
+  static class ConditionalPackage {}
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = DependsOnMissing)
+  static class DependsOnPackage {}
 
   @Configuration(proxyBeanMethods = false)
   static class OwnMuster {
@@ -286,6 +307,44 @@ class MusterAutoConfigurationSpec extends Specification {
     cleanup:
     log.removeHandler(handler)
     log.level = level
+  }
+
+  def 'the annotations of a scanned rule apply as they do to a component'() {
+    expect:
+    runner.withUserConfiguration(AnnotatedPackage).run { context ->
+      def definition = context.beanFactory.getBeanDefinition(AnnotatedRule.name)
+      assert definition.lazyInit
+      assert definition.primary
+      assert definition.dependsOn == ['names'] as String[]
+    }
+  }
+
+  def 'a scanned rule that depends on a missing bean stops the application, as a component would'() {
+    expect:
+    runner.withUserConfiguration(DependsOnPackage).run { context ->
+      assert rootCause(context.startupFailure).message.contains("'doesNotExist'")
+    }
+  }
+
+  def 'the conditions of scanned rules apply: #configurations.simpleName with #properties'() {
+    expect:
+    runner.withUserConfiguration(configurations as Class[]).withPropertyValues(properties as String[]).run { context ->
+      assert context.getBeanNamesForType(BusinessRule) as Set == expected*.name as Set
+    }
+
+    where:
+    configurations                   | properties || expected
+    [ConditionalPackage]             | [] || []
+    [ConditionalPackage]             | ['fixture.rule.enabled=true'] || [OnProperty]
+    [
+      ConditionalPackage,
+      Application
+    ] | [] || [
+      OnBean,
+      NameUnique,
+      NameShort,
+      NameCapitalized
+    ]
   }
 
   def 'a rule outside the application packages joins as a bean'() {
