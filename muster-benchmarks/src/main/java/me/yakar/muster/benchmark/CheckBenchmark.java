@@ -17,6 +17,7 @@ package me.yakar.muster.benchmark;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import me.yakar.muster.CheckMode;
 import me.yakar.muster.Muster;
 import me.yakar.muster.RuleChain;
 import me.yakar.muster.benchmark.Rules.IndexedRule;
@@ -89,6 +90,12 @@ public class CheckBenchmark {
   @Benchmark
   public void target() {
     muster.check(order);
+  }
+
+  /** Checks the input with the rules that bind to its class, in a mode given for the check. */
+  @Benchmark
+  public void targetWithMode() {
+    muster.check(order, CheckMode.COLLECT_ALL);
   }
 
   private static String id(IndexedRule rule) {
