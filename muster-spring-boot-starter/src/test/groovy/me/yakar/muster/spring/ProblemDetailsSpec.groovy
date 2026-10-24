@@ -35,10 +35,12 @@ import me.yakar.muster.spring.fixture.web.LaterErrorsAutoConfiguration
 import me.yakar.muster.spring.fixture.web.ListingAdvice
 import me.yakar.muster.spring.fixture.web.LocalHandlerController
 import me.yakar.muster.spring.fixture.web.NamingAdvice
+import me.yakar.muster.spring.fixture.web.OrderedCatchAllAdvice
 import me.yakar.muster.spring.fixture.web.ParameterAdvice
 import me.yakar.muster.spring.fixture.web.UnrelatedAdvice
 import me.yakar.muster.spring.fixture.web.VehicleController
 import me.yakar.muster.spring.fixture.web.Violations
+import me.yakar.muster.spring.fixture.web.WrapperAdvice
 import org.aopalliance.intercept.MethodInterceptor
 import org.springframework.aop.support.DefaultPointcutAdvisor
 import org.springframework.aop.support.annotation.AnnotationMatchingPointcut
@@ -424,6 +426,23 @@ class ProblemDetailsSpec extends Specification {
 
     cleanup:
     parent.close()
+  }
+
+  def 'a controller advice ordered before the handler that handles every exception answers violations'() {
+    expect:
+    runner.withUserConfiguration(OrderedCatchAllAdvice).run {
+      assert it.containsBean('musterViolationExceptionHandler')
+      assert answer(it, [nameTaken()]).body == 'error'
+    }
+  }
+
+  def 'an exception that a violation causes is answered with the problem details of the violation'() {
+    expect:
+    runner.withUserConfiguration(WrapperAdvice).run {
+      def answer = answer(it, [nameTaken()], [:], '/wrapped')
+      assert answer.status == 409
+      assert answer.body.violations*.code == ['vehicle.name-taken']
+    }
   }
 
   def 'an advisor of the application can proxy the handler'() {

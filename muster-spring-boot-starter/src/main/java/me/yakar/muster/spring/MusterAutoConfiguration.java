@@ -99,21 +99,23 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  *       violations without a category. Violations of different categories are answered with 422, or
  *       with the client error from 400 to 499 that {@code muster.problem-details.mixed-status}
  *       sets.
- *   <li>The title is the name of the status, the instance the path of the request, and there is no
- *       type, which stands for {@code about:blank}.
+ *   <li>The title is the name of the status, if it has one, the instance the path of the request,
+ *       and there is no type, which stands for {@code about:blank}.
  *   <li>The {@code violations} property lists the violations, each with its {@code code}, its
  *       {@code message} in the locale that rules see, its {@code target} and {@code category} if it
  *       has them, and its client arguments as {@code args}, written as the JSON library of the
  *       application writes them. Make a client argument a value, such as a string or a number, not
  *       an entity. Neither the rule id, nor internal arguments, nor the severity are in the
  *       response; violations are logged at DEBUG, with all three.
- *   <li>The handler comes before the controller advice of the application, as Spring Boot's own
- *       problem details do, so that a handler of every {@code Exception} does not answer violations
- *       as errors of the server. A controller advice that names {@code
- *       BusinessRuleViolationException} in an {@code @ExceptionHandler} replaces it, for every
- *       controller, even if the advice applies to some controllers only; inject the {@code
- *       MessageResolver} bean there to resolve the messages. A controller's own handler of the
- *       exception comes first anyway.
+ *   <li>The handler has the order 0, as Spring Boot's own problem details do, so it comes before
+ *       controller advice without an order of its own, and a handler of every {@code Exception}
+ *       there does not answer violations as errors of the server; an advice ordered before it still
+ *       does. It also answers an exception that a violation causes, unless an advice before it
+ *       handles that exception. A controller advice that names {@code
+ *       BusinessRuleViolationException} in an {@code @ExceptionHandler}, in the context of the
+ *       application or in a parent one, replaces the handler, for every controller, even if the
+ *       advice applies to some controllers only; inject the {@code MessageResolver} bean there to
+ *       resolve the messages. A controller's own handler of the exception comes first anyway.
  * </ul>
  *
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
