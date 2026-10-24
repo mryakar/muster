@@ -156,7 +156,8 @@ public final class Muster {
 
   /**
    * Checks a rule target against every enabled rule whose input type accepts its class, in the mode
-   * of this Muster. A rule whose input type is {@code Object} checks every target.
+   * of this Muster; {@link #check(RuleTarget, CheckMode)} checks in another mode. A rule whose
+   * input type is {@code Object} checks every target.
    *
    * <p>The rules bind to the class of the input at run time: an input declared as an interface
    * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
@@ -173,9 +174,30 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    var type = input.getClass();
+    boundTo(input.getClass()).check(input);
+  }
+
+  /**
+   * Checks a rule target as {@link #check(RuleTarget)} does, in the given mode instead of the mode
+   * of this Muster. The rules of a class are bound once, whatever mode the checks use.
+   *
+   * @param input the input
+   * @param mode the mode of this check
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if {@code input} or {@code mode} is {@code null}, or the locale
+   *     supplier or a rule returns {@code null}
+   * @throws IllegalStateException if a rule reports a violation under another rule's id
+   */
+  public void check(RuleTarget input, CheckMode mode) {
+    requireNonNull(input, "input");
+    requireNonNull(mode, "mode");
+    boundTo(input.getClass()).check(input, mode);
+  }
+
+  /** Returns the chain bound to a class, binding it on its first check. */
+  private RuleChain<Object> boundTo(Class<?> type) {
     var chain = bound.get(type);
-    (chain != null ? chain : bound.computeIfAbsent(type, binder)).check(input);
+    return chain != null ? chain : bound.computeIfAbsent(type, binder);
   }
 
   private RuleChain<Object> bind(Class<?> type) {
