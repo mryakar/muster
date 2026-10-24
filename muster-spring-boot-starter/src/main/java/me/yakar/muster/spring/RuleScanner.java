@@ -34,7 +34,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
-import org.springframework.util.ClassUtils;
 
 /**
  * Registers the rule classes in the packages of the application as beans, unless a bean of the
@@ -67,12 +66,11 @@ final class RuleScanner
     if (!AutoConfigurationPackages.has(beanFactory)) {
       return;
     }
+    // As Spring matches beans by type at this stage: singletons registered without a definition
+    // count, abstract definitions and factory beans that are not created yet do not.
     var defined = new HashSet<String>();
-    for (var name : registry.getBeanDefinitionNames()) {
-      var type = beanFactory.getType(name, false);
-      if (type != null) {
-        defined.add(ClassUtils.getUserClass(type).getName());
-      }
+    for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
+      defined.add(requireNonNull(beanFactory.getType(name, false)).getName());
     }
     var scanner =
         new ClassPathScanningCandidateComponentProvider(false, requireNonNull(environment));

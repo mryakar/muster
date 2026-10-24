@@ -30,6 +30,8 @@ import me.yakar.muster.spring.fixture.app.Vehicle
 import me.yakar.muster.spring.fixture.other.OtherRule
 import me.yakar.muster.spring.fixture.prototype.PrototypeRule
 import org.springframework.beans.factory.FactoryBean
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor
+import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -118,19 +120,31 @@ class MusterAutoConfigurationSpec extends Specification {
   }
 
   @Configuration(proxyBeanMethods = false)
+  @Import(UnknownFactory)
   static class BeanOfUnknownType {
-    @Bean
-    @SuppressWarnings('rawtypes')
-    FactoryBean unknown() {
-      new FactoryBean() {
-            Object getObject() {
-              'not a rule'
-            }
+    static boolean postProcessed
+    static boolean createdEarly
 
-            Class<?> getObjectType() {
-              null
-            }
-          }
+    /** Runs after every registry post-processor, the rule scanner included. */
+    @Bean
+    static BeanFactoryPostProcessor marker() {
+      { beanFactory -> postProcessed = true } as BeanFactoryPostProcessor
+    }
+  }
+
+  /** A factory bean whose product Spring knows only by creating it. */
+  @SuppressWarnings('rawtypes')
+  static class UnknownFactory implements FactoryBean {
+    UnknownFactory() {
+      BeanOfUnknownType.createdEarly |= !BeanOfUnknownType.postProcessed
+    }
+
+    Object getObject() {
+      'not a rule'
+    }
+
+    Class<?> getObjectType() {
+      null
     }
   }
 
@@ -201,11 +215,39 @@ class MusterAutoConfigurationSpec extends Specification {
     patterns.contains('classpath*:me/yakar/muster/spring/fixture/app/**/*.class')
   }
 
-  def 'a bean whose type is not known yet does not stop the scan'() {
+  def 'the scan neither creates a factory bean early nor stops at one whose type is not known'() {
+    given:
+    BeanOfUnknownType.postProcessed = false
+    BeanOfUnknownType.createdEarly = false
+
     expect:
     runner.withUserConfiguration(Application, BeanOfUnknownType).run { context ->
       assert context.getBean(Muster).chain(Vehicle, NameUnique) != null
+      assert !BeanOfUnknownType.createdEarly
     }
+  }
+
+  def 'a rule registered as a singleton is not registered again by the scan'() {
+    given:
+    def mine = new NameShort()
+
+    expect:
+    runner.withUserConfiguration(Application)
+        .withInitializer { it.beanFactory.registerSingleton('mine', mine) }
+        .run { context ->
+          assert context.getBeanNamesForType(NameShort) as List == ['mine']
+          assert context.getBean(Muster).chain(Vehicle, NameShort) != null
+        }
+  }
+
+  def 'an abstract bean definition whose class is missing does not stop the scan'() {
+    given:
+    def template = new GenericBeanDefinition(beanClassName: 'com.example.Missing', abstract: true)
+
+    expect:
+    runner.withUserConfiguration(Application)
+        .withInitializer { it.registerBeanDefinition('template', template) }
+        .run { context -> assert context.startupFailure == null }
   }
 
   def 'each registered rule is logged at DEBUG'() {
