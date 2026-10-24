@@ -44,11 +44,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * with its code, its message in the locale of the call, its target and category if it has them, and
  * its client arguments.
  *
- * <p>It comes before the controller advice of the application, as Spring Boot's own problem details
- * do, so that a handler of {@link Exception} does not answer violations as errors of the server. An
- * application that handles the exception itself, by naming it in an {@link ExceptionHandler} of a
- * controller advice, has no such handler; see {@link ViolationHandlerRemover}. The class is not
- * final, so that an advisor of the application can proxy it.
+ * <p>Its order is 0, as that of Spring Boot's own problem details, so that it comes before
+ * controller advice without an order of its own, and a handler of {@link Exception} there does not
+ * answer violations as errors of the server. An application that handles the exception itself, by
+ * naming it in an {@link ExceptionHandler} of a controller advice, has no such handler; see {@link
+ * ViolationHandlerRemover}. The class is not final, so that an advisor of the application can proxy
+ * it.
  */
 @RestControllerAdvice
 @Order(0)

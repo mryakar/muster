@@ -20,6 +20,8 @@ import me.yakar.muster.rule.Violation
 import me.yakar.muster.spring.MusterAutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.context.annotation.Bean
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PostMapping
@@ -47,6 +49,18 @@ class VehicleController {
   @PostMapping('/vehicles')
   void save() {
     throw violations.exception()
+  }
+
+  @PostMapping('/wrapped')
+  void wrapped() {
+    throw new WrapperException(violations.exception())
+  }
+}
+
+/** An exception of the application that a violation causes. */
+class WrapperException extends RuntimeException {
+  WrapperException(Throwable cause) {
+    super(cause)
   }
 }
 
@@ -111,6 +125,24 @@ class UnrelatedAdvice {
   @ExceptionHandler(IllegalArgumentException)
   ResponseEntity<String> other(IllegalArgumentException e) {
     ResponseEntity.status(400).body('other')
+  }
+}
+
+/** Handles every exception, and comes before every other advice. */
+@RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
+class OrderedCatchAllAdvice {
+  @ExceptionHandler(Exception)
+  ResponseEntity<String> all(Exception e) {
+    ResponseEntity.status(500).body('error')
+  }
+}
+
+@RestControllerAdvice
+class WrapperAdvice {
+  @ExceptionHandler(WrapperException)
+  ResponseEntity<String> wrapper(WrapperException e) {
+    ResponseEntity.status(400).body('wrapper')
   }
 }
 
