@@ -61,34 +61,52 @@ class TransactionOrderSpec extends Specification {
     postgres.stop()
   }
 
-  def "with equal orders, the advisor registered first runs outside the transaction"() {
+  def "with equal orders, registration decides: #placement.simpleName runs inside: #inside"() {
     expect:
-    probe(ProbeFromConfiguration) == [false]
+    probe(placement) == [inside: [inside], transactionOrder: Ordered.LOWEST_PRECEDENCE]
+
+    where:
+    placement || inside
+    ProbeFromConfiguration || false
+    ProbeAfterAutoConfiguration || true
   }
 
-  def "with equal orders, the advisor registered after the transaction advisor runs inside it"() {
+  def "moving the transaction advisor up one step puts #placement.simpleName inside"() {
     expect:
-    probe(ProbeAfterAutoConfiguration) == [true]
+    probe(placement, TransactionAdvisorOneStepUp) == [inside: [true], transactionOrder: Ordered.LOWEST_PRECEDENCE - 1]
+
+    where:
+    placement << [
+      ProbeFromConfiguration,
+      ProbeAfterAutoConfiguration
+    ]
   }
 
-  def "moving the transaction advisor up one step puts the advice inside, wherever it is registered"() {
+  def "the transaction advisor moves before a service that a plain post-processor pulls in early"() {
     expect:
-    probe(ProbeFromConfiguration, TransactionAdvisorOneStepUp) == [true]
-    probe(ProbeAfterAutoConfiguration, TransactionAdvisorOneStepUp) == [true]
+    probe(ProbeFromConfiguration, TransactionAdvisorOneStepUp, EarlyService) == [inside: [true], transactionOrder: Ordered.LOWEST_PRECEDENCE - 1]
   }
 
-  def "the transaction advisor moves before a service that a bean post-processor pulls in early"() {
+  def "the transaction advisor stays put if a priority-ordered post-processor needs it"() {
     expect:
-    probe(ProbeFromConfiguration, TransactionAdvisorOneStepUp, EarlyService) == [true]
+    probe(ProbeFromConfiguration, TransactionAdvisorOneStepUp, EarlyTransactionAdvisor) == [inside: [false], transactionOrder: Ordered.LOWEST_PRECEDENCE]
   }
 
-  def "an order the user gives puts the transaction outside the advice"() {
+  def "the transaction advisor stays put if the post-processor is declared as a BeanPostProcessor"() {
     expect:
-    probe(ProbeFromConfiguration, UserTransactionOrder) == [true]
+    probe(ProbeFromConfiguration, OneStepUpDeclaredAsBeanPostProcessor) == [inside: [false], transactionOrder: Ordered.LOWEST_PRECEDENCE]
   }
 
-  /** Calls the probed service once and returns whether the advice saw an active transaction. */
-  private List<Boolean> probe(Class<?>... sources) {
+  def "an order the user gives is left alone and keeps the transaction outside the advice"() {
+    expect:
+    probe(ProbeFromConfiguration, TransactionAdvisorOneStepUp, UserTransactionOrder) == [inside: [true], transactionOrder: 0]
+  }
+
+  /**
+   * Calls the probed service once and returns whether the advice saw an active transaction, and the
+   * order the transaction advisor ended with.
+   */
+  private Map<String, Object> probe(Class<?>... sources) {
     ConfigurableApplicationContext context = new SpringApplicationBuilder(([Application] + sources.toList()) as Class<?>[])
     .web(WebApplicationType.NONE)
     .properties(
@@ -100,7 +118,7 @@ class TransactionOrderSpec extends Specification {
       def service = context.getBean(ProbedService)
       service.call()
       assert service.inTransaction == [true]
-      context.getBean(Probe).inTransaction
+      [inside: context.getBean(Probe).inTransaction, transactionOrder: context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order]
     } finally {
       context.close()
     }
@@ -176,6 +194,14 @@ class TransactionOrderSpec extends Specification {
     }
   }
 
+  /** The same post-processor, declared as a BeanPostProcessor. */
+  static class OneStepUpDeclaredAsBeanPostProcessor {
+    @Bean
+    static BeanPostProcessor transactionAdvisorOneStepUp() {
+      new OneStepUp()
+    }
+  }
+
   static class OneStepUp implements BeanPostProcessor, PriorityOrdered {
     @Override
     Object postProcessAfterInitialization(Object bean, String beanName) {
@@ -197,6 +223,21 @@ class TransactionOrderSpec extends Specification {
     @Bean
     static BeanPostProcessor needsService(ProbedService service) {
       new BeanPostProcessor() {}
+    }
+  }
+
+  /** A priority-ordered post-processor that needs the transaction advisor. */
+  static class EarlyTransactionAdvisor {
+    @Bean
+    static NeedsTransactionAdvisor needsTransactionAdvisor(BeanFactoryTransactionAttributeSourceAdvisor advisor) {
+      new NeedsTransactionAdvisor()
+    }
+  }
+
+  static class NeedsTransactionAdvisor implements BeanPostProcessor, PriorityOrdered {
+    @Override
+    int getOrder() {
+      Ordered.HIGHEST_PRECEDENCE
     }
   }
 
