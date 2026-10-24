@@ -150,9 +150,9 @@ class ViolationSpec extends Specification {
     kind                         | method        | name || character
     'a space'                    | 'clientArg'   | 'vehicle name' || 'U+0020'
     'a space'                    | 'internalArg' | 'vehicle name' || 'U+0020'
-    'a no-break space'           | 'clientArg'   | 'vehicle name' || 'U+00A0'
+    'a no-break space'           | 'clientArg'   | 'vehicle\u00a0name' || 'U+00A0'
     'a trailing newline'         | 'clientArg'   | 'name\n' || 'U+000A'
-    'a zero-width space'         | 'clientArg'   | 'vehicle​name' || 'U+200B'
+    'a zero-width space'         | 'clientArg'   | 'vehicle\u200bname' || 'U+200B'
     'an unpaired high surrogate' | 'internalArg' | 'name\uD83D' || 'U+D83D'
   }
 
