@@ -34,9 +34,9 @@ public final class RuleGraph {
   private RuleGraph() {}
 
   /**
-   * Checks that every required rule is registered, accepts the input of the rule that requires it,
-   * and is not disabled while the rule that requires it is enabled, and that no rules require each
-   * other in a cycle.
+   * Checks that every required rule is registered and accepts the input of the rule that requires
+   * it, that no rules require each other in a cycle, and that no enabled rule requires a disabled
+   * rule, directly or through other rules.
    *
    * @param rules the registered rules, by class
    * @param disabled the classes of the disabled rules
@@ -63,24 +63,62 @@ public final class RuleGraph {
                   + ", not "
                   + rule.inputType().getTypeName());
         }
-        if (disabled.contains(requiredClass) && !disabled.contains(rule.ruleClass())) {
-          throw new IllegalArgumentException(
-              "'"
-                  + rule.id()
-                  + "' requires '"
-                  + required.id()
-                  + "', which is disabled; disable '"
-                  + rule.id()
-                  + "' as well, or enable '"
-                  + required.id()
-                  + "'");
-        }
       }
     }
     var finished = new HashSet<Class<?>>();
     for (var rule : byId(rules.values())) {
       requireNoCycle(rule, rules, finished, new ArrayList<>());
     }
+    requireDisabledDependents(rules, disabled);
+  }
+
+  /**
+   * Fails if an enabled rule requires a disabled rule, directly or through other rules, and names
+   * every such rule at once, so that one change to the configuration can fix them all.
+   */
+  private static void requireDisabledDependents(
+      Map<Class<?>, RuleDefinition> rules, Set<Class<?>> disabled) {
+    var problems = new ArrayList<String>();
+    for (var off : byId(rules.values())) {
+      if (!disabled.contains(off.ruleClass())) {
+        continue;
+      }
+      var dependents = new ArrayList<String>();
+      for (var rule : byId(rules.values())) {
+        if (!disabled.contains(rule.ruleClass())
+            && requires(rule, off.ruleClass(), rules, new HashSet<>())) {
+          dependents.add("'" + rule.id() + "'");
+        }
+      }
+      if (!dependents.isEmpty()) {
+        problems.add(
+            String.join(", ", dependents)
+                + (dependents.size() == 1 ? " requires '" : " require '")
+                + off.id()
+                + "'");
+      }
+    }
+    if (!problems.isEmpty()) {
+      throw new IllegalArgumentException(
+          "enabled rules require disabled rules, directly or through other rules: "
+              + String.join("; ", problems)
+              + "; disable them as well, or enable the rules they require");
+    }
+  }
+
+  /** Whether a rule requires the given rule, directly or through other rules. */
+  private static boolean requires(
+      RuleDefinition rule,
+      Class<?> required,
+      Map<Class<?>, RuleDefinition> rules,
+      Set<Class<?>> visited) {
+    for (var direct : rule.requires()) {
+      if (direct == required
+          || (visited.add(direct) && requires(rules.get(direct), required, rules, visited))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void requireNoCycle(
