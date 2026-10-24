@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `muster.check(target, mode)` checks a rule target in another mode than the Muster's, without a second Muster. The rules of a class are still bound once.
+- `muster.check(target, mode)` checks a rule target in a mode other than the Muster's, without a second Muster. The rules of a class are still bound once.
 - `RuleContext.forRule(Class)` and `RuleContext.builder(Class)`, which read the rule id from `@Rule`, so a rule's test does not repeat it.
 - The violation category `FORBIDDEN`, for a caller who may not act on the data a request refers to, such as a task that only its owner may close.
 

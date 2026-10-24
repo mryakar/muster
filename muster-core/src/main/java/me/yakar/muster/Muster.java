@@ -401,7 +401,8 @@ public final class Muster {
 
     /**
      * Sets how far a check goes once a rule is violated. Unless set, it is {@link
-     * CheckMode#FAIL_FAST}. A chain can override it with {@link RuleChain#withMode}.
+     * CheckMode#FAIL_FAST}. A chain can override it with {@link RuleChain#withMode}, and a single
+     * check of a rule target with {@link Muster#check(RuleTarget, CheckMode)}.
      *
      * @param mode the mode
      * @return this builder
