@@ -27,6 +27,49 @@ class RuleContextSpec extends Specification {
     RuleContext.forRule('task.ready').ruleId() == 'task.ready'
   }
 
+  def 'a context for a rule class takes the id from its @Rule'() {
+    expect:
+    RuleContext.forRule(TaskReady).ruleId() == 'task.ready'
+    RuleContext.forRule(TaskReady).caller().empty
+    RuleContext.forRule(TaskReady).locale() == Locale.ROOT
+  }
+
+  def 'a builder for a rule class takes the id from its @Rule'() {
+    given:
+    def context = RuleContext.builder(TaskReady).caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+
+    expect:
+    context.ruleId() == 'task.ready'
+    context.caller().get().is(amo)
+    context.locale() == Locale.forLanguageTag('tr-TR')
+  }
+
+  def 'a context for a rule class that is not a valid rule fails: #problem'() {
+    when:
+    RuleContext.forRule(ruleClass)
+
+    then:
+    def e = thrown(exception)
+    e.message == message
+
+    where:
+    problem         | ruleClass || exception                | message
+    'no @Rule'      | NoRule || IllegalArgumentException | "${NoRule.typeName} is not annotated with @Rule"
+    'an invalid id' | InvalidId || IllegalArgumentException | "the id 'Task Ready' of ${InvalidId.typeName} is invalid; ${me.yakar.muster.internal.RuleIds.FORMAT}"
+  }
+
+  def 'a context rejects a null rule class'() {
+    when:
+    RuleContext."$factory"((Class) null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'ruleClass'
+
+    where:
+    factory << ['forRule', 'builder']
+  }
+
   def 'a context for testing a rule has no caller and the root locale'() {
     given:
     def context = RuleContext.forRule('task.ready')
@@ -142,7 +185,7 @@ class RuleContextSpec extends Specification {
 
   def 'a context rejects a null rule id'() {
     when:
-    RuleContext."$factory"(null)
+    RuleContext."$factory"((String) null)
 
     then:
     def e = thrown(NullPointerException)
@@ -160,5 +203,28 @@ class RuleContextSpec extends Specification {
     expect:
     anonymous.toString() == 'RuleContext[ruleId=task.ready, locale=und]'
     known.toString() == 'RuleContext[ruleId=request.owner-only, caller=amo, locale=tr-TR]'
+  }
+
+  @Rule(id = 'task.ready')
+  static class TaskReady implements BusinessRule<String> {
+    @Override
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class NoRule implements BusinessRule<String> {
+    @Override
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'Task Ready')
+  static class InvalidId implements BusinessRule<String> {
+    @Override
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
   }
 }

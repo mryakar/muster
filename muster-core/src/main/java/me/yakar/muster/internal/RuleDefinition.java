@@ -43,6 +43,18 @@ public record RuleDefinition(
    *     declares
    */
   public static RuleDefinition of(Class<?> ruleClass) {
+    return new RuleDefinition(
+        ruleClass, idOf(ruleClass), RuleTypes.inputType(ruleClass), requires(ruleClass));
+  }
+
+  /**
+   * Reads the id of a rule class from its {@code @Rule}.
+   *
+   * @param ruleClass the rule class
+   * @return the rule id
+   * @throws IllegalArgumentException if the class has no {@code @Rule} or an invalid id
+   */
+  public static String idOf(Class<?> ruleClass) {
     var rule = ruleClass.getAnnotation(Rule.class);
     if (rule == null) {
       throw new IllegalArgumentException(
@@ -57,8 +69,7 @@ public record RuleDefinition(
               + " is invalid; "
               + RuleIds.FORMAT);
     }
-    return new RuleDefinition(
-        ruleClass, rule.id(), RuleTypes.inputType(ruleClass), requires(ruleClass));
+    return rule.id();
   }
 
   private static List<Class<?>> requires(Class<?> ruleClass) {

@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `RuleContext.forRule(Class)` and `RuleContext.builder(Class)`, which read the rule id from `@Rule`, so a rule's test does not repeat it.
 - The violation category `FORBIDDEN`, for a caller who may not act on the data a request refers to, such as a task that only its owner may close.
 
 ### Changed
