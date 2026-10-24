@@ -219,7 +219,9 @@ class MessageResolverSpec extends Specification {
   }
 
   def 'resolves the same messages from many threads at once, while the bundles load'() {
-    given:
+    given: 'a default locale with a bundle, so that other locales race through the fallback too'
+    def defaultLocale = Locale.getDefault()
+    Locale.setDefault(Locale.forLanguageTag('tr-TR'))
     ResourceBundle.clearCache()
     def messages = MessageResolver.ofResourceBundles { Locale locale ->
       ResourceBundle.getBundle('me.yakar.muster.messages', locale)
@@ -262,5 +264,7 @@ class MessageResolverSpec extends Specification {
 
     cleanup:
     pool.shutdownNow()
+    Locale.setDefault(defaultLocale)
+    ResourceBundle.clearCache()
   }
 }

@@ -74,6 +74,38 @@ class ResourceBundleTemplatesSpec extends Specification {
     messages().apply('vehicle.name-taken', TURKISH) == Optional.of('{name} adı kullanılıyor')
   }
 
+  def 'never falls back to the default locale #jvmLocale, which has a region, for #locale'() {
+    given:
+    Locale.setDefault(Locale.forLanguageTag(jvmLocale))
+    def templates = new ResourceBundleTemplates({ Locale requested ->
+      ResourceBundle.getBundle("me.yakar.muster.$family", requested)
+    })
+
+    expect: 'getBundle answers from the bundle of the default locale'
+    ResourceBundle.getBundle("me.yakar.muster.$family", Locale.forLanguageTag(locale)).locale != Locale.ROOT
+
+    and: 'the template comes from the base bundle'
+    templates.apply('vehicle.name-taken', Locale.forLanguageTag(locale)) == Optional.of('The name {name} is taken')
+
+    where:
+    jvmLocale | family     | locale
+    'tr-TR'   | 'messages' | 'fr'
+    'de-DE'   | 'regional' | 'de-AT'
+    'de-DE'   | 'regional' | 'de'
+    'de-DE'   | 'regional' | 'fr'
+  }
+
+  def 'the bundle of a region is still found for that region'() {
+    given:
+    Locale.setDefault(Locale.ENGLISH)
+
+    expect:
+    new ResourceBundleTemplates({ Locale requested ->
+      ResourceBundle.getBundle('me.yakar.muster.regional', requested)
+    })
+    .apply('vehicle.name-taken', Locale.forLanguageTag('de-DE')) == Optional.of('Der Name {name} ist in Deutschland vergeben')
+  }
+
   def 'a key that only the base bundle has is read from it'() {
     given:
     Locale.setDefault(GERMAN)
@@ -106,13 +138,16 @@ class ResourceBundleTemplatesSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "the resource bundles have no base bundle ($detail); add one without a locale, such as messages.properties, for the locales that have no bundle of their own"
+    e.message.startsWith('the resource bundles have no base bundle (')
+    e.message.endsWith('); add one without a locale, such as messages.properties, for the locales that have no bundle of their own')
+    e.message.contains(detail)
     (e.cause instanceof MissingResourceException) == missing
 
     where:
     jvmLocale || missing | detail
     'en' || false   | "for Locale.ROOT the function returned the bundle for 'en'"
-    'de' || true    | "Can't find bundle for base name me.yakar.muster.nobase, locale "
+    // The rest of the message is the JDK's.
+    'de' || true    | 'me.yakar.muster.nobase'
   }
 
   def 'needs a function that returns a bundle'() {
