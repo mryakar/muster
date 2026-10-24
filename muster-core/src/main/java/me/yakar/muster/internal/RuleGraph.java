@@ -100,9 +100,9 @@ public final class RuleGraph {
     }
     if (!problems.isEmpty()) {
       throw new IllegalArgumentException(
-          "enabled rules require disabled rules, directly or through other rules: "
+          "rules that require disabled rules are enabled: "
               + String.join("; ", problems)
-              + "; disable them as well, or enable the rules they require");
+              + "; disable them as well, or enable what they require");
     }
   }
 

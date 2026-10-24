@@ -127,7 +127,7 @@ class RuleGraphSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.ready' requires 'task.exists'; disable them as well, or enable the rules they require"
+    e.message == "rules that require disabled rules are enabled: 'task.ready' requires 'task.exists'; disable them as well, or enable what they require"
   }
 
   def 'every enabled rule that requires a disabled rule through other rules is named at once'() {
@@ -136,7 +136,7 @@ class RuleGraphSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.deadline', 'task.ready', 'task.started' require 'task.exists'; disable them as well, or enable the rules they require"
+    e.message == "rules that require disabled rules are enabled: 'task.deadline', 'task.ready', 'task.started' require 'task.exists'; disable them as well, or enable what they require"
   }
 
   def 'the rules that require each disabled rule are named for each of them'() {
@@ -145,7 +145,16 @@ class RuleGraphSpec extends Specification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "enabled rules require disabled rules, directly or through other rules: 'task.ready' requires 'task.exists'; 'vehicle.name-unique' requires 'vehicle.exists'; disable them as well, or enable the rules they require"
+    e.message == "rules that require disabled rules are enabled: 'task.ready' requires 'task.exists'; 'vehicle.name-unique' requires 'vehicle.exists'; disable them as well, or enable what they require"
+  }
+
+  def 'an enabled rule that requires a chain of disabled rules is named for each of them'() {
+    when:
+    validate(byClass(rule(A, 'task.started', [B]), rule(B, 'task.ready', [C]), rule(C, 'task.exists')), [B, C] as Set)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "rules that require disabled rules are enabled: 'task.started' requires 'task.exists'; 'task.started' requires 'task.ready'; disable them as well, or enable what they require"
   }
 
   def 'a rule reached along two paths does not make an unrelated disabled rule a requirement'() {
