@@ -20,6 +20,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import tools.jackson.databind.json.JsonMapper;
@@ -78,6 +79,7 @@ public class Application {
       throws IOException, InterruptedException {
     var request =
         HttpRequest.newBuilder(uri)
+            .timeout(Duration.ofSeconds(30))
             .header("Content-Type", "application/json")
             .header("Accept-Language", "tr-TR")
             .POST(HttpRequest.BodyPublishers.ofString("{\"name\":\"" + name + "\"}"))
