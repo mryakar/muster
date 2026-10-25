@@ -20,6 +20,7 @@ import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import tools.jackson.databind.json.JsonMapper
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Supplier
 import java.util.logging.Level
 import me.yakar.muster.rule.Category
@@ -107,7 +108,7 @@ class ProblemDetailsSpec extends Specification {
   /** Proxies every controller advice, as an aspect that logs exception handlers would. */
   @Configuration(proxyBeanMethods = false)
   static class ProxiedAdvice {
-    static final List<String> calls = [].asSynchronized()
+    static final List<String> calls = new CopyOnWriteArrayList<>()
 
     @Bean
     static DefaultAdvisorAutoProxyCreator proxyCreator() {

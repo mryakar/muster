@@ -17,6 +17,7 @@ package me.yakar.muster.spring.fixture.advice
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
+import java.util.concurrent.CopyOnWriteArrayList
 import me.yakar.muster.CheckMode
 import me.yakar.muster.spring.Rules
 import org.springframework.context.annotation.Lazy
@@ -30,7 +31,8 @@ import org.springframework.stereotype.Service
 /** A service: its methods that take a rule target check the rules bound by type. */
 @Service
 class VehicleService {
-  final List<Object> calls = []
+  /** Threads may call the service at once. */
+  final List<Object> calls = new CopyOnWriteArrayList<>()
 
   void save(SaveVehicle vehicle) {
     calls << vehicle
