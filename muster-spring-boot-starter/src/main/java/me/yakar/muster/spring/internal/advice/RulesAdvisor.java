@@ -15,11 +15,10 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
-import java.io.Serial;
 import java.lang.reflect.Method;
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.Pointcut;
-import org.springframework.aop.support.AbstractPointcutAdvisor;
+import org.springframework.aop.PointcutAdvisor;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.core.Ordered;
 
@@ -27,14 +26,12 @@ import org.springframework.core.Ordered;
  * Applies Muster's advice to the methods it advises. It has the lowest precedence, so that the
  * transaction advice, which comes first, runs around it.
  */
-final class RulesAdvisor extends AbstractPointcutAdvisor {
-
-  @Serial private static final long serialVersionUID = 1L;
+final class RulesAdvisor implements PointcutAdvisor, Ordered {
 
   static final int ORDER = Ordered.LOWEST_PRECEDENCE;
 
-  private final transient RulesInterceptor interceptor;
-  private final transient Pointcut pointcut;
+  private final RulesInterceptor interceptor;
+  private final Pointcut pointcut;
 
   RulesAdvisor(RulesInterceptor interceptor) {
     this.interceptor = interceptor;
