@@ -43,6 +43,8 @@ import org.springframework.transaction.config.TransactionManagementConfigUtils;
  */
 final class TransactionOrdering implements BeanFactoryPostProcessor, EnvironmentAware {
 
+  // Set through Aware rather than injected: resolving a parameter of the bean method by type would
+  // create factory beans early to learn what they make.
   private @Nullable Environment environment;
 
   @Override

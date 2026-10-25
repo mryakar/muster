@@ -15,13 +15,9 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
-import static java.util.Objects.requireNonNull;
-
 import me.yakar.muster.spring.internal.Settings;
-import org.jspecify.annotations.Nullable;
 import org.springframework.aop.config.AopConfigUtils;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotationMetadata;
@@ -32,12 +28,11 @@ import org.springframework.core.type.AnnotationMetadata;
  * not run. As Spring Boot does, it proxies classes unless {@code spring.aop.proxy-target-class} is
  * {@code false}.
  */
-final class ProxyCreatorRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+final class ProxyCreatorRegistrar implements ImportBeanDefinitionRegistrar {
 
-  private @Nullable Environment environment;
+  private final Environment environment;
 
-  @Override
-  public void setEnvironment(Environment environment) {
+  ProxyCreatorRegistrar(Environment environment) {
     this.environment = environment;
   }
 
@@ -45,7 +40,7 @@ final class ProxyCreatorRegistrar implements ImportBeanDefinitionRegistrar, Envi
   public void registerBeanDefinitions(
       AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
     AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
-    if (Settings.proxyTargetClass(requireNonNull(environment))) {
+    if (Settings.proxyTargetClass(environment)) {
       AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
     }
   }
