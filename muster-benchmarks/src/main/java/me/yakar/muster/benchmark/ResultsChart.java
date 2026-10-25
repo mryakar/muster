@@ -300,8 +300,10 @@ public final class ResultsChart {
         Map.of(
             "warmupIterations", String.valueOf(warmup.iterations()),
             "warmupTime", new TimeValue(warmup.time(), warmup.timeUnit()).toString(),
+            "warmupBatchSize", String.valueOf(batchSize(warmup.batchSize())),
             "measurementIterations", String.valueOf(measurement.iterations()),
             "measurementTime", new TimeValue(measurement.time(), measurement.timeUnit()).toString(),
+            "measurementBatchSize", String.valueOf(batchSize(measurement.batchSize())),
             "threads", String.valueOf(declaredThreads));
     for (var setting : new TreeMap<>(declared).entrySet()) {
       var actual = node.get(setting.getKey()).asString();
@@ -318,6 +320,11 @@ public final class ResultsChart {
                 + setting.getValue());
       }
     }
+  }
+
+  /** Returns the batch size that a declared one means: JMH's default, the blank -1, means 1. */
+  private static int batchSize(int declared) {
+    return Math.max(1, declared);
   }
 
   /** Writes the summary that docs/benchmarks links to: one line per benchmark and parameters. */
