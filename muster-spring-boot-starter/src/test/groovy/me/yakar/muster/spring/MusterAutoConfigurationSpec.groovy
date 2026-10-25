@@ -17,10 +17,6 @@ package me.yakar.muster.spring
 
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
-import java.util.logging.Handler
-import java.util.logging.Level
-import java.util.logging.LogRecord
-import java.util.logging.Logger
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
 import me.yakar.muster.rule.BusinessRule
@@ -346,20 +342,7 @@ class MusterAutoConfigurationSpec extends Specification {
 
   def 'each registered rule is logged at DEBUG'() {
     given:
-    def logged = []
-    def log = Logger.getLogger('me.yakar.muster')
-    def level = log.level
-    def handler = new Handler() {
-          void publish(LogRecord record) {
-            logged << record.message
-          }
-
-          void flush() {}
-
-          void close() {}
-        }
-    log.level = Level.ALL
-    log.addHandler(handler)
+    def logs = new LogCapture()
 
     when:
     runner.withUserConfiguration(Application).run {
@@ -367,7 +350,7 @@ class MusterAutoConfigurationSpec extends Specification {
     }
 
     then:
-    logged.findAll {
+    logs.messages.findAll {
       it.startsWith('Registered the rule')
     } as Set == [
       NameCapitalized,
@@ -378,8 +361,7 @@ class MusterAutoConfigurationSpec extends Specification {
     } as Set
 
     cleanup:
-    log.removeHandler(handler)
-    log.level = level
+    logs.close()
   }
 
   def 'the annotations of a scanned rule apply as they do to a component'() {

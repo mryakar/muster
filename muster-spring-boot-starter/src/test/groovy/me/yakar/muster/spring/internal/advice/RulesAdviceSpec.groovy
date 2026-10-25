@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Outcomes.violated
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import java.lang.reflect.Proxy
@@ -22,11 +23,6 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.logging.Handler
-import java.util.logging.Level
-import java.util.logging.LogRecord
-import java.util.logging.Logger
-import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.advice.FinalMethod
 import me.yakar.muster.spring.fixture.advice.LazyVehicleService
@@ -53,6 +49,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.core.Ordered
+import me.yakar.muster.spring.LogCapture
 import spock.lang.Specification
 
 class RulesAdviceSpec extends Specification {
@@ -73,15 +70,6 @@ class RulesAdviceSpec extends Specification {
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Application)
-
-  static List<String> violated(Closure call) {
-    try {
-      call()
-      []
-    } catch (BusinessRuleViolationException e) {
-      e.violations()*.code()
-    }
-  }
 
   def 'a service method checks the rules bound to its input by type before it runs'() {
     expect:
@@ -227,30 +215,18 @@ class RulesAdviceSpec extends Specification {
 
   def 'the advice is named after the method in the log'() {
     given:
-    def logged = []
-    def log = Logger.getLogger('me.yakar.muster')
-    def level = log.level
-    def handler = new Handler() {
-          void publish(LogRecord record) {
-            logged << record.message
-          }
-
-          void flush() {}
-
-          void close() {}
-        }
-    log.level = Level.ALL
-    log.addHandler(handler)
+    def logs = new LogCapture()
 
     when:
     runner.run { assert it.startupFailure == null }
 
     then:
-    logged.any { it.startsWith('Rules bound to VehicleService.delete(Long)') }
+    logs.messages.any {
+      it.startsWith('Rules bound to VehicleService.delete(Long)')
+    }
 
     cleanup:
-    log.removeHandler(handler)
-    log.level = level
+    logs.close()
   }
 
   def 'wrong use of rules stops the application: #bean.simpleName'() {

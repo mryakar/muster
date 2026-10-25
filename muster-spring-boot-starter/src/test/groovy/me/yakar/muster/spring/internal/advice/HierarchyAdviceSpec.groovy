@@ -15,8 +15,9 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Outcomes.violated
+
 import java.lang.reflect.Proxy
-import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.advice.BaseFinder
 import me.yakar.muster.spring.fixture.advice.BaseSaver
@@ -41,6 +42,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import me.yakar.muster.spring.LogCapture
 import spock.lang.Specification
 
 /** Rules apply however a method is reached: through an interface, a bridge or a base class. */
@@ -70,15 +72,6 @@ class HierarchyAdviceSpec extends Specification {
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Rules)
-
-  static List<String> violated(Closure call) {
-    try {
-      call()
-      []
-    } catch (BusinessRuleViolationException e) {
-      e.violations()*.code()
-    }
-  }
 
   def 'rules apply through #through, proxy classes #proxyClasses'() {
     expect:
@@ -136,20 +129,7 @@ class HierarchyAdviceSpec extends Specification {
 
   def 'a method is named after the class of the bean that runs it'() {
     given:
-    def logged = []
-    def log = java.util.logging.Logger.getLogger('me.yakar.muster')
-    def level = log.level
-    def handler = new java.util.logging.Handler() {
-          void publish(java.util.logging.LogRecord record) {
-            logged << record.message
-          }
-
-          void flush() {}
-
-          void close() {}
-        }
-    log.level = java.util.logging.Level.ALL
-    log.addHandler(handler)
+    def logs = new LogCapture()
 
     when:
     runner.withBean(SubSaver).withBean(InheritingSaver).withUserConfiguration(InterfaceProxyBean).run {
@@ -157,19 +137,20 @@ class HierarchyAdviceSpec extends Specification {
     }
 
     then:
-    logged.any { it.startsWith('Rules bound to SubSaver.save(SaveVehicle)') }
-    logged.any {
+    logs.messages.any {
+      it.startsWith('Rules bound to SubSaver.save(SaveVehicle)')
+    }
+    logs.messages.any {
       it.startsWith('Rules bound to InheritingSaver.save(SaveVehicle)')
     }
 
     and: 'a proxy based on interfaces is named after its interface'
-    logged.any {
+    logs.messages.any {
       it.startsWith('Rules bound to VehicleOperations.delete(Long)')
     }
 
     cleanup:
-    log.removeHandler(handler)
-    log.level = level
+    logs.close()
   }
 
   def 'a subclass of a service is no service itself, and a static method is not advised'() {
