@@ -156,7 +156,7 @@ handler, and can inject its `MessageResolver` bean to resolve the messages.
 Rules learn who makes the call from Spring Security, when the application has it, and the locale
 from `LocaleContextHolder`; a `Supplier<Principal>` or `Supplier<Locale>` bean replaces either.
 Rules can require other rules with `@RequiresRule`. Configuration changes the rest without a new
-build:
+build; a property set to nothing stops the application:
 
 | Property | Default | |
 |---|---|---|
@@ -173,7 +173,8 @@ lines.
 **Rules.** Every bean that implements `BusinessRule` is a rule. A rule class outside the packages of
 the application joins once it is a bean, for example through `@Bean` or `@Import`. A rule bean must
 be a singleton, since Muster creates each rule once and keeps it. A `Muster` bean of the application
-replaces the starter's.
+replaces the starter's; such an application does not start if it also sets `muster.mode` or a key under
+`muster.rules`, which configure only the Muster the starter builds.
 
 **Methods.** `@Rules` is found as Spring finds `@Transactional`: on the method, on the method it
 overrides or implements, and as a meta-annotation. A method with rules is public, and neither
