@@ -92,9 +92,8 @@ and nearly always slower code. In this run, eight of the 140 forks ended more th
 median of their benchmark, and the ranges above leave them out: `RuleChain.check` with 5 rules
 (122.1 ns), the baseline of the starter benchmark with 1 rule (33.3 ns) and with 20 rules
 (443.7 ns), two forks of the first bucket of the multi-threaded benchmark (47.1 and 50.3 ns),
-`muster.check(target, mode)`, which no table here shows, with no rules (26.6 ns) and with 5 rules
-(131.2 ns), and, faster than the others, the failing check in `FAIL_FAST` mode with one violated
-rule (625.6 ns). The median of five forks keeps such a fork from deciding the published number.
+and, faster than the others, the failing check in `FAIL_FAST` mode with one violated rule
+(625.6 ns). The median of five forks keeps such a fork from deciding the published number.
 
 The raw results are in [`results.json`](results.json), and the medians, ranges and the forks more
 than 10% from the median in [`results.csv`](results.csv). `./gradlew jmhReport` writes both and the
