@@ -28,12 +28,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.runner.options.TimeValue;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -194,11 +198,13 @@ public final class ResultsChart {
             name + " was not measured as average time in ns/op, as the published results are");
       }
       var forks = averages(metric.get("rawData"));
-      var declared = declaredForks(className);
+      var benchmarkClass = benchmarkClass(className);
+      var declared = benchmarkClass.getAnnotation(Fork.class).value();
       if (forks.size() != declared) {
         throw new IllegalArgumentException(
             results + " has " + forks.size() + " forks of " + name + ", not " + declared);
       }
+      requireDeclared(results, name, node, benchmarkClass);
       var median = median(forks);
       var outliers = new ArrayList<Integer>();
       for (var i = 0; i < forks.size(); i++) {
@@ -254,11 +260,57 @@ public final class ResultsChart {
         : (sorted.get(middle - 1) + sorted.get(middle)) / 2;
   }
 
-  private static int declaredForks(String className) {
+  private static Class<?> benchmarkClass(String className) {
+    Class<?> benchmark;
     try {
-      return Class.forName(className).getAnnotation(Fork.class).value();
+      benchmark = Class.forName(className);
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(className + " is no benchmark of this module", e);
+    }
+    if (benchmark.getAnnotation(Fork.class).value() % 2 == 0) {
+      throw new IllegalStateException(
+          benchmark.getSimpleName()
+              + " declares an even number of forks; a median of the forks needs an odd number");
+    }
+    return benchmark;
+  }
+
+  /**
+   * Requires that a benchmark ran with the warm-up, measurement and threads that its class
+   * declares, as a full run in the default mode does.
+   */
+  private static void requireDeclared(
+      Path results, String name, JsonNode node, Class<?> benchmark) {
+    var warmup = benchmark.getAnnotation(Warmup.class);
+    var measurement = benchmark.getAnnotation(Measurement.class);
+    var threads = benchmark.getAnnotation(Threads.class);
+    var declaredThreads =
+        threads == null
+            ? 1
+            : threads.value() == Threads.MAX
+                ? Runtime.getRuntime().availableProcessors()
+                : threads.value();
+    var declared =
+        Map.of(
+            "warmupIterations", String.valueOf(warmup.iterations()),
+            "warmupTime", new TimeValue(warmup.time(), warmup.timeUnit()).toString(),
+            "measurementIterations", String.valueOf(measurement.iterations()),
+            "measurementTime", new TimeValue(measurement.time(), measurement.timeUnit()).toString(),
+            "threads", String.valueOf(declaredThreads));
+    for (var setting : new TreeMap<>(declared).entrySet()) {
+      var actual = node.get(setting.getKey()).asString();
+      if (!actual.equals(setting.getValue())) {
+        throw new IllegalArgumentException(
+            results
+                + " has "
+                + name
+                + " with "
+                + setting.getKey()
+                + " "
+                + actual
+                + ", not "
+                + setting.getValue());
+      }
     }
   }
 
@@ -289,82 +341,61 @@ public final class ResultsChart {
 
   /**
    * Returns the median times of {@link CheckBenchmark}, by benchmark, then by the number of rules,
-   * and checks that the results hold every benchmark with every parameter.
+   * and checks that the results hold every benchmark method with every parameter.
    */
   private static Map<String, TreeMap<Integer, Double>> scores(Path results, List<Run> runs) {
     var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
     var measured = new HashMap<String, Set<Map<String, String>>>();
+    var check = CheckBenchmark.class.getSimpleName() + ".";
     for (var run : runs) {
-      var className = run.benchmark().substring(0, run.benchmark().indexOf('.'));
-      measured.computeIfAbsent(className, key -> new HashSet<>()).add(run.params());
-      if (className.equals(CheckBenchmark.class.getSimpleName())) {
+      measured.computeIfAbsent(run.benchmark(), key -> new HashSet<>()).add(run.params());
+      if (run.benchmark().startsWith(check)) {
         scores
-            .computeIfAbsent(
-                run.benchmark().substring(className.length() + 1), key -> new TreeMap<>())
+            .computeIfAbsent(run.benchmark().substring(check.length()), key -> new TreeMap<>())
             .put(Integer.parseInt(run.params().get("rules")), run.median());
       }
     }
-    var ruleCounts = new TreeSet<Integer>();
-    for (var count : params(CheckBenchmark.class, "rules")) {
-      ruleCounts.add(Integer.parseInt(count));
+    for (var benchmark :
+        List.of(
+            CheckBenchmark.class,
+            ViolationBenchmark.class,
+            BindingBenchmark.class,
+            StarterBenchmark.class)) {
+      expect(results, measured, benchmark);
     }
-    for (var series : SERIES) {
-      var counts = scores.getOrDefault(series.benchmark(), new TreeMap<>()).keySet();
-      if (!counts.equals(ruleCounts)) {
-        throw new IllegalArgumentException(
-            results
-                + " has CheckBenchmark."
-                + series.benchmark()
-                + " for "
-                + counts
-                + " rules, not for "
-                + ruleCounts);
-      }
-    }
-    expect(results, measured, ViolationBenchmark.class, "violated", "mode");
-    expect(results, measured, BindingBenchmark.class, "bound");
-    expect(results, measured, StarterBenchmark.class, "rules");
     return scores;
   }
 
-  /** Checks that the results hold a benchmark class with every combination of its parameters. */
+  /** Checks that the results hold every method of a benchmark class with every parameter. */
   private static void expect(
-      Path results,
-      Map<String, Set<Map<String, String>>> measured,
-      Class<?> benchmark,
-      String... fields) {
+      Path results, Map<String, Set<Map<String, String>>> measured, Class<?> benchmark) {
     var expected = new HashSet<Map<String, String>>();
     expected.add(Map.of());
-    for (var field : fields) {
+    for (var field : benchmark.getFields()) {
+      var param = field.getAnnotation(Param.class);
+      if (param == null) {
+        continue;
+      }
       var next = new HashSet<Map<String, String>>();
       for (var prefix : expected) {
-        for (var value : params(benchmark, field)) {
+        for (var value : param.value()) {
           var combination = new HashMap<>(prefix);
-          combination.put(field, value);
+          combination.put(field.getName(), value);
           next.add(combination);
         }
       }
       expected = next;
     }
-    var actual = measured.getOrDefault(benchmark.getSimpleName(), Set.of());
-    if (!actual.equals(expected)) {
-      throw new IllegalArgumentException(
-          results
-              + " has "
-              + benchmark.getSimpleName()
-              + " for "
-              + actual
-              + ", not for "
-              + expected);
-    }
-  }
-
-  /** Returns the values a benchmark declares for one of its parameters. */
-  private static List<String> params(Class<?> benchmark, String field) {
-    try {
-      return List.of(benchmark.getField(field).getAnnotation(Param.class).value());
-    } catch (NoSuchFieldException e) {
-      throw new IllegalStateException(benchmark.getSimpleName() + " has no parameter " + field, e);
+    for (var method : benchmark.getMethods()) {
+      if (method.getAnnotation(Benchmark.class) == null) {
+        continue;
+      }
+      var name = benchmark.getSimpleName() + "." + method.getName();
+      var actual = measured.getOrDefault(name, Set.of());
+      if (!actual.equals(expected)) {
+        throw new IllegalArgumentException(
+            results + " has " + name + " for " + actual + ", not for " + expected);
+      }
     }
   }
 
