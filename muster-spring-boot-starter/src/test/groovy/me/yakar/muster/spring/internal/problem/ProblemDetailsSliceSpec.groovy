@@ -15,12 +15,14 @@
  */
 package me.yakar.muster.spring.internal.problem
 
+import me.yakar.muster.Muster
 import me.yakar.muster.rule.Category
 import me.yakar.muster.spring.fixture.web.VehicleController
 import me.yakar.muster.spring.fixture.web.Violations
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringBootConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification
@@ -32,6 +34,9 @@ class ProblemDetailsSliceSpec extends Specification {
 
   @SpringBootConfiguration(proxyBeanMethods = false)
   static class Application {}
+
+  @Autowired
+  ApplicationContext context
 
   @Autowired
   MockMvc mvc
@@ -52,5 +57,15 @@ class ProblemDetailsSliceSpec extends Specification {
     answer.body.violations == [
       [code: 'vehicle.name-taken', message: "The name Atlas isn't free", target: 'name', category: Category.CONFLICT.name(), args: [name: 'Atlas']]
     ]
+  }
+
+  def 'the slice gets the handler and the message resolver, without the rules'() {
+    expect:
+    context.containsBean('musterViolationExceptionHandler')
+    context.containsBean('musterMessageResolver')
+    context.getBeanNamesForType(Muster).length == 0
+    !context.containsBean('musterRuleScanner')
+    !context.containsBean('musterRulesAdvisor')
+    !context.containsBean('musterValidationOrdering')
   }
 }
