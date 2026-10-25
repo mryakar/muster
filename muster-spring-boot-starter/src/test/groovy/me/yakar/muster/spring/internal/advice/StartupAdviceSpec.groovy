@@ -15,13 +15,14 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
-import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.advice.NameFree
 import me.yakar.muster.spring.fixture.advice.SaveVehicle
 import me.yakar.muster.spring.fixture.advice.VehicleService
@@ -151,7 +152,7 @@ class StartupAdviceSpec extends Specification {
           if (passes) {
             assert context.startupFailure == null
           } else {
-            assert MusterAutoConfigurationSpec.rootCause(context.startupFailure) instanceof BusinessRuleViolationException
+            assert getMostSpecificCause(context.startupFailure) instanceof BusinessRuleViolationException
           }
         }
 
@@ -162,18 +163,17 @@ class StartupAdviceSpec extends Specification {
   }
 
   def 'with lazy initialization, a rule may depend on an advised service'() {
-    expect:
+    when:
     runner.withUserConfiguration(LazyApplication).withBean(Plates).withBean(Fleet).run { context ->
       assert context.startupFailure == null
       def fleet = context.getBean(Fleet)
       fleet.retire(1L)
-      try {
-        fleet.retire(404L)
-        assert false: 'the call passed'
-      } catch (BusinessRuleViolationException e) {
-        assert e.violations()*.code() == ['lazy.plate-known']
-      }
+      fleet.retire(404L)
     }
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.code() == ['lazy.plate-known']
   }
 
   def 'a call of an advised method while Muster is created fails and says why'() {
@@ -184,7 +184,7 @@ class StartupAdviceSpec extends Specification {
 
     then: 'the failure comes when Muster is created'
     def e = thrown(Exception)
-    MusterAutoConfigurationSpec.rootCause(e).message == (
+    getMostSpecificCause(e).message == (
         'Plates.known(String) is called while Muster is created, before its rules can be prepared; do not call advised methods from the constructors of rules or of the beans they need')
   }
 

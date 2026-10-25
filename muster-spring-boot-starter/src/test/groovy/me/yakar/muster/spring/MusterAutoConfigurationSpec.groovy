@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
@@ -246,17 +248,16 @@ class MusterAutoConfigurationSpec extends Specification {
   }
 
   def 'Muster checks the rules it found'() {
-    expect:
+    when:
     runner.withUserConfiguration(Application).run { context ->
       def muster = context.getBean(Muster)
       muster.check(new Vehicle('Boreas'))
-      try {
-        muster.check(new Vehicle('Atlas'))
-        assert false: 'the taken name passed'
-      } catch (BusinessRuleViolationException e) {
-        assert e.violations()*.code() == ['vehicle.name-unique']
-      }
+      muster.check(new Vehicle('Atlas'))
     }
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.code() == ['vehicle.name-unique']
   }
 
   def 'a rule class that is already a bean is not registered again: #configuration.simpleName'() {
@@ -394,7 +395,7 @@ class MusterAutoConfigurationSpec extends Specification {
   def 'a scanned rule that depends on a missing bean stops the application, as a component would'() {
     expect:
     runner.withUserConfiguration(DependsOnPackage).run { context ->
-      assert rootCause(context.startupFailure).message.contains("'doesNotExist'")
+      assert getMostSpecificCause(context.startupFailure).message.contains("'doesNotExist'")
     }
   }
 
@@ -420,16 +421,14 @@ class MusterAutoConfigurationSpec extends Specification {
   }
 
   def 'a rule outside the application packages joins as a bean'() {
-    expect:
+    when:
     runner.withUserConfiguration(Application, OtherRuleAsBean).run { context ->
-      def muster = context.getBean(Muster)
-      try {
-        muster.chain(Object, OtherRule).check('anything')
-        assert false: 'the rule did not run'
-      } catch (BusinessRuleViolationException e) {
-        assert e.violations()*.code() == ['other.rule']
-      }
+      context.getBean(Muster).chain(Object, OtherRule).check('anything')
     }
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    e.violations()*.code() == ['other.rule']
   }
 
   def 'without application packages nothing is scanned'() {
@@ -459,7 +458,7 @@ class MusterAutoConfigurationSpec extends Specification {
     expect:
     runner.withUserConfiguration(configuration).run { context ->
       assert context.startupFailure != null
-      assert rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "the rule bean '$name' has the scope 'prototype'; Muster creates each rule once and keeps it, so a rule bean must be a singleton"
     }
 
@@ -472,7 +471,7 @@ class MusterAutoConfigurationSpec extends Specification {
   def 'a factory bean that makes a new rule each time is rejected'() {
     expect:
     runner.withUserConfiguration(FactoryOfNewRules).run { context ->
-      assert rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "the rule bean 'otherRule' is made anew each time by a factory bean; Muster creates each rule once and keeps it, so a rule bean must be a singleton"
     }
   }
@@ -482,7 +481,7 @@ class MusterAutoConfigurationSpec extends Specification {
     // not depend on that.
     expect:
     runner.withUserConfiguration(configuration).run { context ->
-      assert rootCause(context.startupFailure).message == message
+      assert getMostSpecificCause(context.startupFailure).message == message
     }
 
     where:
@@ -494,7 +493,7 @@ class MusterAutoConfigurationSpec extends Specification {
   def 'two rule beans of one class stop the application'() {
     expect:
     runner.withUserConfiguration(SameRuleTwice).run { context ->
-      assert rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "the rule beans 'first' and 'second' are both a me.yakar.muster.spring.fixture.other.OtherRule; Muster creates each rule once, so define it once"
     }
   }
@@ -502,29 +501,20 @@ class MusterAutoConfigurationSpec extends Specification {
   def 'a rule bean behind a proxy based on interfaces stops the application with a hint'() {
     expect:
     runner.withUserConfiguration(RuleBehindInterfaceProxy).run { context ->
-      assert rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "the rule bean 'otherRule' is a proxy based on interfaces, which is no me.yakar.muster.spring.fixture.other.OtherRule; let Spring proxy classes, as spring.aop.proxy-target-class=true does"
     }
   }
 
   def 'a Muster of the application replaces the one built here'() {
-    expect:
+    when: 'the scanned rule is not registered with it'
     runner.withUserConfiguration(Application, OwnMuster).run { context ->
       assert context.getBeansOfType(Muster).keySet() == ['muster'] as Set
       context.getBean(Muster).chain(Object, OtherRule)
-      try {
-        context.getBean(Muster).chain(Vehicle, NameUnique)
-        assert false: 'the scanned rule is registered'
-      } catch (IllegalArgumentException expected) {
-      }
+      context.getBean(Muster).chain(Vehicle, NameUnique)
     }
-  }
 
-  static Throwable rootCause(Throwable failure) {
-    def cause = failure
-    while (cause.cause != null) {
-      cause = cause.cause
-    }
-    cause
+    then:
+    thrown(IllegalArgumentException)
   }
 }

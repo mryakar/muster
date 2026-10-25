@@ -15,10 +15,11 @@
  */
 package me.yakar.muster.spring.internal
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.MusterAutoConfiguration
-import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.app.NameUnique
 import me.yakar.muster.spring.fixture.app.Names
 import me.yakar.muster.spring.fixture.app.Vehicle
@@ -153,7 +154,7 @@ class SettingsSpec extends Specification {
     runner.withPropertyValues(keys.collect {
       "$it=false".toString()
     } as String[]).run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "no rule has the key $listed; a rule is switched with muster.rules.<rule id>.enabled, and the rule ids are vehicle.name-capitalized, vehicle.name-short, vehicle.name-unique"
     }
 
@@ -178,7 +179,7 @@ class SettingsSpec extends Specification {
   def 'a key set to nothing stops the application: #property'() {
     expect:
     runner.withPropertyValues(property).run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message == message
+      assert getMostSpecificCause(context.startupFailure).message == message
     }
 
     where:
@@ -192,7 +193,7 @@ class SettingsSpec extends Specification {
   def 'muster.rules itself switches no rule'() {
     expect:
     runner.withPropertyValues('muster.rules=false').run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith('no rule has the key muster.rules;')
+      assert getMostSpecificCause(context.startupFailure).message.startsWith('no rule has the key muster.rules;')
     }
   }
 
@@ -207,7 +208,7 @@ class SettingsSpec extends Specification {
   def 'an environment variable that switches no rule stops the application too'() {
     expect:
     withEnvironmentVariables(runner, [MUSTER_RULES_VEHICLE_NAME_UNIQUE_ENABLED: 'false']).run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith(
+      assert getMostSpecificCause(context.startupFailure).message.startsWith(
       'no rule has the key muster.rules.vehicle.name.unique.enabled;')
     }
   }
@@ -245,7 +246,7 @@ class SettingsSpec extends Specification {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
         .withUserConfiguration(IdsOneHyphenApart).run { context ->
-          assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+          assert getMostSpecificCause(context.startupFailure).message ==
           "the rules 'vehicle.name-unique' and 'vehicle.nameunique' share the key muster.rules.vehicle.nameunique.enabled, since configuration ignores hyphens; give one of them another id"
         }
   }
@@ -255,7 +256,7 @@ class SettingsSpec extends Specification {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
         .withUserConfiguration(InvalidIdRule).run { context ->
-          def cause = MusterAutoConfigurationSpec.rootCause(context.startupFailure)
+          def cause = getMostSpecificCause(context.startupFailure)
           assert cause instanceof IllegalArgumentException
           assert cause.message.contains("'Not Valid'")
         }
@@ -264,7 +265,7 @@ class SettingsSpec extends Specification {
   def 'with a Muster of its own, the application does not start if it configures the one built here: #properties'() {
     expect:
     runner.withUserConfiguration(own).withPropertyValues(properties as String[]).run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "$keys configure only the Muster that the starter builds, but the application defines a Muster bean of its own; remove these properties, or that bean"
     }
 
