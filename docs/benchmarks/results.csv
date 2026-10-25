@@ -1,29 +1,29 @@
 Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median: fork (ns),Allocated (B)
-BindingBenchmark.check,bound=first,40.1,39.5,43.5,3 (45.4),0
-BindingBenchmark.check,bound=second,46.1,42.1,47.0,,0
-CheckBenchmark.chain,rules=0,13.4,12.8,13.9,,16
-CheckBenchmark.chain,rules=1,11.5,11.4,11.6,,0
-CheckBenchmark.chain,rules=5,101.7,100.7,107.6,1 (117.7),144
-CheckBenchmark.chain,rules=20,371.2,367.5,371.7,,520
+BindingBenchmark.check,bound=first,42.6,39.2,42.6,1 (47.1) 2 (50.3),0
+BindingBenchmark.check,bound=second,43.4,41.2,45.5,,0
+CheckBenchmark.chain,rules=0,12.9,12.8,13.5,,16
+CheckBenchmark.chain,rules=1,11.6,11.5,11.7,,0
+CheckBenchmark.chain,rules=5,100.0,100.0,107.6,3 (122.1),144
+CheckBenchmark.chain,rules=20,369.7,368.1,390.9,,520
 CheckBenchmark.direct,rules=0,1.3,1.3,1.3,,0
-CheckBenchmark.direct,rules=1,11.0,10.9,11.0,,0
-CheckBenchmark.direct,rules=5,65.3,65.1,65.9,,0
-CheckBenchmark.direct,rules=20,264.2,262.9,266.1,,0
-CheckBenchmark.target,rules=0,22.8,22.7,24.1,,16
-CheckBenchmark.target,rules=1,23.1,23.1,23.2,,0
-CheckBenchmark.target,rules=5,113.8,112.4,118.4,,144
-CheckBenchmark.target,rules=20,381.6,380.3,382.1,1 (420.5),520
-CheckBenchmark.targetWithMode,rules=0,21.3,21.2,22.5,4 (23.5),16
-CheckBenchmark.targetWithMode,rules=1,21.9,21.7,21.9,,0
-CheckBenchmark.targetWithMode,rules=5,111.5,111.1,112.7,,144
-CheckBenchmark.targetWithMode,rules=20,380.6,379.5,385.3,,520
-StarterBenchmark.advised,rules=0,147.4,144.6,153.9,,112
-StarterBenchmark.advised,rules=1,149.3,147.6,154.2,,120
-StarterBenchmark.advised,rules=20,537.1,523.5,547.0,,616
-StarterBenchmark.manual,rules=0,29.3,29.2,29.7,,16
-StarterBenchmark.manual,rules=1,29.1,29.1,29.2,1 (34.2),24
-StarterBenchmark.manual,rules=20,401.3,399.6,411.1,,520
-ViolationBenchmark.check,mode=FAIL_FAST violated=1,820.9,812.7,856.5,,1224
-ViolationBenchmark.check,mode=FAIL_FAST violated=5,354.7,349.2,356.6,,600
-ViolationBenchmark.check,mode=COLLECT_ALL violated=1,874.8,865.1,897.9,,1224
-ViolationBenchmark.check,mode=COLLECT_ALL violated=5,983.2,982.3,1047.8,,2344
+CheckBenchmark.direct,rules=1,11.0,11.0,11.0,,0
+CheckBenchmark.direct,rules=5,65.4,65.1,65.7,,0
+CheckBenchmark.direct,rules=20,263.8,259.9,273.6,,0
+CheckBenchmark.target,rules=0,22.8,22.7,22.9,,16
+CheckBenchmark.target,rules=1,23.1,23.1,23.1,,0
+CheckBenchmark.target,rules=5,114.0,112.0,120.7,,144
+CheckBenchmark.target,rules=20,388.3,380.8,423.8,,520
+CheckBenchmark.targetWithMode,rules=0,21.6,21.2,23.7,5 (26.6),16
+CheckBenchmark.targetWithMode,rules=1,21.9,21.7,22.0,,0
+CheckBenchmark.targetWithMode,rules=5,111.4,111.1,120.8,5 (131.2),144
+CheckBenchmark.targetWithMode,rules=20,380.3,378.5,383.9,,520
+StarterBenchmark.advised,rules=0,151.9,142.2,157.8,,112
+StarterBenchmark.advised,rules=1,151.7,148.2,153.9,,120
+StarterBenchmark.advised,rules=20,533.9,523.2,554.8,,616
+StarterBenchmark.manual,rules=0,29.4,29.3,29.8,,16
+StarterBenchmark.manual,rules=1,29.6,29.0,29.8,2 (33.3),24
+StarterBenchmark.manual,rules=20,400.6,385.4,409.5,5 (443.7),520
+ViolationBenchmark.check,mode=FAIL_FAST violated=1,705.9,703.9,756.4,4 (625.6),792
+ViolationBenchmark.check,mode=FAIL_FAST violated=5,337.0,332.5,342.0,,408
+ViolationBenchmark.check,mode=COLLECT_ALL violated=1,706.3,689.4,743.9,,792
+ViolationBenchmark.check,mode=COLLECT_ALL violated=5,919.5,886.3,1000.5,,1384
