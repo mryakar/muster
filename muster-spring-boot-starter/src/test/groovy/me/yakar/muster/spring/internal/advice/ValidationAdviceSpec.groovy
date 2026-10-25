@@ -18,21 +18,19 @@ package me.yakar.muster.spring.internal.advice
 import jakarta.validation.ConstraintViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
+import me.yakar.muster.spring.fixture.validation.EarlyAspect
 import me.yakar.muster.spring.fixture.validation.Steps
+import me.yakar.muster.spring.fixture.validation.ValidatedOnlyService
 import me.yakar.muster.spring.fixture.validation.ValidatedService
 import me.yakar.muster.spring.fixture.validation.ValidationProbe
-import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
-import org.springframework.beans.factory.support.RootBeanDefinition
+import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.Ordered
-import org.springframework.core.PriorityOrdered
+import org.springframework.context.annotation.Role
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor
@@ -67,22 +65,30 @@ class ValidationAdviceSpec extends Specification {
     }
   }
 
-  /** Sets the property on the definition of the post-processor, as XML configuration does. */
+  /** Puts the validation advice ahead of all other advice itself. */
   @Configuration(proxyBeanMethods = false)
-  static class PropertyOnDefinition {
+  static class OwnPostProcessorBeforeExisting {
     @Bean
-    static BeanFactoryPostProcessor propertyOnDefinition() {
-      new PropertyOnDefinitionPostProcessor()
+    static MethodValidationPostProcessor methodValidationPostProcessor() {
+      new MethodValidationPostProcessor(beforeExistingAdvisors: true)
     }
   }
 
-  static class PropertyOnDefinitionPostProcessor implements BeanFactoryPostProcessor, PriorityOrdered {
-    void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-      beanFactory.getBeanDefinition(ValidationOrdering.POST_PROCESSOR).propertyValues.add('beforeExistingAdvisors', false)
+  /** Advice ordered before the transaction's and Muster's; infrastructure, as method security is. */
+  @Configuration(proxyBeanMethods = false)
+  static class WithEarlyAspect {
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    static EarlyAspect earlyAspect() {
+      new EarlyAspect()
     }
+  }
 
-    int getOrder() {
-      Ordered.HIGHEST_PRECEDENCE
+  @Configuration(proxyBeanMethods = false)
+  static class WithoutRules {
+    @Bean
+    ValidatedOnlyService validatedOnly() {
+      new ValidatedOnlyService()
     }
   }
 
@@ -132,42 +138,36 @@ class ValidationAdviceSpec extends Specification {
     Steps.NOTED == ['rule', 'constraint']
   }
 
-  def 'a post-processor the application defines is left alone: #how'() {
-    when:
-    configure(runner).run { context ->
-      context.getBean(ValidatedService).create(' ')
-    }
-
-    then:
-    thrown(ConstraintViolationException)
-    Steps.NOTED == ['rule', 'constraint']
-
-    where:
-    how || configure
-    'from a bean method' || { ApplicationContextRunner r ->
-      r.withUserConfiguration(OwnPostProcessor)
-    }
-    'registered as a class' || { ApplicationContextRunner r ->
-      r.withInitializer {
-        it.registerBeanDefinition(ValidationOrdering.POST_PROCESSOR, new AnnotatedGenericBeanDefinition(MethodValidationPostProcessor))
-      }
-    }
-    'registered as a definition' || { ApplicationContextRunner r ->
-      r.withInitializer {
-        it.registerBeanDefinition(ValidationOrdering.POST_PROCESSOR, new RootBeanDefinition(MethodValidationPostProcessor))
-      }
+  def 'the validation advice of a post-processor the application defines is moved as well'() {
+    expect:
+    runner.withUserConfiguration(OwnPostProcessor).run { context ->
+      context.getBean(ValidatedService).create('Atlas')
+      assert Steps.NOTED == ['constraint', 'rule']
     }
   }
 
-  def 'a property set on the definition of the post-processor is left alone'() {
-    when:
-    runner.withUserConfiguration(PropertyOnDefinition).run { context ->
-      context.getBean(ValidatedService).create(' ')
+  def 'other advice keeps its place: the validation advice moves only ahead of the rules'() {
+    expect:
+    runner.withUserConfiguration(Transactions, WithEarlyAspect).run { context ->
+      context.getBean(ValidatedService).createInTransaction('Atlas')
+      assert Steps.NOTED == ['aspect', 'constraint', 'rule in transaction']
     }
+  }
 
-    then:
-    thrown(ConstraintViolationException)
-    Steps.NOTED == ['rule', 'constraint']
+  def 'a validation advice that already comes before the rules is left where it is'() {
+    expect:
+    runner.withUserConfiguration(Transactions, WithEarlyAspect, OwnPostProcessorBeforeExisting).run { context ->
+      context.getBean(ValidatedService).createInTransaction('Atlas')
+      assert Steps.NOTED == ['constraint', 'aspect', 'rule in transaction']
+    }
+  }
+
+  def 'a validated bean without rules keeps the order Spring gives it'() {
+    expect:
+    runner.withUserConfiguration(WithEarlyAspect, WithoutRules).run { context ->
+      context.getBean(ValidatedOnlyService).create('Atlas')
+      assert Steps.NOTED == ['aspect', 'constraint']
+    }
   }
 
   def 'without method validation, rules run as before'() {

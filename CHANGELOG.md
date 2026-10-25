@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- The constraints of a `@Validated` method are checked before its rules, and before its transaction: the starter tells Spring Boot's method validation to add its advice ahead of the advice a proxy already has, unless the application defines the `MethodValidationPostProcessor` itself. `muster.validation.reorder-advisor=false` leaves the order to Spring, where the rules run before the constraints.
+- The constraints of a `@Validated` method are checked before its rules, and before its transaction: on the proxies it advises, the starter moves the method validation advice, which Spring adds last, ahead of its own. Other advice, such as method security, and beans without rules keep Spring's order. `muster.validation.reorder-advisor=false` leaves the order to Spring, where the rules run before the constraints.
 
 ### Fixed
 

@@ -23,17 +23,20 @@ import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.lang.annotation.Target
+import java.lang.reflect.Method
 import java.util.concurrent.CopyOnWriteArrayList
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.spring.Rules
+import org.aopalliance.intercept.MethodInterceptor
+import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.validation.annotation.Validated
 
-/** Notes the steps of a call, in order: the constraint, the rule, and whether a transaction was active. */
+/** Notes the steps of a call, in order: the aspect, the constraint, the rule, and whether a transaction was active. */
 class Steps {
   static final List<String> NOTED = new CopyOnWriteArrayList<>()
 
@@ -77,4 +80,22 @@ class ValidatedService {
   @Transactional
   @Rules(ValidationProbe)
   void createInTransaction(@Noted String name) {}
+}
+
+/** Validated, without rules. */
+@Validated
+class ValidatedOnlyService {
+  void create(@Noted String name) {}
+}
+
+/** Advice that comes before the transaction's and Muster's, as method security does. */
+class EarlyAspect extends StaticMethodMatcherPointcutAdvisor {
+  EarlyAspect() {
+    super({ invocation -> Steps.note('aspect'); invocation.proceed() } as MethodInterceptor)
+    order = 0
+  }
+
+  boolean matches(Method method, Class<?> targetClass) {
+    method.name == 'create' || method.name == 'createInTransaction'
+  }
 }

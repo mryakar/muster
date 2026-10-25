@@ -15,60 +15,81 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
-import static java.util.Objects.requireNonNull;
-
+import java.util.function.Predicate;
 import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.aop.Advisor;
+import org.springframework.aop.framework.Advised;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 
 /**
- * Moves the method validation advice ahead of Muster's, so that the constraints of a method are
- * checked before its rules, and before its transaction.
+ * Moves the method validation advice ahead of Muster's on the proxies that Muster advises, so that
+ * the constraints of a method are checked before its rules, and before its transaction.
  *
  * <p>Spring Boot's post-processor adds the validation advice to a proxy after the advice the proxy
- * already has, so the rules of a method would run before its constraints and see an input that
- * validation rejects. Before any bean is created, this tells the definition of the post-processor
- * to add its advice before the existing ones, unless the application defines the post-processor
- * itself, or {@code muster.validation.reorder-advisor} is {@code false}. Without method validation,
- * there is nothing to move.
+ * already has, so the rules of a {@code @Validated} method would run before its constraints and see
+ * an input that validation rejects. This post-processor has no order, so it runs after the ordered
+ * ones, the validation post-processor among them. On a proxy with Muster's advice, it moves a
+ * validation advice that comes after Muster's to just before it, or before the transaction advice
+ * when that directly precedes Muster's. Other proxies, and other advice such as method security,
+ * keep Spring's order; so does a validation advice that already comes before Muster's. {@code
+ * muster.validation.reorder-advisor=false} turns it off.
  */
-final class ValidationOrdering implements BeanFactoryPostProcessor, EnvironmentAware {
+final class ValidationOrdering implements BeanPostProcessor, EnvironmentAware {
 
-  /** The name of the post-processor that Spring Boot defines. */
-  static final String POST_PROCESSOR = "methodValidationPostProcessor";
+  private static final String VALIDATION_INTERCEPTOR =
+      "org.springframework.validation.beanvalidation.MethodValidationInterceptor";
+  private static final String TRANSACTION_ADVISOR =
+      "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor";
 
-  private static final String SPRING_BOOT_CONFIGURATION =
-      "org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration";
-  private static final String BEFORE_EXISTING_ADVISORS = "beforeExistingAdvisors";
+  private boolean enabled;
 
   // Set through Aware rather than injected: resolving a parameter of the bean method by type would
   // create factory beans early to learn what they make.
-  private @Nullable Environment environment;
-
   @Override
   public void setEnvironment(Environment environment) {
-    this.environment = environment;
+    enabled = Settings.reorderValidationAdvisor(environment);
   }
 
   @Override
-  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-    if (!Settings.reorderValidationAdvisor(requireNonNull(environment))
-        || !beanFactory.containsBeanDefinition(POST_PROCESSOR)) {
-      return;
+  public Object postProcessAfterInitialization(Object bean, String beanName) {
+    if (enabled && bean instanceof Advised advised) {
+      var advisors = advised.getAdvisors();
+      int rules = indexOf(advisors, advisor -> advisor instanceof RulesAdvisor);
+      int validation =
+          indexOf(advisors, advisor -> isA(advisor.getAdvice(), VALIDATION_INTERCEPTOR));
+      if (rules >= 0 && validation > rules) {
+        var advisor = advisors[validation];
+        advised.removeAdvisor(validation);
+        advised.addAdvisor(
+            rules > 0 && isA(advisors[rules - 1], TRANSACTION_ADVISOR) ? rules - 1 : rules,
+            advisor);
+      }
     }
-    var definition = beanFactory.getBeanDefinition(POST_PROCESSOR);
-    // A post-processor of the application's own, which Spring Boot then does not define, keeps
-    // the order the application gives it, as does a property set on the definition.
-    if (definition instanceof AnnotatedBeanDefinition annotated
-        && annotated.getFactoryMethodMetadata() != null
-        && SPRING_BOOT_CONFIGURATION.equals(
-            annotated.getFactoryMethodMetadata().getDeclaringClassName())
-        && !definition.getPropertyValues().contains(BEFORE_EXISTING_ADVISORS)) {
-      definition.getPropertyValues().add(BEFORE_EXISTING_ADVISORS, true);
+    return bean;
+  }
+
+  private static int indexOf(Advisor[] advisors, Predicate<Advisor> wanted) {
+    for (int i = 0; i < advisors.length; i++) {
+      if (wanted.test(advisors[i])) {
+        return i;
+      }
     }
+    return -1;
+  }
+
+  /**
+   * Returns whether the object is of the named class or a subclass. The class is named, not loaded:
+   * validation and transactions may be absent from the application.
+   */
+  private static boolean isA(Object object, String className) {
+    for (@Nullable Class<?> type = object.getClass(); type != null; type = type.getSuperclass()) {
+      if (type.getName().equals(className)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
