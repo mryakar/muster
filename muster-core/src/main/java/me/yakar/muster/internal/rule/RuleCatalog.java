@@ -61,16 +61,14 @@ public final class RuleCatalog {
   }
 
   /**
-   * Returns a rule listed for inputs of a type, after checking that it is registered and accepts
-   * them.
+   * Checks that a rule listed for inputs of a type is registered and accepts them.
    *
    * @param ruleClass the rule class
    * @param inputType the type of input, as the caller gave it
    * @param wrapped the type of input, with a primitive type replaced by its wrapper
-   * @return the rule
    * @throws IllegalArgumentException if the rule is not registered or does not accept the type
    */
-  public PreparedRule listed(Class<?> ruleClass, Class<?> inputType, Class<?> wrapped) {
+  public void requireListable(Class<?> ruleClass, Class<?> inputType, Class<?> wrapped) {
     var rule = registered(ruleClass);
     var ruleInputType = rule.definition().inputType();
     if (!ruleInputType.isAssignableFrom(wrapped)) {
@@ -82,7 +80,6 @@ public final class RuleCatalog {
               + inputType.getTypeName()
               + " is not");
     }
-    return rule;
   }
 
   /**
