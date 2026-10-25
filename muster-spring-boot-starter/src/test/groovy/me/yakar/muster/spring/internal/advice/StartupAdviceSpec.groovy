@@ -15,11 +15,10 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Outcomes.violated
+import static me.yakar.muster.spring.Concurrency.concurrently
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
@@ -46,6 +45,7 @@ import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.spring.fixture.advice.VehicleComponent
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.context.annotation.Lazy
+import me.yakar.muster.spring.LogCapture
 import spock.lang.Specification
 
 /** Rules apply to calls made while the application starts, and to beans created after it. */
@@ -81,6 +81,10 @@ class StartupAdviceSpec extends Specification {
   @Configuration(proxyBeanMethods = false)
   @AutoConfigurationPackage(basePackageClasses = CallsServiceWhenCreated)
   static class RuleCallsServiceWhenCreated {}
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = NameFree)
+  static class RulePackage {}
 
   @Configuration(proxyBeanMethods = false)
   static class PrototypeService {
@@ -188,36 +192,25 @@ class StartupAdviceSpec extends Specification {
         'Plates.known(String) is called while Muster is created, before its rules can be prepared; do not call advised methods from the constructors of rules or of the beans they need')
   }
 
-  def 'beans created at once from many threads after the start check their rules'() {
+  def 'beans of a class created at once from many threads after the start prepare it once and check their rules'() {
     given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
+    def logs = new LogCapture()
 
-    expect:
-    runner.withUserConfiguration(Application, PrototypeService).run { context ->
-      def tasks = (0..<threads).collect { {
-
-          ->
-          start.await()
-          def service = context.getBean('prototypeService', VehicleService)
-          try {
-            service.save(new SaveVehicle('Atlas'))
-            'passed'
-          } catch (BusinessRuleViolationException e) {
-            e.violations()*.code().join()
-          }
-        } as Callable<String>
+    expect: 'no bean of the class exists before'
+    runner.withUserConfiguration(RulePackage, PrototypeService).run { context ->
+      def outcomes = concurrently {
+        violated {
+          context.getBean('prototypeService', VehicleService).save(new SaveVehicle('Atlas'))
+        }
       }
-      def futures = tasks.collect { pool.submit(it) }
-      start.countDown()
-      assert futures.collect {
-        it.get(1, TimeUnit.MINUTES)
-      }.toSet() == ['advice.name-free'] as Set
+      assert outcomes.toSet() == [['advice.name-free']] as Set
     }
+    logs.messages.count {
+      it.startsWith('Rules bound to VehicleService.save(SaveVehicle)')
+    } == 1
 
     cleanup:
-    pool.shutdownNow()
+    logs.close()
   }
 
   def 'a call on another thread that prepares rules while the application starts does not block the start'() {

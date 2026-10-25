@@ -15,14 +15,11 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Concurrency.concurrently
 import static me.yakar.muster.spring.Outcomes.violated
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import java.lang.reflect.Proxy
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.advice.FinalMethod
 import me.yakar.muster.spring.fixture.advice.LazyVehicleService
@@ -152,36 +149,19 @@ class RulesAdviceSpec extends Specification {
   }
 
   def 'rule targets of other classes bind on their first check, also from many threads at once'() {
-    given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-
     expect:
     runner.run { context ->
       def service = context.getBean(VehicleService)
-      def tasks = (0..<threads).collect { index -> {
-
-          ->
-          start.await()
-          def wrong = []
-          100.times {
-            def vehicle = index % 2 == 0 ? new SaveVehicle('Atlas') : new RenameVehicle('Atlas')
-            if (violated { service.update(vehicle) } != ['advice.name-free']) {
-              wrong << vehicle
-            }
-          }
-          wrong
-        } as Callable<List>
-      }
-      def futures = tasks.collect { pool.submit(it) }
-      start.countDown()
-      assert futures.collectMany { it.get(1, TimeUnit.MINUTES) }.isEmpty()
+      def wrong = concurrently { index ->
+        (1..100).collect {
+          index % 2 == 0 ? new SaveVehicle('Atlas') : new RenameVehicle('Atlas')
+        }.findAll { vehicle ->
+          violated { service.update(vehicle) } != ['advice.name-free']
+        }
+      }.flatten()
+      assert wrong.isEmpty()
       assert service.calls.isEmpty()
     }
-
-    cleanup:
-    pool.shutdownNow()
   }
 
   def 'a bean created after the start is advised too'() {

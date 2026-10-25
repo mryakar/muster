@@ -15,14 +15,11 @@
  */
 package me.yakar.muster.spring.internal.problem
 
+import static me.yakar.muster.spring.Concurrency.concurrently
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import tools.jackson.databind.json.JsonMapper
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import java.util.logging.Level
 import me.yakar.muster.rule.Category
@@ -559,41 +556,18 @@ class ProblemDetailsSpec extends Specification {
   }
 
   def 'requests answered at once each get the messages of their own locale'() {
-    given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-    List mismatches = null
-
-    when:
+    expect:
     runner.run { context ->
       context.getBean(Violations).current = [nameTaken()]
       def mvc = MockMvcBuilders.webAppContextSetup(context).build()
-      def tasks = (0..<threads).collect { index -> {
-
-          ->
-          def turkish = index % 2 == 0
-          def expected = turkish ? 'Atlas adı kullanımda' : "The name Atlas isn't free"
-          start.await()
-          def wrong = []
-          50.times {
-            def message = answer(mvc, ['Accept-Language': turkish ? 'tr-TR' : 'en']).body.violations.first().message
-            if (message != expected) {
-              wrong << message
-            }
-          }
-          wrong
-        } as Callable<List>
-      }
-      def futures = tasks.collect { pool.submit(it) }
-      start.countDown()
-      mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
+      def wrong = concurrently { index ->
+        def turkish = index % 2 == 0
+        def expected = turkish ? 'Atlas adı kullanımda' : "The name Atlas isn't free"
+        (1..50).collect {
+          answer(mvc, ['Accept-Language': turkish ? 'tr-TR' : 'en']).body.violations.first().message
+        }.findAll { it != expected }
+      }.flatten()
+      assert wrong.isEmpty()
     }
-
-    then:
-    mismatches.isEmpty()
-
-    cleanup:
-    pool.shutdownNow()
   }
 }

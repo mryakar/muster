@@ -15,11 +15,9 @@
  */
 package me.yakar.muster.spring.internal.engine
 
+import static me.yakar.muster.spring.Concurrency.concurrently
+
 import java.security.Principal
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
@@ -235,41 +233,23 @@ class CallerAndLocaleSpec extends Specification {
   }
 
   def 'threads checking at once each see their own caller and locale'() {
-    given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-    Muster muster = null
-    runner.run { muster = it.getBean(Muster) }
-    def tasks = (0..<threads).collect { index -> {
-
-        ->
+    expect:
+    runner.run { context ->
+      def muster = context.getBean(Muster)
+      def wrong = concurrently { index ->
         def locale = Locale.forLanguageTag(index % 2 == 0 ? 'tr-TR' : 'en-GB')
         SecurityContextHolder.context.authentication = user("user-$index")
         LocaleContextHolder.locale = locale
-        start.await()
-        def wrong = []
-        200.times {
-          def args = reported(muster)
-          if (args != [caller: "user-$index".toString(), locale: locale.toLanguageTag()]) {
-            wrong << args
+        try {
+          (1..200).collect { reported(muster) }.findAll {
+            it != [caller: "user-$index".toString(), locale: locale.toLanguageTag()]
           }
+        } finally {
+          SecurityContextHolder.clearContext()
+          LocaleContextHolder.resetLocaleContext()
         }
-        SecurityContextHolder.clearContext()
-        LocaleContextHolder.resetLocaleContext()
-        wrong
-      } as Callable<List>
+      }.flatten()
+      assert wrong.isEmpty()
     }
-
-    when:
-    def futures = tasks.collect { pool.submit(it) }
-    start.countDown()
-    def mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
-
-    then:
-    mismatches.isEmpty()
-
-    cleanup:
-    pool.shutdownNow()
   }
 }
