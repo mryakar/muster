@@ -64,7 +64,7 @@ class RulesInterceptorSpec extends Specification {
 
     then:
     def e = thrown(IllegalStateException)
-    e.message == 'Muster has not prepared the rules of public java.lang.String java.lang.Object.toString()'
+    e.message == 'Muster has not prepared the rules of Object.toString()'
   }
 
   def 'noting a class that is prepared takes no lock'() {
