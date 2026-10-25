@@ -71,18 +71,17 @@ tasks.withType<Test>().configureEach {
 
 jacoco { toolVersion = version("jacoco") }
 
-// Coverage counts every test suite, integration tests included.
-val allExecutionData = fileTree(layout.buildDirectory.dir("jacoco")) { include("*.exec") }
-
-tasks.jacocoTestReport {
-  dependsOn(tasks.withType<Test>())
-  executionData.setFrom(allExecutionData)
-  reports { xml.required = true }
+// Coverage counts every test suite, integration tests included. Taking the data from the tasks
+// adds no dependency on them, so it is declared.
+tasks.withType<JacocoReportBase>().configureEach {
+  val tests = tasks.withType<Test>()
+  dependsOn(tests)
+  executionData(*tests.toTypedArray())
 }
 
+tasks.jacocoTestReport { reports { xml.required = true } }
+
 tasks.jacocoTestCoverageVerification {
-  dependsOn(tasks.withType<Test>())
-  executionData.setFrom(allExecutionData)
   violationRules {
     rule {
       listOf("INSTRUCTION", "BRANCH", "LINE").forEach {
