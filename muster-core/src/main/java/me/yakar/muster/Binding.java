@@ -63,7 +63,13 @@ public final class Binding<I> {
     this.inputType = inputType;
     this.selection = selection;
     this.mode = mode;
-    this.only = Modifier.isFinal(inputType.getModifiers()) ? bind(inputType) : null;
+    if (Modifier.isFinal(inputType.getModifiers())) {
+      var bound = bind(inputType);
+      bound.plan().log();
+      this.only = bound.chain();
+    } else {
+      this.only = null;
+    }
   }
 
   /**
@@ -127,7 +133,7 @@ public final class Binding<I> {
         + "]";
   }
 
-  private RuleChain<Object> bind(Class<?> type) {
+  private ClassChains.Bound bind(Class<?> type) {
     return muster.bind(type, selection, mode);
   }
 

@@ -182,18 +182,18 @@ public final class Muster {
     targets.of(input.getClass()).run(input, mode);
   }
 
-  private RuleChain<Object> bind(Class<?> type) {
+  private ClassChains.Bound bind(Class<?> type) {
     return bind(type, Selection.NONE, mode);
   }
 
   /**
    * Binds a class to the rules a selection lists and, for a rule target, to the rules that bind to
-   * it by type.
+   * it by type. The caller logs the plan.
    */
-  RuleChain<Object> bind(Class<?> type, Selection selection, CheckMode chainMode) {
+  ClassChains.Bound bind(Class<?> type, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.bound(catalog, type, selection);
-    plan.log();
-    return new RuleChain<>(type, plan.steps(), caller, locale, chainMode);
+    return new ClassChains.Bound(
+        new RuleChain<>(type, plan.steps(), caller, locale, chainMode), plan);
   }
 
   /** The rules registered with this Muster. */
