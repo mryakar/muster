@@ -27,8 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 
 /** Checks and orders the rules that require other rules. */
 public final class RuleGraph {
@@ -88,7 +91,7 @@ public final class RuleGraph {
       var dependents = new ArrayList<String>();
       for (var rule : byId(rules.values())) {
         if (!disabled.contains(rule.ruleClass())
-            && requires(rule, off.ruleClass(), rules, new HashSet<>())) {
+            && firstRequired(rule, off.ruleClass()::equals, rules::get) != null) {
           dependents.add("'" + rule.id() + "'");
         }
       }
@@ -108,19 +111,38 @@ public final class RuleGraph {
     }
   }
 
-  /** Whether a rule requires the given rule, directly or through other rules. */
-  private static boolean requires(
+  /**
+   * Returns the first rule that a rule requires, directly or through other rules, and that is
+   * wanted, searching depth first in the order each rule lists its requirements.
+   *
+   * @param rule the rule
+   * @param wanted whether a required rule is the one sought
+   * @param lookup the definition of a required rule
+   * @return the first wanted rule, or {@code null} if the rule requires none
+   */
+  public static @Nullable Class<?> firstRequired(
+      RuleDefinition rule, Predicate<Class<?>> wanted, Function<Class<?>, RuleDefinition> lookup) {
+    return firstRequired(rule, wanted, lookup, new HashSet<>());
+  }
+
+  /** Searches each required rule once, so that rules required along many paths cost no more. */
+  private static @Nullable Class<?> firstRequired(
       RuleDefinition rule,
-      Class<?> required,
-      Map<Class<?>, RuleDefinition> rules,
-      Set<Class<?>> visited) {
-    for (var direct : rule.requires()) {
-      if (direct == required
-          || (visited.add(direct) && requires(rules.get(direct), required, rules, visited))) {
-        return true;
+      Predicate<Class<?>> wanted,
+      Function<Class<?>, RuleDefinition> lookup,
+      Set<Class<?>> searched) {
+    for (var required : rule.requires()) {
+      if (wanted.test(required)) {
+        return required;
+      }
+      if (searched.add(required)) {
+        var further = firstRequired(lookup.apply(required), wanted, lookup, searched);
+        if (further != null) {
+          return further;
+        }
       }
     }
-    return false;
+    return null;
   }
 
   private static void requireNoCycle(
