@@ -150,10 +150,10 @@ POST /vehicles                Accept-Language: tr-TR
 }
 ```
 
-Internal arguments, added with `internalArg`, never leave the application; violations are logged at
-DEBUG with them. A controller advice of the application that names
-`BusinessRuleViolationException` in an `@ExceptionHandler` replaces the starter's handler, and can
-inject its `MessageResolver` bean to resolve the messages.
+The response holds neither the rule id, nor the internal arguments added with `internalArg`, nor
+the severity; violations are logged at DEBUG with all three. A controller advice of the application
+that names `BusinessRuleViolationException` in an `@ExceptionHandler` replaces the starter's
+handler, and can inject its `MessageResolver` bean to resolve the messages.
 
 Rules learn who makes the call from Spring Security, when the application has it, and the locale
 from `LocaleContextHolder`; a `Supplier<Principal>` or `Supplier<Locale>` bean replaces either.
@@ -163,11 +163,48 @@ build:
 | Property | Default | |
 |---|---|---|
 | `muster.mode` | `fail-fast` | `fail-fast` stops at the first violated rule; `collect-all` reports every violation |
-| `muster.rules.<rule id>.enabled` | `true` | Switches a rule off, also as an environment variable such as `MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED` |
+| `muster.rules.<rule id>.enabled` | `true` | Switches a rule off, also as an environment variable such as `MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED`; a key under `muster.rules` that switches no rule, such as a misspelled id, stops the application |
 | `muster.problem-details.mixed-status` | `422` | The status of violations of different categories, from 400 to 499 |
 | `muster.transaction.reorder-advisor` | `true` | Moves the transaction advice ahead of Muster's, so that rules run inside the transaction, unless `@EnableTransactionManagement` has an order of its own |
 
-The Javadoc of `MusterAutoConfiguration` describes the starter in full.
+[`muster-examples/spring-boot`](muster-examples/spring-boot) is a complete application along these
+lines.
+
+### Details
+
+**Rules.** Every bean that implements `BusinessRule` is a rule. A rule class outside the packages of
+the application joins once it is a bean, for example through `@Bean` or `@Import`. A rule bean must
+be a singleton, since Muster creates each rule once and keeps it. A `Muster` bean of the application
+replaces the starter's.
+
+**Methods.** `@Rules` is found as Spring finds `@Transactional`: on the method, on the method it
+overrides or implements, and as a meta-annotation. A method with rules is public, and neither
+static nor final; wrong use stops the application when it starts, as does a transaction advice that
+would not run around Muster's. A call through `this` passes no proxy and checks no rules; a call
+from one advised method to another checks them again. Other advice runs as Spring orders it:
+`@Validated` may run after the rules, a `@Cacheable` hit checks none, and an `@Async` method checks
+them on its own thread, where a violation does not reach the caller.
+
+**Caller and locale.** The caller is read through the `SecurityContextHolderStrategy` bean of the
+application if it has one; an anonymous call has no caller. Without a locale in
+`LocaleContextHolder`, rules see the default locale of the JVM. A raw `Supplier` bean replaces
+neither.
+
+**Messages.** The message of a violation is the template that its code names; without one, it is
+the code. A `MessageResolver` bean of the application replaces the starter's. Spring Boot's message
+source falls back to the default locale of the JVM, so a server whose default locale is Turkish
+answers a French client in Turkish; `spring.messages.fallback-to-system-locale=false` answers from
+`messages.properties` instead. `spring.messages.always-use-message-format=true` stops the
+application, since `MessageFormat` rejects the `{name}` placeholders.
+
+**Problem details.** The JSON library of the application writes the client arguments: make them
+values, such as strings or numbers, not entities. The handler has the order 0, as Spring Boot's own
+problem details do, so a controller advice without an order that handles every `Exception` does
+not turn violations into server errors; an advice ordered before it still can. The handler also
+answers an exception that a violation causes, unless an earlier advice handles that exception. A
+controller advice that names `BusinessRuleViolationException` in an `@ExceptionHandler`, in the
+context of the application or a parent one, replaces the handler for every controller, even if the
+advice applies to some controllers only. A controller's own handler comes first anyway.
 
 ## Usage without Spring
 
