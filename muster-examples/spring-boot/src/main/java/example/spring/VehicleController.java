@@ -25,20 +25,10 @@ public class VehicleController {
 
   private final Vehicles vehicles;
 
-  /**
-   * Creates the controller.
-   *
-   * @param vehicles the service
-   */
   public VehicleController(Vehicles vehicles) {
     this.vehicles = vehicles;
   }
 
-  /**
-   * Creates a vehicle.
-   *
-   * @param command the command
-   */
   @PostMapping("/vehicles")
   public void create(@RequestBody CreateVehicle command) {
     vehicles.create(command);

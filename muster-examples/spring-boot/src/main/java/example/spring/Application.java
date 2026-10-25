@@ -33,15 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootApplication
 public class Application {
 
-  /** Creates the application. */
-  public Application() {}
-
-  /**
-   * Runs the checks.
-   *
-   * @param args not used
-   * @throws Exception if a request fails
-   */
   public static void main(String[] args) throws Exception {
     try (var context =
         new SpringApplicationBuilder(Application.class).properties("server.port=0").run(args)) {
@@ -97,18 +88,9 @@ public class Application {
             : json.readTree(body).equals(json.readTree(response.body()));
     if (response.statusCode() != status || !actualType.equals(contentType) || !bodyMatches) {
       throw new IllegalStateException(
-          "expected "
-              + status
-              + " "
-              + contentType
-              + " "
-              + body
-              + ", got "
-              + response.statusCode()
-              + " "
-              + actualType
-              + " "
-              + response.body());
+          "expected %d %s %s, got %d %s %s"
+              .formatted(
+                  status, contentType, body, response.statusCode(), actualType, response.body()));
     }
   }
 }

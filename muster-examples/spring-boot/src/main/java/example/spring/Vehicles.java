@@ -21,13 +21,5 @@ import org.springframework.stereotype.Service;
 @Service
 public class Vehicles {
 
-  /** Creates the service. */
-  public Vehicles() {}
-
-  /**
-   * Creates a vehicle.
-   *
-   * @param command the command
-   */
   public void create(CreateVehicle command) {}
 }

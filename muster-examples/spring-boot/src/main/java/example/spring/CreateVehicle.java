@@ -17,9 +17,5 @@ package example.spring;
 
 import me.yakar.muster.rule.RuleTarget;
 
-/**
- * Creates a vehicle.
- *
- * @param name the vehicle name
- */
+/** The command to create a vehicle, checked by every rule whose input type accepts it. */
 public record CreateVehicle(String name) implements RuleTarget {}

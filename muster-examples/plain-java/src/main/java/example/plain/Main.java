@@ -30,8 +30,8 @@ import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.MessageResolver;
 
 /**
- * Checks a command the way the README shows, and fails if Muster does not report the violation or
- * does not resolve its message from the bundles of this module.
+ * An application without Spring, on the module path. It checks a command as the README shows, and
+ * fails if Muster does not report the violation or resolve its message from this module's bundles.
  */
 public final class Main {
 
@@ -39,20 +39,10 @@ public final class Main {
 
   /** The fields that the rules check. */
   public interface VehicleFields extends RuleTarget {
-
-    /**
-     * Returns the vehicle name.
-     *
-     * @return the name
-     */
     String name();
   }
 
-  /**
-   * Creates a vehicle.
-   *
-   * @param name the vehicle name
-   */
+  /** The command to create a vehicle. */
   public record CreateVehicle(String name) implements VehicleFields {}
 
   /** A vehicle name must not be taken. */
@@ -73,18 +63,12 @@ public final class Main {
     }
   }
 
-  /**
-   * Runs the checks.
-   *
-   * @param args not used
-   */
   public static void main(String[] args) {
     var muster = Muster.builder().rules(new VehicleNameUnique(Set.of("Atlas"))).build();
     RuleChain<CreateVehicle> create = muster.chain(CreateVehicle.class, VehicleNameUnique.class);
 
     create.check(new CreateVehicle("Boreas"));
     muster.check(new CreateVehicle("Boreas"));
-    expectViolation(() -> create.check(new CreateVehicle("Atlas")));
     expectViolation(() -> muster.check(new CreateVehicle("Atlas")));
     var violation = expectViolation(() -> create.check(new CreateVehicle("Atlas")));
 
@@ -96,7 +80,7 @@ public final class Main {
     expectMessage(
         messages.resolve(violation, Locale.forLanguageTag("tr-TR")), "Atlas adı kullanılıyor");
     expectMessage(messages.resolve(violation, Locale.FRENCH), "The name Atlas is taken");
-    System.out.println("Muster works for a consumer: " + create);
+    System.out.println("The plain Java example works: " + create);
   }
 
   private static Violation expectViolation(Runnable check) {
