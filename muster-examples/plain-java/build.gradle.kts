@@ -19,14 +19,14 @@ val musterVersion = providers.gradleProperty("musterVersion").get()
 
 dependencies {
   implementation(platform("me.yakar.muster:muster-bom:$musterVersion"))
-  // The oldest Spring Boot that the starter supports.
-  implementation(platform(libs.spring.boot.dependencies))
-  implementation("me.yakar.muster:muster-spring-boot-starter")
-  implementation("org.springframework.boot:spring-boot-starter-webmvc")
+  implementation("me.yakar.muster:muster-core")
 }
 
 tasks.withType<JavaCompile>().configureEach {
   options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
 }
 
-application { mainClass = "consumer.spring.Application" }
+application {
+  mainModule = "example.plain"
+  mainClass = "example.plain.Main"
+}

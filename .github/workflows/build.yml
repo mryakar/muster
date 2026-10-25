@@ -101,4 +101,4 @@ jobs:
           cache-disabled: true
       - run: ./gradlew publishToMavenLocal
       - name: Use the published artifacts as a consumer would
-        run: .github/scripts/consumer-test.sh
+        run: .github/scripts/run-examples.sh

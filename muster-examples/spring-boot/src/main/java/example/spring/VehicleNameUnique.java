@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package consumer.spring;
+package example.spring;
 
 import java.util.Set;
 import me.yakar.muster.rule.BusinessRule;

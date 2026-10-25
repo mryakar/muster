@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Uses a published Muster the way an application would. It is a build of its own, so that it sees
-// only what Muster publishes: run it after publishing to the local repository.
-rootProject.name = "muster-consumer-test"
+// Applications that use a published Muster, and so test what Muster publishes. A build of its own,
+// so that it sees nothing else: run it after publishing to the local repository.
+rootProject.name = "muster-examples"
 
 // -PpomOnly reads only the POMs, as Maven users do, instead of the Gradle module metadata.
 val pomOnly = providers.gradleProperty("pomOnly").isPresent
@@ -39,4 +39,4 @@ dependencyResolutionManagement {
 }
 
 // An application without Spring, on the module path, and a Spring Boot application.
-include("spring")
+include("plain-java", "spring-boot")

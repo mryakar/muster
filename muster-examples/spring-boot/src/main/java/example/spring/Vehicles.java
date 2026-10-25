@@ -13,7 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** An application module that uses Muster. */
-module consumer {
-  requires me.yakar.muster;
+package example.spring;
+
+import org.springframework.stereotype.Service;
+
+/** A service whose rules bind to its command by type, without a call to Muster. */
+@Service
+public class Vehicles {
+
+  /** Creates the service. */
+  public Vehicles() {}
+
+  /**
+   * Creates a vehicle.
+   *
+   * @param command the command
+   */
+  public void create(CreateVehicle command) {}
 }
