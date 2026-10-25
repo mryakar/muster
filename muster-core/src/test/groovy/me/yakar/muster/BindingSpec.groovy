@@ -436,9 +436,6 @@ class BindingSpec extends EngineSpecification {
       'fields.needs-base',
       'fields.bound'
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'a binding names itself when it logs a rule that its chain adds'() {
@@ -469,9 +466,6 @@ class BindingSpec extends EngineSpecification {
       "Rules bound to ${FIELDS} (${CREATE}): [fields.listed]",
       "Rules bound to ${FIELDS} (${UPDATE}): [fields.listed, identified.bound]"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'a binding warns when no rule binds'() {
@@ -524,8 +518,5 @@ class BindingSpec extends EngineSpecification {
     logged*.message == [
       "Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"
     ]
-
-    cleanup:
-    log.level = null
   }
 }
