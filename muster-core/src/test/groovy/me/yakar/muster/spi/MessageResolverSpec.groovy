@@ -16,6 +16,7 @@
 package me.yakar.muster.spi
 
 import java.util.concurrent.Callable
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -38,7 +39,8 @@ class MessageResolverSpec extends Specification {
   }
   def resolver = MessageResolver.ofTemplates(templates)
 
-  List<LogRecord> logged = []
+  // Thread-safe, since the logger may publish from the threads of a concurrent test.
+  List<LogRecord> logged = new CopyOnWriteArrayList<>()
   Logger log = Logger.getLogger('me.yakar.muster')
   Level level
   Handler handler = new Handler() {
@@ -144,7 +146,7 @@ class MessageResolverSpec extends Specification {
     }
 
     when:
-    resolver.resolve('VEHICLE_NAME_TAKEN', [: ], Locale.forLanguageTag('tr-TR'))
+    resolver.resolve('VEHICLE_NAME_TAKEN', [:], Locale.forLanguageTag('tr-TR'))
 
     then:
     seen == [
@@ -174,9 +176,9 @@ class MessageResolverSpec extends Specification {
 
     where:
     name         | code                 | args | locale
-    'code'       | null                 | [: ]  | Locale.ENGLISH
+    'code'       | null                 | [:]  | Locale.ENGLISH
     'clientArgs' | 'vehicle.name-taken' | null | Locale.ENGLISH
-    'locale'     | 'vehicle.name-taken' | [: ]  | null
+    'locale'     | 'vehicle.name-taken' | [:]  | null
   }
 
   def 'a lookup that returns null is a mistake that is named'() {
@@ -184,7 +186,7 @@ class MessageResolverSpec extends Specification {
     def resolver = MessageResolver.ofTemplates { code, locale -> null }
 
     when:
-    resolver.resolve('vehicle.name-taken', [: ], Locale.ENGLISH)
+    resolver.resolve('vehicle.name-taken', [:], Locale.ENGLISH)
 
     then:
     def e = thrown(NullPointerException)
@@ -237,25 +239,23 @@ class MessageResolverSpec extends Specification {
     def threads = 16
     def start = new CountDownLatch(1)
     def pool = Executors.newFixedThreadPool(threads)
-    def tasks = (1..threads).collect { thread -> {
-
-        ->
-        start.await()
-        def wrong = []
-        200.times { round ->
-          expected.each { tag, message ->
-            def resolved = messages.resolve('vehicle.name-taken', [name: 'Atlas'], Locale.forLanguageTag(tag))
-            if (resolved != message) {
-              wrong << "$tag: $resolved"
-            }
+    def task = {
+      ->
+      start.await()
+      def wrong = []
+      200.times {
+        expected.each { tag, message ->
+          def resolved = messages.resolve('vehicle.name-taken', [name: 'Atlas'], Locale.forLanguageTag(tag))
+          if (resolved != message) {
+            wrong << "$tag: $resolved"
           }
         }
-        wrong
-      } as Callable<List<String>>
-    }
+      }
+      wrong
+    } as Callable<List<String>>
 
     when:
-    def futures = tasks.collect { pool.submit(it) }
+    def futures = (1..threads).collect { pool.submit(task) }
     start.countDown()
     def mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
 

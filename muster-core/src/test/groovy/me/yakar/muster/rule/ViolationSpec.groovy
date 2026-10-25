@@ -279,29 +279,29 @@ class ViolationSpec extends Specification {
 
   def 'violations with the same content are equal'() {
     expect:
-    full().build() == full().build()
-    full().build().hashCode() == full().build().hashCode()
+    full() == full()
+    full().hashCode() == full().hashCode()
     context.violation().build() == context.violation().build()
   }
 
   def 'violations differing in #difference are not equal'() {
     expect:
-    full().build() != other
-    full().build().hashCode() != other.hashCode()
+    full() != other
+    full().hashCode() != other.hashCode()
 
     where:
-    difference          | other
-    'rule id'           | RuleContext.forRule('other').violation('vehicle.name-taken').clientArg('name', 'Truck 1').internalArg('id', 42L).target('name').category(Category.CONFLICT).build()
-    'code'              | RuleContext.forRule('vehicle.name-unique').violation('other').clientArg('name', 'Truck 1').internalArg('id', 42L).target('name').category(Category.CONFLICT).build()
-    'client arguments'  | RuleContext.forRule('vehicle.name-unique').violation('vehicle.name-taken').clientArg('name', 'Truck 2').internalArg('id', 42L).target('name').category(Category.CONFLICT).build()
-    'internal args'     | RuleContext.forRule('vehicle.name-unique').violation('vehicle.name-taken').clientArg('name', 'Truck 1').internalArg('id', 43L).target('name').category(Category.CONFLICT).build()
-    'target'            | RuleContext.forRule('vehicle.name-unique').violation('vehicle.name-taken').clientArg('name', 'Truck 1').internalArg('id', 42L).target('code').category(Category.CONFLICT).build()
-    'category'          | RuleContext.forRule('vehicle.name-unique').violation('vehicle.name-taken').clientArg('name', 'Truck 1').internalArg('id', 42L).target('name').category(Category.NOT_FOUND).build()
+    difference           | other
+    'rule id'            | full(ruleId: 'other')
+    'code'               | full(code: 'other')
+    'client arguments'   | full(name: 'Truck 2')
+    'internal arguments' | full(id: 43L)
+    'target'             | full(target: 'code')
+    'category'           | full(category: Category.NOT_FOUND)
   }
 
   def 'a violation is not equal to null or to another type'() {
     given:
-    def violation = full().build()
+    def violation = full()
 
     expect:
     !violation.equals(null)
@@ -311,7 +311,7 @@ class ViolationSpec extends Specification {
 
   def 'toString shows internal arguments for developers'() {
     expect:
-    full().build().toString() == 'Violation[ruleId=vehicle.name-unique, code=vehicle.name-taken, ' +
+    full().toString() == 'Violation[ruleId=vehicle.name-unique, code=vehicle.name-taken, ' +
         'clientArgs={name=Truck 1}, internalArgs={id=42}, target=name, category=CONFLICT, severity=ERROR]'
     context.violation().build().toString() == 'Violation[ruleId=vehicle.name-unique, ' +
         'code=vehicle.name-unique, clientArgs={}, internalArgs={}, severity=ERROR]'
@@ -331,14 +331,14 @@ class ViolationSpec extends Specification {
 
     where:
     original << [
-      full().build(),
+      full(),
       context.violation().internalArg('id', 42L).build()
     ]
   }
 
   def 'a deserialized violation cannot have #what'() {
     given: 'a violation whose field holds what a crafted stream could put there'
-    def violation = full().build()
+    def violation = full()
     def field = Violation.getDeclaredField(name)
     field.accessible = true
     field.set(violation, value)
@@ -406,15 +406,14 @@ class ViolationSpec extends Specification {
     def threads = 16
     def start = new CountDownLatch(1)
     def pool = Executors.newFixedThreadPool(threads)
-    def tasks = (1..threads).collect { {
-        ->
-        start.await()
-        (1..200).collect { context.violation().build() }
-      } as Callable<List<Violation>>
-    }
+    def task = {
+      ->
+      start.await()
+      (1..200).collect { context.violation().build() }
+    } as Callable<List<Violation>>
 
     when:
-    def futures = tasks.collect { pool.submit(it) }
+    def futures = (1..threads).collect { pool.submit(task) }
     start.countDown()
     def violations = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
 
@@ -431,23 +430,28 @@ class ViolationSpec extends Specification {
 
   def 'a violation #what reads as 0.1.0 wrote it, and is written the same way'() {
     given:
-    def written = ViolationSpec.getResourceAsStream("violation-${what.replace(' ', '-')}-0.1.0.ser").bytes
+    // Written by muster-core 0.1.0 and never regenerated: the files pin the serial form.
+    def written = ViolationSpec.getResourceAsStream(file).bytes
 
     expect:
     Serialization.read(written) == expected
     Serialization.write(original) == written
 
     where:
-    what                | original || expected
-    'without arguments' | context.violation().build() || context.violation().build()
-    'with arguments'    | full().build() || context.violation('vehicle.name-taken').clientArg('name', 'Truck 1').target('name').category(Category.CONFLICT).build()
+    what                | file                                    | original || expected
+    'without arguments' | 'violation-without-arguments-0.1.0.ser' | context.violation().build() || context.violation().build()
+    'with arguments'    | 'violation-with-arguments-0.1.0.ser'    | full() || context.violation('vehicle.name-taken').clientArg('name', 'Truck 1').target('name').category(Category.CONFLICT).build()
   }
 
-  private Violation.Builder full() {
-    context.violation('vehicle.name-taken')
-        .clientArg('name', 'Truck 1')
-        .internalArg('id', 42L)
-        .target('name')
-        .category(Category.CONFLICT)
+  /** A violation with every field set, changed as given. */
+  private Violation full(Map changes = [:]) {
+    def fields = [ruleId: 'vehicle.name-unique', code: 'vehicle.name-taken', name: 'Truck 1', id: 42L, target: 'name', category: Category.CONFLICT] + changes
+    RuleContext.forRule(fields.ruleId)
+        .violation(fields.code)
+        .clientArg('name', fields.name)
+        .internalArg('id', fields.id)
+        .target(fields.target)
+        .category(fields.category)
+        .build()
   }
 }
