@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.engine
 
 import java.security.Principal
 import java.util.concurrent.Callable
@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.call.Call
 import me.yakar.muster.spring.fixture.call.ReportsCall
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
