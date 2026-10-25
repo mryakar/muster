@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
-import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
-import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
@@ -110,21 +108,10 @@ public final class RuleChain<I> {
 
   /** Checks an input that the caller knows to be of the chain's type, in the given mode. */
   void run(Object input, CheckMode mode) {
-    var found = violations(input, mode);
-    if (!found.isEmpty()) {
-      throw new BusinessRuleViolationException(found);
-    }
-  }
-
-  /**
-   * Returns the violations of an input of the chain's type, in the order they are found, or an
-   * empty list if it passes.
-   */
-  List<Violation> violations(Object input, CheckMode mode) {
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     // Created on the first failure, so that a passing check allocates no list.
-    List<Violation> found = List.of();
+    ArrayList<Violation> found = null;
     var passed = new boolean[steps.size()];
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
@@ -141,51 +128,39 @@ public final class RuleChain<I> {
       if (!rule.instance().appliesTo(ctx)) {
         continue;
       }
-      var violations = violationsOf(rule, input, ctx);
-      if (violations == null) {
-        passed[i] = true;
-      } else if (mode == CheckMode.FAIL_FAST) {
-        // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
-        return violations;
-      } else {
-        if (found.isEmpty()) {
+      var result = rule.instance().check(input, ctx);
+      if (result == null) {
+        throw new NullPointerException("rule '" + rule.id() + "' returned null");
+      }
+      if (result instanceof RuleResult.Failed failed) {
+        var violations = failed.violations();
+        for (var violation : violations) {
+          if (!violation.ruleId().equals(rule.id())) {
+            throw new IllegalStateException(
+                "rule '"
+                    + rule.id()
+                    + "' reported a violation of rule '"
+                    + violation.ruleId()
+                    + "'; build violations from the RuleContext the rule receives");
+          }
+        }
+        if (mode == CheckMode.FAIL_FAST) {
+          // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
+          throw new BusinessRuleViolationException(violations);
+        }
+        if (found == null) {
           found = new ArrayList<>();
         }
         found.addAll(violations);
+      } else {
+        passed[i] = true;
       }
     }
-    return found;
+    if (found != null) {
+      throw new BusinessRuleViolationException(found);
+    }
   }
 
-  /** Runs a rule and returns its violations, or {@code null} if it passed. */
-  private static @Nullable List<Violation> violationsOf(
-      PreparedRule rule, Object input, RuleContext ctx) {
-    var result = rule.instance().check(input, ctx);
-    if (result == null) {
-      throw new NullPointerException("rule '" + rule.id() + "' returned null");
-    }
-    if (!(result instanceof RuleResult.Failed failed)) {
-      return null;
-    }
-    for (var violation : failed.violations()) {
-      if (!violation.ruleId().equals(rule.id())) {
-        throw new IllegalStateException(
-            "rule '"
-                + rule.id()
-                + "' reported a violation of rule '"
-                + violation.ruleId()
-                + "'; build violations from the RuleContext the rule receives");
-      }
-    }
-    return failed.violations();
-  }
-
-  /**
-   * Describes this chain for developers and logs: the type it checks, its mode and its rules in the
-   * order they run.
-   *
-   * @return the description
-   */
   @Override
   public String toString() {
     return "RuleChain[input="
