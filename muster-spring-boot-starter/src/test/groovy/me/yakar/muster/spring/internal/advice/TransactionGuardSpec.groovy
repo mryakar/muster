@@ -41,8 +41,11 @@ class TransactionGuardSpec extends Specification {
   }
 
   def 'a method requires a transaction only for propagations that start one: #name'() {
+    given:
+    def guard = guard(propagation)
+
     expect:
-    guard(propagation).transactional().test(method, Object) == requires
+    guard.resolve().forMethod(method, Object).is(requires ? guard : null)
 
     where:
     name            | propagation || requires
@@ -54,5 +57,12 @@ class TransactionGuardSpec extends Specification {
     'NOT_SUPPORTED' | TransactionDefinition.PROPAGATION_NOT_SUPPORTED || false
     'NEVER'         | TransactionDefinition.PROPAGATION_NEVER || false
     'none'          | null || false
+  }
+
+  def 'without transaction advice, there is nothing to resolve'() {
+    expect:
+    new TransactionGuard([getIfUnique: { Object[] args ->
+        null
+      }] as ObjectProvider).resolve() == null
   }
 }
