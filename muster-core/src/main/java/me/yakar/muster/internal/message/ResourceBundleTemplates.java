@@ -25,16 +25,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * Looks up message templates in a family of resource bundles, with the code as the key.
- *
- * <p>The bundle for a locale is the bundle of that locale or of a more general one, and otherwise
- * the base bundle. Unlike {@link ResourceBundle#getBundle(String, Locale)}, it never falls back to
- * the bundle of the default locale of the JVM: a server in Turkey answers a French client from the
- * base bundle, not in Turkish. A {@link ResourceBundle.Control} could prevent that fallback, but
- * {@code getBundle} rejects one in a named module, so a bundle from another locale is replaced with
- * the base bundle instead.
- *
- * <p>It keeps no state of its own besides the function; the JDK caches the bundles.
+ * Looks up message templates in a family of resource bundles, with the code as the key, and never
+ * in the bundle of the JVM's default locale. A {@link ResourceBundle.Control} could prevent that
+ * fallback, but {@code getBundle} rejects one in a named module, so a bundle of another locale is
+ * replaced with the base bundle. Thread-safe: the only state is the function, and the JDK caches
+ * the bundles.
  */
 public final class ResourceBundleTemplates implements BiFunction<String, Locale, Optional<String>> {
 
