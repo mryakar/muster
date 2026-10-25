@@ -57,10 +57,7 @@ class StaticMethod {
 
 /** Two modes at once. */
 class TwoModes {
-  @Rules(mode = [
-    CheckMode.FAIL_FAST,
-    CheckMode.COLLECT_ALL
-  ])
+  @Rules(mode = [CheckMode.FAIL_FAST, CheckMode.COLLECT_ALL])
   void save(SaveVehicle vehicle) {}
 }
 

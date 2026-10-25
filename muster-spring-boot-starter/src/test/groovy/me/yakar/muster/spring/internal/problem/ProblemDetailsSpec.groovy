@@ -194,23 +194,14 @@ class ProblemDetailsSpec extends Specification {
           ]
         ]
       ]
-      assert answer.body.violations.first().keySet() as List == [
-        'code',
-        'message',
-        'target',
-        'category',
-        'args'
-      ]
+      assert answer.body.violations.first().keySet() as List == ['code', 'message', 'target', 'category', 'args']
     }
   }
 
   def 'each category has its status: #category'() {
     expect:
     runner.run {
-      def answer = answer(it, [
-        withCategory(category),
-        withCategory(category)
-      ])
+      def answer = answer(it, [withCategory(category), withCategory(category)])
       assert answer.status == status
       assert answer.body.title == title
       assert answer.body.status == status
@@ -235,31 +226,18 @@ class ProblemDetailsSpec extends Specification {
 
     where:
     categories << [
-      [
-        Category.CONFLICT,
-        Category.NOT_FOUND
-      ],
+      [Category.CONFLICT, Category.NOT_FOUND],
       [Category.CONFLICT, null],
       [null, Category.FORBIDDEN],
-      [
-        Category.CONFLICT,
-        Category.CONFLICT,
-        Category.INVALID_STATE
-      ]
+      [Category.CONFLICT, Category.CONFLICT, Category.INVALID_STATE]
     ]
   }
 
   def 'muster.problem-details.mixed-status sets the status of violations of different categories'() {
     expect:
     runner.withPropertyValues('muster.problem-details.mixed-status=400').run {
-      assert answer(it, [
-        withCategory(Category.CONFLICT),
-        withCategory(null)
-      ]).status == 400
-      assert answer(it, [
-        withCategory(Category.CONFLICT),
-        withCategory(Category.CONFLICT)
-      ]).status == 409
+      assert answer(it, [withCategory(Category.CONFLICT), withCategory(null)]).status == 400
+      assert answer(it, [withCategory(Category.CONFLICT), withCategory(Category.CONFLICT)]).status == 409
     }
   }
 
@@ -278,10 +256,7 @@ class ProblemDetailsSpec extends Specification {
   def 'a mixed status of 400 or 499 is a client error'() {
     expect:
     runner.withPropertyValues("muster.problem-details.mixed-status=$value").run {
-      assert answer(it, [
-        withCategory(Category.CONFLICT),
-        withCategory(null)
-      ]).status == value
+      assert answer(it, [withCategory(Category.CONFLICT), withCategory(null)]).status == value
     }
 
     where:
@@ -304,9 +279,7 @@ class ProblemDetailsSpec extends Specification {
   def 'a violation without target or category has neither, and no client arguments are an empty object'() {
     expect:
     runner.run {
-      def entry = answer(it, [
-        violation('vehicle.plate-format').build()
-      ]).body.violations.first()
+      def entry = answer(it, [violation('vehicle.plate-format').build()]).body.violations.first()
       assert entry == [code: 'vehicle.plate-format', message: 'The plate {plate} is not valid', args: [:]]
     }
   }
@@ -344,33 +317,18 @@ class ProblemDetailsSpec extends Specification {
           ]).body.violations
           assert entries[0] == [code: 'vehicle.plate-format', message: 'The plate {plate} is not valid', args: [:]]
           assert entries[1].args == [name: '', count: 0]
-          assert entries*.keySet()*.toList() == [
-            ['code', 'message', 'args'],
-            ['code', 'message', 'args']
-          ]
+          assert entries*.keySet()*.toList() == [['code', 'message', 'args'], ['code', 'message', 'args']]
         }
 
     where:
-    inclusion << [
-      'always',
-      'non_null',
-      'non_absent',
-      'non_default',
-      'non_empty'
-    ]
+    inclusion << ['always', 'non_null', 'non_absent', 'non_default', 'non_empty']
   }
 
   def 'violations come in the order the exception lists them'() {
     expect:
     runner.run {
-      def answer = answer(it, [
-        violation('vehicle.plate-format').build(),
-        nameTaken()
-      ])
-      assert answer.body.violations*.code == [
-        'vehicle.plate-format',
-        'vehicle.name-taken'
-      ]
+      def answer = answer(it, [violation('vehicle.plate-format').build(), nameTaken()])
+      assert answer.body.violations*.code == ['vehicle.plate-format', 'vehicle.name-taken']
     }
   }
 
@@ -404,12 +362,7 @@ class ProblemDetailsSpec extends Specification {
     }
 
     where:
-    advice << [
-      NamingAdvice,
-      ParameterAdvice,
-      ListingAdvice,
-      AdviceFromBeanMethod
-    ]
+    advice << [NamingAdvice, ParameterAdvice, ListingAdvice, AdviceFromBeanMethod]
   }
 
   def 'a controller advice that names the exception replaces the handler also from an auto-configuration after Muster\'s'() {
@@ -516,9 +469,7 @@ class ProblemDetailsSpec extends Specification {
     expect:
     runner.withUserConfiguration(ScansMuster).run {
       assert it.startupFailure == null
-      assert it.getBeanNamesForType(ViolationExceptionHandler) as List == [
-        'musterViolationExceptionHandler'
-      ]
+      assert it.getBeanNamesForType(ViolationExceptionHandler) as List == ['musterViolationExceptionHandler']
     }
   }
 

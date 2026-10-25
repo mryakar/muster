@@ -61,9 +61,7 @@ class ProblemDetailsIntegrationSpec extends Specification {
       title     : 'Unprocessable Content',
       status    : 422,
       instance  : '/vehicles',
-      violations: [
-        [code: 'vehicle.name-unique', message: 'Atlas adı alınmış', args: [name: 'Atlas']]
-      ]
+      violations: [[code: 'vehicle.name-unique', message: 'Atlas adı alınmış', args: [name: 'Atlas']]]
     ]
   }
 

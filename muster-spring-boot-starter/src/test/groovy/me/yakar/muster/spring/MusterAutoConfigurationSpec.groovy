@@ -234,11 +234,7 @@ class MusterAutoConfigurationSpec extends Specification {
   def 'registers the rule classes of the application packages as beans, named after their class'() {
     expect:
     runner.withUserConfiguration(Application).run { context ->
-      assert context.getBeanNamesForType(BusinessRule) as Set == [
-        NameCapitalized,
-        NameShort,
-        NameUnique
-      ]*.name as Set
+      assert context.getBeanNamesForType(BusinessRule) as Set == [NameCapitalized, NameShort, NameUnique]*.name as Set
       assert context.getBean(NameUnique).names.is(context.getBean(Names))
     }
   }
@@ -352,11 +348,7 @@ class MusterAutoConfigurationSpec extends Specification {
     then:
     logs.messages.findAll {
       it.startsWith('Registered the rule')
-    } as Set == [
-      NameCapitalized,
-      NameShort,
-      NameUnique
-    ].collect {
+    } as Set == [NameCapitalized, NameShort, NameUnique].collect {
       "Registered the rule ${it.name} as a bean".toString()
     } as Set
 
@@ -391,15 +383,7 @@ class MusterAutoConfigurationSpec extends Specification {
     configurations                   | properties || expected
     [ConditionalPackage]             | [] || []
     [ConditionalPackage]             | ['fixture.rule.enabled=true'] || [OnProperty]
-    [
-      ConditionalPackage,
-      Application
-    ] | [] || [
-      OnBean,
-      NameUnique,
-      NameShort,
-      NameCapitalized
-    ]
+    [ConditionalPackage, Application] | [] || [OnBean, NameUnique, NameShort, NameCapitalized]
   }
 
   def 'a rule outside the application packages joins as a bean'() {

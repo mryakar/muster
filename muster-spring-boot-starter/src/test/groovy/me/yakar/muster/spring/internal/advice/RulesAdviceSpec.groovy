@@ -90,11 +90,7 @@ class RulesAdviceSpec extends Specification {
     }
 
     where:
-    method << [
-      'delete',
-      'deletePrimitive',
-      'deleteMeta'
-    ]
+    method << ['delete', 'deletePrimitive', 'deleteMeta']
   }
 
   def 'a method with rules sets its mode, and excludes rules bound by type'() {
@@ -104,10 +100,7 @@ class RulesAdviceSpec extends Specification {
       assert violated { service.save(TAKEN_AND_LONG) } == ['advice.name-free']
       assert violated {
         service.saveAll(TAKEN_AND_LONG)
-      } == [
-        'advice.name-free',
-        'advice.name-short'
-      ]
+      } == ['advice.name-free', 'advice.name-short']
       assert violated {
         service.saveLong(new SaveVehicle('Boreas'.padRight(11, '!')))
       } == []
