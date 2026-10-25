@@ -20,9 +20,9 @@ plugins {
 
 description = "Spring Boot integration for Muster."
 
-// The Spring Boot to build and test against; -PspringBootVersion tests another one, and
-// -PspringBootVersion=latest the newest that the catalog names. What is published always names the
-// oldest supported version, and no platform: an application's own Spring Boot manages the
+// The Spring Boot to build and test against: the oldest supported, another one with
+// -PspringBootVersion, or the catalog's newest with -PspringBootVersion=latest. The published POM
+// depends on the oldest and imports no platform, so the application's Spring Boot manages the
 // versions.
 val springBootVersion =
   providers
