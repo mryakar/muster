@@ -16,6 +16,7 @@
 package me.yakar.muster.rule
 
 import me.yakar.muster.Serialization
+import me.yakar.muster.internal.RuleIds
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -36,6 +37,19 @@ class ViolationSpec extends Specification {
     violation.target().isEmpty()
     violation.category().isEmpty()
     violation.severity() == Severity.ERROR
+  }
+
+  def 'every character that a rule id may have is one that a code may have, so the rule id needs no second check as a code'() {
+    given:
+    def accepted = (Character.MIN_VALUE..Character.MAX_VALUE).collect {
+      "a${it as char}a".toString()
+    }.findAll {
+      RuleIds.isValid(it)
+    }
+
+    expect:
+    accepted.size() == 38
+    accepted.every { Checks.requireKey(it, 'code') == it }
   }
 
   def 'a rule can choose another code'() {
