@@ -39,7 +39,7 @@ final class RulesAdvisor implements PointcutAdvisor, Ordered {
         new StaticMethodMatcherPointcut() {
           @Override
           public boolean matches(Method method, Class<?> targetClass) {
-            if (AdvisedMethods.advised(method, targetClass)) {
+            if (AdvisedMethods.advised(method, targetClass) != null) {
               interceptor.note(targetClass);
               return true;
             }
