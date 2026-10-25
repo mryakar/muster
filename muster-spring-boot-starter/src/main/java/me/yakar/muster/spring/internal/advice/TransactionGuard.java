@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
@@ -47,20 +49,23 @@ final class TransactionGuard {
   }
 
   /**
-   * Returns whether a method must run in a transaction that the transaction advice starts, as the
-   * advice itself reads the method's transaction attribute.
+   * Returns whether a method must run in a transaction that the transaction advice starts, or
+   * {@code null} if the application has no transaction advice. The test keeps the types of Spring's
+   * transactions out of the classes that use it, which load without them.
    */
-  boolean requiresTransaction(Method method, Class<?> targetClass) {
+  @Nullable BiPredicate<Method, Class<?>> transactional() {
     var transactionAdvisor = advisor.getIfUnique();
     if (transactionAdvisor == null) {
-      return false;
+      return null;
     }
-    var source =
+    var attributes =
         requireNonNull(
             ((TransactionInterceptor) transactionAdvisor.getAdvice())
                 .getTransactionAttributeSource());
-    var attribute = source.getTransactionAttribute(method, targetClass);
-    return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
+    return (method, targetClass) -> {
+      var attribute = attributes.getTransactionAttribute(method, targetClass);
+      return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
+    };
   }
 
   /**

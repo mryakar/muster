@@ -37,6 +37,14 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Scope
+import java.util.concurrent.CompletableFuture
+import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.Rule
+import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.spring.fixture.advice.VehicleComponent
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.context.annotation.Lazy
 import spock.lang.Specification
 
 /** Rules apply to calls made while the application starts, and to beans created after it. */
@@ -79,6 +87,54 @@ class StartupAdviceSpec extends Specification {
     @Scope('prototype')
     VehicleService prototypeService() {
       new VehicleService()
+    }
+  }
+
+  /**
+   * A rule whose creation lets another thread call an advised method, which needs this rule, and
+   * then creates an advised bean.
+   */
+  @Rule(id = 'startup.slow')
+  static class SlowRule implements BusinessRule<SaveVehicle> {
+    static volatile Thread caller
+
+    SlowRule(VehicleService service, ObjectProvider<VehicleComponent> component) {
+      caller = Thread.startDaemon('advised-caller') {
+        service.save(new SaveVehicle('Boreas'))
+      }
+      // The caller prepares the service and waits for Spring to finish this rule.
+      def deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+      while (!(caller.state == Thread.State.WAITING && caller.stackTrace.any {
+            it.methodName == 'prepareNoted'
+          })
+          && caller.alive && System.nanoTime() <deadline) {
+        Thread.onSpinWait()
+      }
+      component.getObject()
+    }
+
+    RuleResult check(SaveVehicle input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @AutoConfigurationPackage(basePackageClasses = NameFree)
+  static class AdvisedCallOnAnotherThread {
+    @Bean
+    VehicleService vehicleService() {
+      new VehicleService()
+    }
+
+    @Bean
+    @Lazy
+    VehicleComponent vehicleComponent() {
+      new VehicleComponent()
+    }
+
+    @Bean
+    SlowRule slowRule(VehicleService service, ObjectProvider<VehicleComponent> component) {
+      new SlowRule(service, component)
     }
   }
 
@@ -162,5 +218,18 @@ class StartupAdviceSpec extends Specification {
 
     cleanup:
     pool.shutdownNow()
+  }
+
+  def 'a call on another thread that prepares rules while the application starts does not block the start'() {
+    when:
+    def started = CompletableFuture.supplyAsync {
+      runner.withUserConfiguration(AdvisedCallOnAnotherThread).run {
+        assert it.startupFailure == null
+      }
+      true
+    }
+
+    then:
+    started.get(1, TimeUnit.MINUTES)
   }
 }
