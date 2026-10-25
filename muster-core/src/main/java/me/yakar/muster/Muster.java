@@ -162,7 +162,7 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    targets.of(input.getClass()).check(input);
+    targets.of(input.getClass()).run(input, mode);
   }
 
   /**
@@ -179,7 +179,7 @@ public final class Muster {
   public void check(RuleTarget input, CheckMode mode) {
     requireNonNull(input, "input");
     requireNonNull(mode, "mode");
-    targets.of(input.getClass()).check(input, mode);
+    targets.of(input.getClass()).run(input, mode);
   }
 
   private RuleChain<Object> bind(Class<?> type) {

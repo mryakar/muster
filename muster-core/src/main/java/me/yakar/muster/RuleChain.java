@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
+import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
+import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
@@ -103,11 +105,6 @@ public final class RuleChain<I> {
    * @throws IllegalStateException if a rule reports a violation under another rule's id
    */
   public void check(I input) {
-    check(input, mode);
-  }
-
-  /** Checks an input as {@link #check(Object)} does, in the given mode instead of the chain's. */
-  void check(I input, CheckMode mode) {
     requireNonNull(input, "input");
     if (!inputType.isInstance(input)) {
       throw new IllegalArgumentException(
@@ -116,9 +113,26 @@ public final class RuleChain<I> {
               + ", not "
               + input.getClass().getTypeName());
     }
+    run(input, mode);
+  }
+
+  /** Checks an input that the caller knows to be of the chain's type, in the given mode. */
+  void run(Object input, CheckMode mode) {
+    var found = violations(input, mode);
+    if (!found.isEmpty()) {
+      throw new BusinessRuleViolationException(found);
+    }
+  }
+
+  /**
+   * Returns the violations of an input of the chain's type, in the order they are found, or an
+   * empty list if it passes.
+   */
+  List<Violation> violations(Object input, CheckMode mode) {
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
-    var violations = new ArrayList<Violation>();
+    // Created on the first failure, so that a passing check allocates no list.
+    List<Violation> found = List.of();
     var passed = new boolean[steps.size()];
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
@@ -135,32 +149,43 @@ public final class RuleChain<I> {
       if (!rule.rule().appliesTo(ctx)) {
         continue;
       }
-      var result = rule.rule().check(input, ctx);
-      if (result == null) {
-        throw new NullPointerException("rule '" + rule.id() + "' returned null");
-      }
-      if (result instanceof RuleResult.Failed failed) {
-        for (var violation : failed.violations()) {
-          if (!violation.ruleId().equals(rule.id())) {
-            throw new IllegalStateException(
-                "rule '"
-                    + rule.id()
-                    + "' reported a violation of rule '"
-                    + violation.ruleId()
-                    + "'; build violations from the RuleContext the rule receives");
-          }
-        }
-        violations.addAll(failed.violations());
-        if (mode == CheckMode.FAIL_FAST) {
-          break;
-        }
-      } else {
+      var violations = violationsOf(rule, input, ctx);
+      if (violations == null) {
         passed[i] = true;
+      } else if (mode == CheckMode.FAIL_FAST) {
+        // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
+        return violations;
+      } else {
+        if (found.isEmpty()) {
+          found = new ArrayList<>();
+        }
+        found.addAll(violations);
       }
     }
-    if (!violations.isEmpty()) {
-      throw new BusinessRuleViolationException(violations);
+    return found;
+  }
+
+  /** Runs a rule and returns its violations, or {@code null} if it passed. */
+  private static @Nullable List<Violation> violationsOf(
+      PreparedRule rule, Object input, RuleContext ctx) {
+    var result = rule.rule().check(input, ctx);
+    if (result == null) {
+      throw new NullPointerException("rule '" + rule.id() + "' returned null");
     }
+    if (!(result instanceof RuleResult.Failed failed)) {
+      return null;
+    }
+    for (var violation : failed.violations()) {
+      if (!violation.ruleId().equals(rule.id())) {
+        throw new IllegalStateException(
+            "rule '"
+                + rule.id()
+                + "' reported a violation of rule '"
+                + violation.ruleId()
+                + "'; build violations from the RuleContext the rule receives");
+      }
+    }
+    return failed.violations();
   }
 
   /**

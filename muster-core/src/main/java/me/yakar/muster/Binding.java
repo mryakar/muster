@@ -90,7 +90,7 @@ public final class Binding<I> {
     if (chain == null) {
       chain = chains.of(input.getClass());
     }
-    chain.check(input);
+    chain.run(input, mode);
   }
 
   /**
