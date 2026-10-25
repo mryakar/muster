@@ -238,6 +238,8 @@ What the starter does for you is up to you:
   and `clientArgs()`, never the violation itself.
 
 A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
+[`muster-examples/plain-java`](muster-examples/plain-java) is a complete application on the module
+path.
 
 ## Performance
 
@@ -259,7 +261,7 @@ budget a change is held to.
 | `muster-core` | Rule contract, engine and plain Java API. Its only dependency is the JSpecify annotations. |
 | `muster-spring-boot-starter` | Spring Boot integration: rules around service methods and inside their transaction, problem details, messages, configuration. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
-| `muster-examples` | Compiled examples used by the documentation and the integration tests. Not published. |
+| `muster-examples` | Complete example applications, with Spring Boot and without; also the test of the published artifacts. Not published. |
 
 ## Contributing
 
