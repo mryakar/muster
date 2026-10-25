@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.engine
 
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import me.yakar.muster.spi.MessageResolver
+import me.yakar.muster.spring.MusterAutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.autoconfigure.context.MessageSourceAutoConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner

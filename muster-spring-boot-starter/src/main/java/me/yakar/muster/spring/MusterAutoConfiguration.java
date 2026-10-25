@@ -15,31 +15,20 @@
  */
 package me.yakar.muster.spring;
 
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.function.Supplier;
 import me.yakar.muster.Muster;
-import me.yakar.muster.rule.Rule;
 import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.Settings;
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
-import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.ObjectProvider;
+import me.yakar.muster.spring.internal.engine.EngineConfiguration;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -120,70 +109,10 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
-@Import(AdviceConfiguration.class)
+@Import({EngineConfiguration.class, AdviceConfiguration.class})
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
-
-  @Bean
-  static RuleScanner musterRuleScanner() {
-    return new RuleScanner();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  Muster muster(
-      ConfigurableListableBeanFactory beanFactory,
-      Environment environment,
-      ObjectProvider<SecurityCaller> securityCaller) {
-    var ruleBeans = RuleCatalog.ruleBeans(beanFactory);
-    var ruleClasses = RuleCatalog.classes(ruleBeans);
-    var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
-    Supplier<? extends @Nullable Principal> noCaller = () -> null;
-    return Muster.builder()
-        .rules(
-            ruleClass -> RuleCatalog.instance(beanFactory, ruleBeans.get(ruleClass), ruleClass),
-            ruleClasses)
-        .disable(Settings.disabled(environment, ids.toList()).toArray(String[]::new))
-        .mode(Settings.mode(environment))
-        .caller(
-            MusterAutoConfiguration.<Supplier<? extends @Nullable Principal>>supplier(
-                    beanFactory, Principal.class)
-                .getIfAvailable(
-                    () -> {
-                      var security = securityCaller.getIfAvailable();
-                      return security == null ? noCaller : security::current;
-                    }))
-        .locale(locale(beanFactory))
-        .build();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  MessageResolver musterMessageResolver(ApplicationContext context) {
-    // The context resolves messages through the message source of the application.
-    return MessageResolver.ofTemplates(new MessageSourceTemplates(context));
-  }
-
-  /**
-   * Returns where rules, and the messages of their violations, learn the locale of a call: a {@code
-   * Supplier<Locale>} bean of the application, or {@link LocaleContextHolder}.
-   */
-  static Supplier<Locale> locale(ConfigurableListableBeanFactory beanFactory) {
-    return MusterAutoConfiguration.<Supplier<Locale>>supplier(beanFactory, Locale.class)
-        .getIfAvailable(() -> LocaleContextHolder::getLocale);
-  }
-
-  /**
-   * Looks up a {@code Supplier} of exactly the given type. Unlike an injected {@code
-   * ObjectProvider}, the lookup does not fall back to a raw {@code Supplier} or a {@code
-   * Supplier<?>}, which supplies something else.
-   */
-  private static <T> ObjectProvider<T> supplier(
-      ConfigurableListableBeanFactory beanFactory, Class<?> suppliedType) {
-    return beanFactory.getBeanProvider(
-        ResolvableType.forClassWithGenerics(Supplier.class, suppliedType));
-  }
 
   /** Answers violations with problem details in a Spring MVC application. */
   @Configuration(proxyBeanMethods = false)
@@ -202,20 +131,7 @@ public final class MusterAutoConfiguration {
         ConfigurableListableBeanFactory beanFactory,
         Environment environment) {
       return new ViolationExceptionHandler(
-          messages, locale(beanFactory), Settings.mixedStatus(environment));
-    }
-  }
-
-  /** Reads the caller from Spring Security when the application has it. */
-  @Configuration(proxyBeanMethods = false)
-  @ConditionalOnClass(name = "org.springframework.security.core.context.SecurityContextHolder")
-  static class SecurityConfiguration {
-
-    @Bean
-    SecurityCaller musterSecurityCaller(ObjectProvider<SecurityContextHolderStrategy> strategy) {
-      var own = strategy.getIfAvailable();
-      return new SecurityCaller(
-          own == null ? SecurityContextHolder::getContextHolderStrategy : () -> own);
+          messages, EngineConfiguration.locale(beanFactory), Settings.mixedStatus(environment));
     }
   }
 }
