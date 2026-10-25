@@ -40,7 +40,7 @@ dependencies {
   // Optional: rules run inside the transaction when the application has Spring's transactions.
   compileOnly("org.springframework:spring-tx")
   // Optional: violations become problem details in a Spring MVC application.
-  compileOnly("org.springframework:spring-webmvc")
+  compileOnly("org.springframework:spring-web")
   // Annotations that keep problem details whole whatever the JSON settings; Jackson reads them.
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 }
