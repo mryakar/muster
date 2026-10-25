@@ -17,6 +17,7 @@ package me.yakar.muster
 
 import static me.yakar.muster.Concurrency.concurrently
 
+import groovy.transform.InheritConstructors
 import java.util.logging.Level
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.RequiresRule
@@ -46,90 +47,61 @@ class BindingSpec extends EngineSpecification {
   }
 
   @Rule(id = 'fields.listed')
-  static class FieldsListed extends Noted<EngineSpecification.VehicleFields> {
-    FieldsListed(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsListed extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'fields.bound')
-  static class FieldsBound extends Noted<EngineSpecification.VehicleFields> {
-    FieldsBound(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsBound extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'fields.base')
-  static class FieldsBase extends Noted<EngineSpecification.VehicleFields> {
-    FieldsBase(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsBase extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'fields.needs-base')
   @RequiresRule(FieldsBase)
-  static class FieldsNeedsBase extends Noted<EngineSpecification.VehicleFields> {
-    FieldsNeedsBase(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsNeedsBase extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'fields.top')
   @RequiresRule(FieldsNeedsBase)
-  static class FieldsTop extends Noted<EngineSpecification.VehicleFields> {
-    FieldsTop(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsTop extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'fields.diamond')
   @RequiresRule([FieldsNeedsBase, FieldsTop])
-  static class FieldsDiamond extends Noted<EngineSpecification.VehicleFields> {
-    FieldsDiamond(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class FieldsDiamond extends Noted<EngineSpecification.VehicleFields> {}
 
   @Rule(id = 'identified.bound')
-  static class IdentifiedBound extends Noted<EngineSpecification.Identified> {
-    IdentifiedBound(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class IdentifiedBound extends Noted<EngineSpecification.Identified> {}
 
   @Rule(id = 'long.listed')
-  static class LongListed extends Noted<Long> {
-    LongListed(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class LongListed extends Noted<Long> {}
 
   @Rule(id = 'long.bound')
-  static class LongBound extends Noted<Long> {
-    LongBound(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class LongBound extends Noted<Long> {}
 
   @Rule(id = 'long.base')
-  static class LongBase extends Noted<Long> {
-    LongBase(List<String> ran) {
-      super(ran)
-    }
-  }
+  @InheritConstructors
+  static class LongBase extends Noted<Long> {}
 
   @Rule(id = 'long.needs-base')
   @RequiresRule(LongBase)
-  static class LongNeedsBase extends Noted<Long> {
-    LongNeedsBase(List<String> ran) {
-      super(ran)
-    }
+  @InheritConstructors
+  static class LongNeedsBase extends Noted<Long> {}
+
+  Muster.Builder builder(Class<?>... ruleClasses) {
+    Muster.builder().rules({
+      it.getDeclaredConstructor(List).newInstance(ran)
+    }, *ruleClasses)
   }
 
   Muster muster(Class<?>... ruleClasses) {
-    Muster.builder().rules({
-      it.getDeclaredConstructor(List).newInstance(ran)
-    }, *ruleClasses).build()
+    builder(ruleClasses).build()
   }
 
   def 'a binding runs the listed rules, then the rules that bind by type to the class of the input'() {
@@ -252,9 +224,7 @@ class BindingSpec extends EngineSpecification {
 
   def 'a disabled listed rule may require an excluded rule'() {
     given:
-    def muster = Muster.builder().rules({
-      it.getDeclaredConstructor(List).newInstance(ran)
-    }, FieldsBase, FieldsNeedsBase, FieldsListed).disable('fields.needs-base').build()
+    def muster = builder(FieldsBase, FieldsNeedsBase, FieldsListed).disable('fields.needs-base').build()
 
     when:
     muster.binding(VehicleFields).rules(FieldsNeedsBase, FieldsListed).exclude(FieldsBase).build().check(VALID)
@@ -265,9 +235,7 @@ class BindingSpec extends EngineSpecification {
 
   def 'a binding leaves out disabled rules, listed or bound by type'() {
     given:
-    def muster = Muster.builder().rules({
-      it.getDeclaredConstructor(List).newInstance(ran)
-    }, FieldsListed, FieldsBound, FieldsBase).disable('fields.listed', 'fields.bound').build()
+    def muster = builder(FieldsListed, FieldsBound, FieldsBase).disable('fields.listed', 'fields.bound').build()
 
     when:
     muster.binding(VehicleFields).rules(FieldsListed).build().check(VALID)
