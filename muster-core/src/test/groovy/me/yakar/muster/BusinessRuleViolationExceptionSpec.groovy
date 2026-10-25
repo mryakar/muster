@@ -17,12 +17,18 @@ package me.yakar.muster
 
 import java.io.InvalidObjectException
 
+import me.yakar.muster.rule.Category
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.Violation
 import spock.lang.Shared
 import spock.lang.Specification
 
 class BusinessRuleViolationExceptionSpec extends Specification {
+
+  static final List<Violation> WITHOUT_ARGUMENTS = [
+    RuleContext.forRule('vehicle.name-unique').violation().build(),
+    RuleContext.forRule('vehicle.owner-only').violation().category(Category.NOT_FOUND).build()
+  ]
 
   @Shared
   Violation owner
@@ -123,6 +129,28 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     ]
     copy.violations().every { it.internalArgs().isEmpty() }
     copy.stackTrace.length == 0
+  }
+
+  def 'an exception with violations without arguments #how'() {
+    given:
+    def empty = WITHOUT_ARGUMENTS[0].clientArgs()
+
+    when:
+    def copy = copied()
+
+    then:
+    copy.violations() == WITHOUT_ARGUMENTS
+    copy.violations()*.clientArgs().every { it.is(empty) }
+    copy.violations()*.internalArgs().every { it.is(empty) }
+
+    where:
+    how                       | copied
+    'reads as 0.1.0 wrote it' | {
+      Serialization.read(BusinessRuleViolationExceptionSpec.getResourceAsStream('exception-with-violations-without-arguments-0.1.0.ser').bytes)
+    }
+    'round trips'             | {
+      Serialization.roundTrip(new BusinessRuleViolationException(WITHOUT_ARGUMENTS))
+    }
   }
 
   def 'a deserialized exception cannot have #what'() {
