@@ -21,8 +21,8 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import me.yakar.muster.internal.ResourceBundleTemplates;
-import me.yakar.muster.internal.TemplateMessageResolver;
+import me.yakar.muster.internal.message.ResourceBundleTemplates;
+import me.yakar.muster.internal.message.TemplateMessageResolver;
 import me.yakar.muster.rule.Violation;
 
 /**

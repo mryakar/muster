@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
-import me.yakar.muster.internal.PreparedRule;
+import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.internal;
+package me.yakar.muster.internal.rule;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -27,7 +27,7 @@ import me.yakar.muster.rule.BusinessRule;
 import org.jspecify.annotations.Nullable;
 
 /** Reads the input type of a rule from its class declaration. */
-public final class RuleTypes {
+final class RuleTypes {
 
   private RuleTypes() {}
 
@@ -40,7 +40,7 @@ public final class RuleTypes {
    * @return the input type
    * @throws IllegalArgumentException if the class does not name its input type
    */
-  public static Class<?> inputType(Class<?> ruleClass) {
+  static Class<?> inputType(Class<?> ruleClass) {
     var type = typeArgument(ruleClass, Map.of());
     var inputType = type == null ? null : rawClass(type);
     if (inputType == null) {

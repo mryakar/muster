@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 /**
- * Implementation details of Muster. Not part of the API: the module does not export this package,
- * and anything in it may change in any release.
+ * Message templates and the resolver built on them. Not part of the API: the module does not export
+ * this package, and anything in it may change in any release.
  */
 @NullMarked
-package me.yakar.muster.internal;
+package me.yakar.muster.internal.message;
 
 import org.jspecify.annotations.NullMarked;
