@@ -28,6 +28,5 @@ include(
   "muster-core",
   "muster-spring-boot-starter",
   "muster-bom",
-  "muster-examples",
   "muster-benchmarks",
 )

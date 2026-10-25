@@ -104,7 +104,6 @@ pitest {
   outputFormats = setOf("HTML", "XML")
   timestampedReports = false
   mutationThreshold = 95
-  failWhenNoMutations = false
 }
 
 spotless {
