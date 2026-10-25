@@ -20,22 +20,16 @@ import static java.util.Objects.requireNonNull;
 import java.lang.System.Logger.Level;
 import java.lang.invoke.MethodType;
 import java.security.Principal;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import me.yakar.muster.internal.rule.ChainPlan;
+import me.yakar.muster.internal.rule.ChainPlan.Selection;
 import me.yakar.muster.internal.rule.PreparedRule;
+import me.yakar.muster.internal.rule.RuleCatalog;
 import me.yakar.muster.internal.rule.RuleDefinition;
 import me.yakar.muster.internal.rule.RuleGraph;
 import me.yakar.muster.rule.BusinessRule;
@@ -65,31 +59,20 @@ public final class Muster {
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
-  private final Map<Class<?>, PreparedRule> rules;
-  private final Set<Class<?>> disabled;
+  private final RuleCatalog catalog;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
   private final CheckMode mode;
 
-  /**
-   * The chains for rule targets, by the class of the input. Kept here rather than in a {@link
-   * ClassValue}, which would keep the rules alive for as long as the input class, after this Muster
-   * is gone. A check reads it with {@code get}, which takes no lock; {@code computeIfAbsent} locks
-   * the bucket of a class that is not the first in it, even when the class is already bound.
-   */
-  private final ConcurrentMap<Class<?>, RuleChain<Object>> bound = new ConcurrentHashMap<>();
-
-  /** Binds a class to its rules. A field, so that a check does not create it on every call. */
-  private final Function<Class<?>, RuleChain<Object>> binder = this::bind;
+  /** The chains for rule targets, by the class of the input. */
+  private final ClassChains targets = new ClassChains(this::bind);
 
   private Muster(
-      Map<Class<?>, PreparedRule> rules,
-      Set<Class<?>> disabled,
+      RuleCatalog catalog,
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale,
       CheckMode mode) {
-    this.rules = Map.copyOf(rules);
-    this.disabled = Set.copyOf(disabled);
+    this.catalog = catalog;
     this.caller = caller;
     this.locale = locale;
     this.mode = mode;
@@ -126,18 +109,14 @@ public final class Muster {
       Class<I> inputType, Class<? extends BusinessRule<?>>... ruleClasses) {
     requireNonNull(inputType, "inputType");
     var wrapped = wrap(inputType);
-    var included = new LinkedHashMap<Class<?>, PreparedRule>();
-    var listed = new HashSet<Class<?>>();
+    var listed = new LinkedHashSet<Class<?>>();
     for (var ruleClass : ruleClasses) {
-      var rule = listedRule(ruleClass, inputType, wrapped);
-      if (!listed.add(ruleClass)) {
-        throw new IllegalArgumentException(ruleClass.getTypeName() + " is listed twice");
-      }
-      if (!disabled.contains(ruleClass)) {
-        included.put(ruleClass, rule);
-      }
+      catalog.listed(ruleClass, inputType, wrapped);
+      requireDistinct(listed, ruleClass, "listed");
     }
-    return compose(wrapped.getTypeName(), wrapped, included, List.copyOf(included.keySet()), mode);
+    var plan = ChainPlan.listed(catalog, wrapped.getTypeName(), listed);
+    plan.log();
+    return new RuleChain<>(wrapped, plan.steps(), caller, locale, mode);
   }
 
   /**
@@ -183,7 +162,7 @@ public final class Muster {
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
-    boundTo(input.getClass()).check(input);
+    targets.of(input.getClass()).check(input);
   }
 
   /**
@@ -200,53 +179,26 @@ public final class Muster {
   public void check(RuleTarget input, CheckMode mode) {
     requireNonNull(input, "input");
     requireNonNull(mode, "mode");
-    boundTo(input.getClass()).check(input, mode);
-  }
-
-  /** Returns the chain bound to a class, binding it on its first check. */
-  private RuleChain<Object> boundTo(Class<?> type) {
-    var chain = bound.get(type);
-    return chain != null ? chain : bound.computeIfAbsent(type, binder);
+    targets.of(input.getClass()).check(input, mode);
   }
 
   private RuleChain<Object> bind(Class<?> type) {
-    return bind(type, List.of(), Set.of(), mode, null);
+    return bind(type, Selection.NONE, mode);
   }
 
-  /** The JDK's own mapping from a primitive type to its wrapper; other types stay as they are. */
-  static Class<?> wrap(Class<?> type) {
-    return MethodType.methodType(type).wrap().returnType();
+  /**
+   * Binds a class to the rules a selection lists and, for a rule target, to the rules that bind to
+   * it by type.
+   */
+  RuleChain<Object> bind(Class<?> type, Selection selection, CheckMode chainMode) {
+    var plan = ChainPlan.bound(catalog, type, selection);
+    plan.log();
+    return new RuleChain<>(type, plan.steps(), caller, locale, chainMode);
   }
 
-  /** Returns a rule listed for inputs of a type, after checking that it is registered for them. */
-  PreparedRule listedRule(Class<?> ruleClass, Class<?> inputType, Class<?> wrapped) {
-    var rule = registeredRule(ruleClass);
-    var ruleInputType = rule.definition().inputType();
-    if (!ruleInputType.isAssignableFrom(wrapped)) {
-      throw new IllegalArgumentException(
-          ruleClass.getTypeName()
-              + " checks "
-              + ruleInputType.getTypeName()
-              + ", which "
-              + inputType.getTypeName()
-              + " is not");
-    }
-    return rule;
-  }
-
-  /** Returns a registered rule. */
-  PreparedRule registeredRule(Class<?> ruleClass) {
-    requireNonNull(ruleClass, "rule class");
-    var rule = rules.get(ruleClass);
-    if (rule == null) {
-      throw new IllegalArgumentException(ruleClass.getTypeName() + " is not registered");
-    }
-    return rule;
-  }
-
-  /** Whether a rule is switched off. */
-  boolean isDisabled(Class<?> ruleClass) {
-    return disabled.contains(ruleClass);
+  /** The rules registered with this Muster. */
+  RuleCatalog catalog() {
+    return catalog;
   }
 
   /** The mode of this Muster. */
@@ -254,135 +206,16 @@ public final class Muster {
     return mode;
   }
 
-  /**
-   * Returns an excluded rule that a rule requires, directly or through other rules, or {@code null}
-   * if it requires none.
-   */
-  @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
-    return excluded.isEmpty() ? null : excludedRequirement(ruleClass, excluded, new HashSet<>());
+  /** The JDK's own mapping from a primitive type to its wrapper; other types stay as they are. */
+  static Class<?> wrap(Class<?> type) {
+    return MethodType.methodType(type).wrap().returnType();
   }
 
-  /** Searches each required rule once, so that rules required along many paths cost no more. */
-  private @Nullable Class<?> excludedRequirement(
-      Class<?> ruleClass, Set<Class<?>> excluded, Set<Class<?>> searched) {
-    for (var required : rules.get(ruleClass).definition().requires()) {
-      if (excluded.contains(required)) {
-        return required;
-      }
-      if (searched.add(required)) {
-        var further = excludedRequirement(required, excluded, searched);
-        if (further != null) {
-          return further;
-        }
-      }
+  /** Adds a rule class to those seen so far, and rejects it if it is among them already. */
+  static void requireDistinct(Set<Class<?>> seen, Class<?> ruleClass, String listing) {
+    if (!seen.add(requireNonNull(ruleClass, "rule class"))) {
+      throw new IllegalArgumentException(ruleClass.getTypeName() + " is " + listing + " twice");
     }
-    return null;
-  }
-
-  /**
-   * Binds a class to the given listed rules and, for a rule target, to the rules that bind to it by
-   * type, leaving out the excluded rules and the rules that require them. A {@code name} names the
-   * binding in the logs.
-   */
-  RuleChain<Object> bind(
-      Class<?> type,
-      List<Class<?>> listed,
-      Set<Class<?>> excluded,
-      CheckMode chainMode,
-      @Nullable String name) {
-    var label =
-        name == null || name.equals(type.getTypeName())
-            ? type.getTypeName()
-            : name + " (" + type.getTypeName() + ")";
-    var included = new LinkedHashMap<Class<?>, PreparedRule>();
-    for (var ruleClass : listed) {
-      if (!disabled.contains(ruleClass)) {
-        included.put(ruleClass, rules.get(ruleClass));
-      }
-    }
-    var listedOrder = List.copyOf(included.keySet());
-    if (RuleTarget.class.isAssignableFrom(type)) {
-      var byType = new ArrayList<PreparedRule>();
-      rules.forEach(
-          (ruleClass, rule) -> {
-            if (!disabled.contains(ruleClass)
-                && !excluded.contains(ruleClass)
-                && !included.containsKey(ruleClass)
-                && rule.definition().inputType().isAssignableFrom(type)) {
-              byType.add(rule);
-            }
-          });
-      var leftOut = new ArrayList<String>();
-      for (var rule : byType) {
-        var blocking = excludedRequirement(rule.definition().ruleClass(), excluded);
-        if (blocking == null) {
-          included.put(rule.definition().ruleClass(), rule);
-        } else {
-          leftOut.add("'" + rule.id() + "' requires '" + rules.get(blocking).id() + "'");
-        }
-      }
-      if (!leftOut.isEmpty()) {
-        LOGGER.log(
-            Level.INFO,
-            "The chain for "
-                + label
-                + " leaves out rules that require excluded rules: "
-                + leftOut.stream().sorted().collect(Collectors.joining("; ")));
-      }
-    }
-    RuleChain<Object> chain = compose(label, type, included, listedOrder, chainMode);
-    if (included.isEmpty()) {
-      LOGGER.log(
-          Level.WARNING,
-          "No rule binds to "
-              + label
-              + "; check that its rules are registered, enabled and accept it");
-    } else {
-      LOGGER.log(Level.DEBUG, () -> "Rules bound to " + label + ": " + chain.ruleIds());
-    }
-    return chain;
-  }
-
-  /**
-   * Adds the rules that the included ones require and orders them all; {@code listed} gives the
-   * order of the rules the caller listed, if any, and {@code description} names the chain in logs.
-   */
-  private <I> RuleChain<I> compose(
-      String description,
-      Class<?> inputType,
-      Map<Class<?>, PreparedRule> included,
-      List<Class<?>> listed,
-      CheckMode chainMode) {
-    var pending = new ArrayDeque<>(included.values());
-    while (!pending.isEmpty()) {
-      var rule = pending.removeFirst();
-      for (var requiredClass : rule.definition().requires()) {
-        if (!included.containsKey(requiredClass)) {
-          var required = rules.get(requiredClass);
-          included.put(requiredClass, required);
-          pending.addLast(required);
-          LOGGER.log(
-              Level.INFO,
-              "The chain for "
-                  + description
-                  + " includes rule '"
-                  + required.id()
-                  + "' because '"
-                  + rule.id()
-                  + "' requires it");
-        }
-      }
-    }
-    var ordered =
-        RuleGraph.order(included.values().stream().map(PreparedRule::definition).toList(), listed);
-    var positions = new HashMap<Class<?>, Integer>();
-    var steps = new ArrayList<RuleChain.Step>();
-    for (var definition : ordered) {
-      var requires = definition.requires().stream().mapToInt(positions::get).toArray();
-      positions.put(definition.ruleClass(), steps.size());
-      steps.add(new RuleChain.Step(included.get(definition.ruleClass()), requires));
-    }
-    return new RuleChain<>(inputType, steps, caller, locale, chainMode);
   }
 
   /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */
@@ -568,7 +401,7 @@ public final class Muster {
       for (var id : disabled) {
         LOGGER.log(Level.WARNING, "Rule '" + id + "' is disabled");
       }
-      return new Muster(rules, disabledClasses, caller, locale, mode);
+      return new Muster(new RuleCatalog(rules, disabledClasses), caller, locale, mode);
     }
 
     /** A registered rule class and where its instance comes from. */

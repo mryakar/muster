@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
-import me.yakar.muster.internal.rule.PreparedRule;
+import me.yakar.muster.internal.rule.Step;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
@@ -193,12 +193,4 @@ public final class RuleChain<I> {
     }
     return true;
   }
-
-  /**
-   * A rule in a chain.
-   *
-   * @param rule the rule
-   * @param requires the positions in the chain of the rules it requires, all before its own
-   */
-  record Step(PreparedRule rule, int[] requires) {}
 }

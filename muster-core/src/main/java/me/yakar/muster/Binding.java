@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
+import me.yakar.muster.internal.rule.ChainPlan.Selection;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
 import org.jspecify.annotations.Nullable;
@@ -51,33 +49,20 @@ public final class Binding<I> {
 
   private final Muster muster;
   private final Class<?> inputType;
-  private final List<Class<?>> listed;
-  private final Set<Class<?>> excluded;
+  private final Selection selection;
   private final CheckMode mode;
-  private final String name;
 
   /** The chain of the only class an input of a final type can have, or {@code null}. */
   private final @Nullable RuleChain<Object> only;
 
-  /** The chains of the classes checked so far, read with {@code get}, which takes no lock. */
-  private final ConcurrentMap<Class<?>, RuleChain<Object>> bound = new ConcurrentHashMap<>();
+  /** The chains of the classes checked so far, for a type that is not final. */
+  private final ClassChains chains = new ClassChains(this::bind);
 
-  /** Binds a class to its rules. A field, so that a check does not create it on every call. */
-  private final Function<Class<?>, RuleChain<Object>> binder = this::bind;
-
-  private Binding(
-      Muster muster,
-      Class<?> inputType,
-      List<Class<?>> listed,
-      Set<Class<?>> excluded,
-      CheckMode mode,
-      String name) {
+  private Binding(Muster muster, Class<?> inputType, Selection selection, CheckMode mode) {
     this.muster = muster;
     this.inputType = inputType;
-    this.listed = listed;
-    this.excluded = excluded;
+    this.selection = selection;
     this.mode = mode;
-    this.name = name;
     this.only = Modifier.isFinal(inputType.getModifiers()) ? bind(inputType) : null;
   }
 
@@ -103,11 +88,7 @@ public final class Binding<I> {
     }
     var chain = only;
     if (chain == null) {
-      var type = input.getClass();
-      chain = bound.get(type);
-      if (chain == null) {
-        chain = bound.computeIfAbsent(type, binder);
-      }
+      chain = chains.of(input.getClass());
     }
     chain.check(input);
   }
@@ -129,24 +110,25 @@ public final class Binding<I> {
    */
   @Override
   public String toString() {
+    var catalog = muster.catalog();
     return "Binding[name="
-        + name
+        + selection.name()
         + ", input="
         + inputType.getTypeName()
         + ", mode="
         + mode
         + ", rules="
-        + listed.stream().map(ruleClass -> muster.registeredRule(ruleClass).id()).toList()
+        + selection.listed().stream().map(ruleClass -> catalog.registered(ruleClass).id()).toList()
         + ", excluded="
-        + excluded.stream()
-            .map(ruleClass -> muster.registeredRule(ruleClass).id())
+        + selection.excluded().stream()
+            .map(ruleClass -> catalog.registered(ruleClass).id())
             .sorted()
             .toList()
         + "]";
   }
 
   private RuleChain<Object> bind(Class<?> type) {
-    return muster.bind(type, listed, excluded, mode, name);
+    return muster.bind(type, selection, mode);
   }
 
   /**
@@ -180,9 +162,7 @@ public final class Binding<I> {
     @SafeVarargs
     public final Builder<I> rules(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        if (!listed.add(requireNonNull(ruleClass, "rule class"))) {
-          throw new IllegalArgumentException(ruleClass.getTypeName() + " is listed twice");
-        }
+        Muster.requireDistinct(listed, ruleClass, "listed");
       }
       return this;
     }
@@ -199,9 +179,7 @@ public final class Binding<I> {
     @SafeVarargs
     public final Builder<I> exclude(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        if (!excluded.add(requireNonNull(ruleClass, "rule class"))) {
-          throw new IllegalArgumentException(ruleClass.getTypeName() + " is excluded twice");
-        }
+        Muster.requireDistinct(excluded, ruleClass, "excluded");
       }
       return this;
     }
@@ -245,12 +223,13 @@ public final class Binding<I> {
      *     rule requires an excluded rule, directly or through other rules
      */
     public Binding<I> build() {
+      var catalog = muster.catalog();
       var wrapped = Muster.wrap(inputType);
       for (var ruleClass : listed) {
-        muster.listedRule(ruleClass, inputType, wrapped);
+        catalog.listed(ruleClass, inputType, wrapped);
       }
       for (var ruleClass : excluded) {
-        muster.registeredRule(ruleClass);
+        catalog.registered(ruleClass);
         if (listed.contains(ruleClass)) {
           throw new IllegalArgumentException(
               ruleClass.getTypeName() + " is both listed and excluded");
@@ -258,16 +237,16 @@ public final class Binding<I> {
       }
       var problems = new ArrayList<String>();
       for (var ruleClass : listed) {
-        if (muster.isDisabled(ruleClass)) {
+        if (catalog.isDisabled(ruleClass)) {
           continue;
         }
-        var required = muster.excludedRequirement(ruleClass, excluded);
+        var required = catalog.excludedRequirement(ruleClass, excluded);
         if (required != null) {
           problems.add(
               "'"
-                  + muster.registeredRule(ruleClass).id()
+                  + catalog.registered(ruleClass).id()
                   + "' requires '"
-                  + muster.registeredRule(required).id()
+                  + catalog.registered(required).id()
                   + "'");
         }
       }
@@ -280,10 +259,11 @@ public final class Binding<I> {
       return new Binding<>(
           muster,
           wrapped,
-          List.copyOf(listed),
-          Set.copyOf(excluded),
-          mode == null ? muster.mode() : mode,
-          name == null ? wrapped.getTypeName() : name);
+          new Selection(
+              List.copyOf(listed),
+              Set.copyOf(excluded),
+              name == null ? wrapped.getTypeName() : name),
+          mode == null ? muster.mode() : mode);
     }
   }
 }
