@@ -59,12 +59,10 @@ Maven:
 </dependencies>
 ```
 
-The starter needs Spring Boot 4.0.8 or later. The core is a Java module: an application that is a
-module too reads it with `requires me.yakar.muster;`. From 0.2.0 on, each
-[release](https://github.com/mryakar/muster/releases) also carries the jars and POMs, their
-signatures and SBOMs; those of 0.1.0, which has the core only, are on Maven Central only.
-[SECURITY.md](SECURITY.md#verifying-a-release) says how to verify them. Used without Maven or
-Gradle, the core also needs `org.jspecify:jspecify` to compile.
+Muster needs Java 21 or later, and the starter Spring Boot 4.0.8 or later. The core is the Java
+module `me.yakar.muster`; used without Maven or Gradle, it also needs `org.jspecify:jspecify` to
+compile. Releases are signed; [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify
+them.
 
 ## Usage with Spring Boot
 
@@ -238,11 +236,6 @@ What the starter does for you is up to you:
 - **HTTP:** map `Violation.category()` to a status yourself, as the starter does: 403 for
   `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 otherwise. Send the code, the message
   and `clientArgs()`, never the violation itself.
-- **Requirements across types:** a rule that only some inputs need can still be required. To check
-  that a vehicle exists before its name is compared, give `VehicleExists` the same input type as
-  `VehicleNameUnique`, `VehicleFields`, and let it pass for inputs without an id, such as
-  `CreateVehicle`, while it looks up those that have one, such as an `UpdateVehicle` that also
-  implements an interface with `id()`. `VehicleNameUnique` requires it.
 
 A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
 
@@ -250,16 +243,13 @@ A rule that needs the time takes a `Clock` in its constructor, so that its tests
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 370 ns and muster.check(target) 388 ns, against 264 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules, for RuleChain.check, muster.check(target) and the same rules called by hand." src="docs/benchmarks/check-cost-light.svg">
 </picture>
 
 Muster checks and orders the rules of a chain once, when the chain is created, and does no
-reflection while it checks. A passing `RuleChain.check` costs about 12 ns more than calling the
-same rules by hand; with 20 rules it adds about 110 ns, most of it the 24-byte context each rule
-receives. A check that fails throws an exception without a stack trace and takes 0.3 to 0.9 µs,
-depending on the mode and the violations. The Spring Boot starter adds about 120 ns to a call of an
-advised service method, most of it the cost of a Spring AOP proxy. The numbers come from JMH on a
-2013 laptop CPU; [the benchmarks](docs/benchmarks/README.md) give the method, every result and the
+reflection while it checks. A passing check of 20 rules adds about 110 ns to calling them by hand,
+and the Spring Boot starter about 120 ns to a call of an advised service method.
+[The benchmarks](docs/benchmarks/README.md) give the machine, the method, every result and the
 budget a change is held to.
 
 ## Modules
@@ -270,31 +260,11 @@ budget a change is held to.
 | `muster-spring-boot-starter` | Spring Boot integration: rules around service methods and inside their transaction, problem details, messages, configuration. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Compiled examples used by the documentation and the integration tests. Not published. |
-| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call. Not published. |
-
-## Requirements
-
-- Java 21 or later
-- Spring Boot 4.0.8 or later for the starter
-
-## Building
-
-```bash
-./gradlew build
-```
-
-The build checks formatting, runs unit and integration tests and verifies coverage. Integration
-tests start PostgreSQL with Testcontainers, so they need a running Docker daemon. Mutation testing
-runs separately:
-
-```bash
-./gradlew pitest
-```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues as described in
-[SECURITY.md](SECURITY.md).
+[CONTRIBUTING.md](CONTRIBUTING.md) says how to build and test Muster. Report security issues as
+described in [SECURITY.md](SECURITY.md).
 
 ## License
 
