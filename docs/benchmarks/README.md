@@ -27,8 +27,8 @@ Most of what a rule adds is the context it receives: each rule gets its own, 24 
 carries the rule's id. For a passing check the memory figures are exact; the JIT does not vary them.
 
 Most of what the starter costs is Spring AOP's own: a proxy whose advice does nothing, measured
-the same way, takes about 85 ns, and the 96 bytes are the method invocation that Spring creates for
-each call. The starter's advice itself looks up the method's rules in two maps and allocates
+the same way, takes about 85 ns, and the 96 bytes are what Spring AOP allocates for each call: the
+array of arguments, a cache key and the method invocation. The starter's advice itself looks up the method's rules in two maps and allocates
 nothing.
 
 The numbers hold for the machine described below. A faster machine gives smaller numbers; a change
@@ -76,7 +76,7 @@ run to run, so the benchmark measures both positions. The eight threads share fo
 takes about twice as long as from a single thread, which checks a target with one rule in 23.1 ns.
 
 A `@Service` method that takes a rule target, checked through the Spring Boot starter's advice,
-against a bean that calls the same binding by hand before it does its work:
+against a plain class that calls the same binding by hand before it does its work:
 
 | Rules | By hand (baseline) | Through the starter |
 |---|---|---|
@@ -86,12 +86,13 @@ against a bean that calls the same binding by hand before it does its work:
 
 There is no transaction, so that the numbers show Muster.
 
-Now and then a fork's JIT compiles a loop over the rule classes into slower code, by hand as well
-as in Muster. In this run, five of the 140 forks ended more than 10% from the median of their
-benchmark, and the ranges above leave them out: `RuleChain.check` with 5 rules (117.7 ns),
-`muster.check(target)` with 20 rules (420.5 ns), and in a mode given for the check with none
-(23.5 ns), the single-rule baseline of the starter benchmark (34.2 ns), and the first bucket of the
-multi-threaded benchmark (45.4 ns). The median of five forks keeps such a fork from deciding the
+Now and then a fork settles on slower compiled code than the others, by hand as well as in Muster;
+a loop over twenty rule classes does so most clearly. In this run, five of the 140 forks ended
+more than 10% from the median of their benchmark, and the ranges above leave them out:
+`RuleChain.check` with 5 rules (117.7 ns), `muster.check(target)` with 20 rules (420.5 ns), the
+single-rule baseline of the starter benchmark (34.2 ns), the first bucket of the multi-threaded
+benchmark (45.4 ns), and `muster.check(target, mode)`, which no table here shows, with no rules
+(23.5 ns). The median of five forks keeps such a fork from deciding the
 published number.
 
 The raw results are in [`results.json`](results.json), and the medians, ranges and the forks more
