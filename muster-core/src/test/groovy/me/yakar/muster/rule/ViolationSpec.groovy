@@ -273,6 +273,7 @@ class ViolationSpec extends Specification {
     'a rule id'                   | 'vehicle.name-taken'
     'in capitals with underscores'| 'VEHICLE_NAME_TAKEN'
     'outside the basic plane'     | 'name\uD83D\uDE9Ataken'
+    'with braces'                 | '{vehicle.name-taken}'
   }
 
   def 'violations with the same content are equal'() {
