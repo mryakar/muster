@@ -20,9 +20,9 @@ import me.yakar.muster.rule.BusinessRule;
 /**
  * Creates the rule instances Muster checks, such as beans from a dependency injection container.
  *
- * <p>Muster calls the factory once per rule class, while it is being built, and keeps the instance.
- * The factory can be a lambda or a method reference, such as {@code injector::getInstance} or
- * {@code rules::get}.
+ * <p>A {@code Muster} calls the factory once per rule class when it is built, and keeps the
+ * instance. The factory can be a lambda or a method reference, such as {@code
+ * injector::getInstance} or {@code rules::get}.
  */
 @FunctionalInterface
 public interface RuleFactory {
