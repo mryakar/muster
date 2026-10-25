@@ -5,7 +5,7 @@
         "mode" : "avgt",
         "threads" : 8,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -265,7 +265,7 @@
         "mode" : "avgt",
         "threads" : 8,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -525,7 +525,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -843,7 +843,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -1103,7 +1103,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -1421,7 +1421,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -1739,7 +1739,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -1999,7 +1999,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -2259,7 +2259,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -2519,7 +2519,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -2779,7 +2779,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -3097,7 +3097,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -3357,7 +3357,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -3675,7 +3675,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -3993,7 +3993,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -4311,7 +4311,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -4571,7 +4571,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -4889,7 +4889,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -5207,7 +5207,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -5525,7 +5525,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -5843,7 +5843,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -6161,7 +6161,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -6479,7 +6479,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -6797,7 +6797,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -7115,7 +7115,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -7434,7 +7434,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -7753,7 +7753,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
@@ -8072,7 +8072,7 @@
         "mode" : "avgt",
         "threads" : 1,
         "forks" : 5,
-        "jvm" : "/home/amo/.sdkman/candidates/java/21.0.11-amzn/bin/java",
+        "jvm" : "java",
         "jvmArgs" : [
             "-Dfile.encoding=UTF-8",
             "-Duser.country=US",
