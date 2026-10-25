@@ -23,20 +23,20 @@ import me.yakar.muster.rule.RuleContext;
  * from. Every component is immutable, so chains share a prepared rule across threads.
  *
  * @param definition the definition
- * @param rule the instance; it accepts inputs of the {@linkplain RuleDefinition#inputType() input
- *     type} only
+ * @param instance the instance; it accepts inputs of the {@linkplain RuleDefinition#inputType()
+ *     input type} only
  * @param context the rule's context with no caller and the root locale; its id is checked once,
  *     here, rather than on every call
  */
 public record PreparedRule(
-    RuleDefinition definition, BusinessRule<Object> rule, RuleContext context) {
+    RuleDefinition definition, BusinessRule<Object> instance, RuleContext context) {
 
   /**
    * Checks that the context is the rule's own and has no caller: every call derives its context
    * from it, and checks violations against the rule's id.
    *
    * @param definition the definition
-   * @param rule the instance
+   * @param instance the instance
    * @param context the rule's context
    * @throws IllegalArgumentException if the context is of another rule or has a caller
    */

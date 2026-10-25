@@ -146,7 +146,7 @@ public final class RuleChain<I> {
         context.caller(callCaller);
       }
       var ctx = context.build();
-      if (!rule.rule().appliesTo(ctx)) {
+      if (!rule.instance().appliesTo(ctx)) {
         continue;
       }
       var violations = violationsOf(rule, input, ctx);
@@ -168,7 +168,7 @@ public final class RuleChain<I> {
   /** Runs a rule and returns its violations, or {@code null} if it passed. */
   private static @Nullable List<Violation> violationsOf(
       PreparedRule rule, Object input, RuleContext ctx) {
-    var result = rule.rule().check(input, ctx);
+    var result = rule.instance().check(input, ctx);
     if (result == null) {
       throw new NullPointerException("rule '" + rule.id() + "' returned null");
     }
