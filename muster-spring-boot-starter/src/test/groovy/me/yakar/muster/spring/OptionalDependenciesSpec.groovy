@@ -16,34 +16,51 @@
 package me.yakar.muster.spring
 
 import java.lang.reflect.Executable
+import me.yakar.muster.spring.internal.Settings
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration
 import me.yakar.muster.spring.internal.engine.EngineConfiguration
+import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import spock.lang.Specification
 
 /**
- * The starter's optional dependencies, Spring's transactions and Spring Security, may be absent from
- * an application. Spring introspects a bean's class, so the classes it creates without them must
- * not name their types in a field, a constructor or a method; the tests run with both on the class
- * path, so only the signatures can show it.
+ * The starter's optional dependencies, Spring's transactions, Spring Security and Spring Web, may be
+ * absent from an application. Spring introspects a bean's class, so the classes it creates without
+ * one of them must not name its types in a field, a constructor or a method; the tests run with all
+ * of them on the class path, so only the signatures can show it.
  */
 class OptionalDependenciesSpec extends Specification {
 
-  def '#type names no type of #dependency, which the application may not have'() {
+  static final String TRANSACTION = 'org.springframework.transaction'
+  static final String SECURITY = 'org.springframework.security'
+  static final String WEB = 'org.springframework.web'
+
+  /** The classes that the starter creates, or Spring reads, without any optional dependency. */
+  static final List<Class<?>> WITHOUT_ANY = [
+    MusterAutoConfiguration,
+    Rules,
+    Settings,
+    EngineConfiguration,
+    classOf('internal.engine.RuleBeans'),
+    classOf('internal.engine.RuleScanner'),
+    classOf('internal.engine.MessageSourceTemplates'),
+    classOf('internal.engine.OwnMusterCheck'),
+    AdviceConfiguration,
+    classOf('internal.advice.RulesInterceptor'),
+    classOf('internal.advice.MethodAdvice'),
+    classOf('internal.advice.RulesAdvisor'),
+    classOf('internal.advice.AdvisedMethods'),
+    classOf('internal.advice.ProxyCreatorRegistrar'),
+    classOf('internal.advice.TransactionGuard$Resolved')
+  ]
+
+  def '#type.name names no type of #dependency, which the application may not have'() {
     expect:
     names(type).findAll { it.startsWith(dependency) }.empty
 
     where:
-    type                                                          | dependency
-    AdviceConfiguration                                           | 'org.springframework.transaction'
-    classOf('internal.advice.RulesInterceptor')                   | 'org.springframework.transaction'
-    classOf('internal.advice.MethodAdvice')                       | 'org.springframework.transaction'
-    classOf('internal.advice.RulesAdvisor')                       | 'org.springframework.transaction'
-    classOf('internal.advice.AdvisedMethods')                     | 'org.springframework.transaction'
-    classOf('internal.advice.ProxyCreatorRegistrar')              | 'org.springframework.transaction'
-    EngineConfiguration                                           | 'org.springframework.security'
-    classOf('internal.engine.RuleBeans')                        | 'org.springframework.security'
-    classOf('internal.engine.RuleScanner')                        | 'org.springframework.security'
-    classOf('internal.engine.SecurityCaller')                     | 'org.springframework.transaction'
+    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB]].combinations() +
+    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB]].combinations() +
+    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY]].combinations()
   }
 
   private static Class<?> classOf(String name) {
