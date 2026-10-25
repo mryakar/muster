@@ -25,8 +25,8 @@ final class Concurrency {
 
   /**
    * Runs the task on each of the threads, given the index of the thread, once all of them are
-   * ready, and returns what each returned. A thread that takes longer than a minute fails the test,
-   * as a deadlock would.
+   * ready, and returns what each returned. A run that takes longer than a minute in all fails the
+   * test, as a deadlock would.
    */
   static <T> List<T> concurrently(int threads = 16, Closure<T> task) {
     def ready = new CountDownLatch(threads)
@@ -40,9 +40,10 @@ final class Concurrency {
           task(index)
         } as Callable<T>)
       }
-      assert ready.await(1, TimeUnit.MINUTES)
+      def deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(1)
+      assert ready.await(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)
       start.countDown()
-      futures.collect { it.get(1, TimeUnit.MINUTES) }
+      futures.collect { it.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS) }
     } finally {
       pool.shutdownNow()
     }
