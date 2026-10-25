@@ -5,10 +5,11 @@
 Business rules for layered Java applications, checked before your service method runs — inside the
 transaction, outside your service code.
 
-> [!NOTE]
-> Muster is in early development and the API will change until 1.0.0. See the
-> [roadmap](ROADMAP.md). The latest release is 0.1.0, with the core only; this page describes
-> 0.2.0, which adds the Spring Boot starter.
+## Status
+
+Muster is in early development, and its API will change until 1.0.0. The latest release is 0.1.0,
+with the core only; this page describes 0.2.0, which adds the Spring Boot starter. The
+[roadmap](ROADMAP.md) says what follows.
 
 ## Why
 
