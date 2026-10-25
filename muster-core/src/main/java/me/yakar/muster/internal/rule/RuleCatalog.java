@@ -126,13 +126,16 @@ public final class RuleCatalog {
 
   /**
    * Returns an excluded rule that a registered rule requires, directly or through other rules, or
-   * {@code null} if it requires none.
+   * {@code null} if it requires none. With nothing excluded, it searches nothing.
    *
    * @param ruleClass the rule class
    * @param excluded the classes of the excluded rules
    * @return the first excluded rule found, or {@code null}
    */
   public @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
+    if (excluded.isEmpty()) {
+      return null;
+    }
     return RuleGraph.firstRequired(
         rules.get(ruleClass).definition(),
         excluded::contains,
