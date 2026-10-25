@@ -102,10 +102,7 @@ class ParameterAdvice {
 
 @RestControllerAdvice
 class ListingAdvice {
-  @ExceptionHandler([
-    IllegalStateException,
-    BusinessRuleViolationException
-  ])
+  @ExceptionHandler([IllegalStateException, BusinessRuleViolationException])
   ResponseEntity<String> own(Exception e) {
     ResponseEntity.status(400).body('own')
   }

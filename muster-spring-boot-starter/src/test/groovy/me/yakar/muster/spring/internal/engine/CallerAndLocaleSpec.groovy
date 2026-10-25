@@ -215,11 +215,7 @@ class CallerAndLocaleSpec extends Specification {
     }
 
     where:
-    configuration << [
-      UnrelatedSupplier,
-      RawSupplier,
-      WildcardSupplier
-    ]
+    configuration << [UnrelatedSupplier, RawSupplier, WildcardSupplier]
   }
 
   def 'the caller comes through the SecurityContextHolderStrategy bean of the application'() {

@@ -61,12 +61,7 @@ class TransactionOrderSpec extends Specification {
     probe(sources as Class[]) == [inside: [true], transactionOrder: MOVED]
 
     where:
-    sources << [
-      [],
-      [EarlyService],
-      [EarlyTransactionAdvisor],
-      [ExplicitLowestOrder]
-    ]
+    sources << [[], [EarlyService], [EarlyTransactionAdvisor], [ExplicitLowestOrder]]
   }
 
   def 'an order the application gives the transaction advice is left alone'() {
@@ -76,9 +71,7 @@ class TransactionOrderSpec extends Specification {
 
   def 'with the reordering switched off, the application does not start'() {
     when:
-    probe([
-      'muster.transaction.reorder-advisor=false'
-    ], [] as Class[])
+    probe(['muster.transaction.reorder-advisor=false'], [] as Class[])
 
     then:
     def e = thrown(Exception)
@@ -88,9 +81,7 @@ class TransactionOrderSpec extends Specification {
 
   def 'with the reordering switched off, an order the application gives still works'() {
     expect:
-    probe([
-      'muster.transaction.reorder-advisor=false'
-    ], [UserTransactionOrder] as Class[]) == [inside: [true], transactionOrder: 0]
+    probe(['muster.transaction.reorder-advisor=false'], [UserTransactionOrder] as Class[]) == [inside: [true], transactionOrder: 0]
   }
 
   private Map<String, Object> probe(Class<?>... sources) {

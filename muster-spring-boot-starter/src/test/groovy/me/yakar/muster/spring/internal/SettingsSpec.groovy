@@ -158,20 +158,10 @@ class SettingsSpec extends Specification {
 
     where:
     keys || listed
-    [
-      'muster.rules.vehicle.name-uniqe.enabled'
-    ] || 'muster.rules.vehicle.name-uniqe.enabled'
-    [
-      'muster.rules.vehicle.name-unique.enable'
-    ] || 'muster.rules.vehicle.name-unique.enable'
-    [
-      'muster.rules.vehicle.enabled',
-      'muster.rules.vehicle.name-unique.enabled'
-    ] || 'muster.rules.vehicle.enabled'
-    [
-      'muster.rules.b.enabled',
-      'muster.rules.a.enabled'
-    ] || 'muster.rules.a.enabled, muster.rules.b.enabled'
+    ['muster.rules.vehicle.name-uniqe.enabled'] || 'muster.rules.vehicle.name-uniqe.enabled'
+    ['muster.rules.vehicle.name-unique.enable'] || 'muster.rules.vehicle.name-unique.enable'
+    ['muster.rules.vehicle.enabled', 'muster.rules.vehicle.name-unique.enabled'] || 'muster.rules.vehicle.enabled'
+    ['muster.rules.b.enabled', 'muster.rules.a.enabled'] || 'muster.rules.a.enabled, muster.rules.b.enabled'
   }
 
   def 'a key set to nothing stops the application: #property'() {
@@ -222,16 +212,8 @@ class SettingsSpec extends Specification {
     where:
     value || expected
     'fail-fast' || ['vehicle.name-capitalized']
-    'collect-all' || [
-      'vehicle.name-capitalized',
-      'vehicle.name-short',
-      'vehicle.name-unique'
-    ]
-    'COLLECT_ALL' || [
-      'vehicle.name-capitalized',
-      'vehicle.name-short',
-      'vehicle.name-unique'
-    ]
+    'collect-all' || ['vehicle.name-capitalized', 'vehicle.name-short', 'vehicle.name-unique']
+    'COLLECT_ALL' || ['vehicle.name-capitalized', 'vehicle.name-short', 'vehicle.name-unique']
   }
 
   def 'a mode that does not exist stops the application'() {
@@ -273,10 +255,7 @@ class SettingsSpec extends Specification {
     own                  | properties || keys
     OwnMuster            | ['muster.mode=collect-all'] || 'muster.mode'
     OwnMuster            | ['muster.rules=false'] || 'muster.rules'
-    OwnMusterOfOtherName | [
-      'muster.rules.vehicle.name-unique.enabled=false',
-      'muster.mode=fail-fast'
-    ] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
+    OwnMusterOfOtherName | ['muster.rules.vehicle.name-unique.enabled=false', 'muster.mode=fail-fast'] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
   }
 
   def 'with a Muster of its own, the application starts with the properties that the starter itself reads: #properties'() {
