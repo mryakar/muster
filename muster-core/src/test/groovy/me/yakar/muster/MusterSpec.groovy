@@ -223,23 +223,13 @@ class MusterSpec extends EngineSpecification {
     e.message == message
 
     where:
-    configure << [
-      { it.rules((BusinessRule) null) },
-      { it.rules((RuleFactory) null, NameUnique) },
-      { it.rules(NEVER_CALLED, (Class) null) },
-      { it.caller(null) },
-      { it.locale(null) },
-      { it.disable('task.exists', null) },
-      { it.mode(null) }
-    ]
-    message << [
-      'rule',
-      'factory',
-      'rule class',
-      'caller',
-      'locale',
-      'id',
-      'mode'
-    ]
+    message      | configure
+    'rule'       | { it.rules((BusinessRule) null) }
+    'factory'    | { it.rules((RuleFactory) null, NameUnique) }
+    'rule class' | { it.rules(NEVER_CALLED, (Class) null) }
+    'caller'     | { it.caller(null) }
+    'locale'     | { it.locale(null) }
+    'id'         | { it.disable('task.exists', null) }
+    'mode'       | { it.mode(null) }
   }
 }
