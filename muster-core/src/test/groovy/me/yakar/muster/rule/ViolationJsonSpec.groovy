@@ -56,10 +56,7 @@ class ViolationJsonSpec extends Specification {
     !json.contains('internalArgs')
 
     where:
-    [configuration, what] << [
-      CONFIGURATIONS,
-      ['violation', 'failed result']
-    ].combinations()
+    [configuration, what] << [CONFIGURATIONS, ['violation', 'failed result']].combinations()
   }
 
   def 'a default mapper does not reveal internal arguments of an exception'() {

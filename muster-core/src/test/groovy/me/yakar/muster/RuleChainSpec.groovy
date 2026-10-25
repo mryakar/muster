@@ -134,14 +134,8 @@ class RuleChainSpec extends EngineSpecification {
 
     where:
     ruleClasses || ruleIds
-    [NameUnique, CodeFormat] || [
-      'vehicle.name-unique',
-      'vehicle.code-format'
-    ]
-    [CodeFormat, NameUnique] || [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
+    [NameUnique, CodeFormat] || ['vehicle.name-unique', 'vehicle.code-format']
+    [CodeFormat, NameUnique] || ['vehicle.code-format', 'vehicle.name-unique']
   }
 
   def 'in FAIL_FAST mode, the first listed rule that is violated is reported'() {
@@ -196,10 +190,7 @@ class RuleChainSpec extends EngineSpecification {
 
     then:
     def e = thrown(BusinessRuleViolationException)
-    e.violations()*.code() == [
-      'plan.passenger-capacity',
-      'plan.parcel-capacity'
-    ]
+    e.violations()*.code() == ['plan.passenger-capacity', 'plan.parcel-capacity']
     ran.empty
   }
 
@@ -278,10 +269,7 @@ class RuleChainSpec extends EngineSpecification {
   def 'the caller and the locale are asked once at the start of every check'() {
     given:
     def callers = [amo, null]
-    def locales = [
-      Locale.forLanguageTag('tr-TR'),
-      Locale.GERMANY
-    ]
+    def locales = [Locale.forLanguageTag('tr-TR'), Locale.GERMANY]
     def asked = 0
     def chain = Muster.builder()
         .rules(new ReportsCall(), new NameUnique())
@@ -336,9 +324,7 @@ class RuleChainSpec extends EngineSpecification {
 
     then: 'no thread saw the call of another'
     calls == (0..<16).collect { n ->
-      [
-        [caller: "caller-$n".toString(), locale: "tr-${100 + n}".toString()]
-      ] as Set
+      [[caller: "caller-$n".toString(), locale: "tr-${100 + n}".toString()]] as Set
     }
   }
 

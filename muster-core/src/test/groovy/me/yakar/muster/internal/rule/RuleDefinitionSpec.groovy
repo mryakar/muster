@@ -200,10 +200,7 @@ class RuleDefinitionSpec extends Specification {
     e.message == "${ruleClass.typeName} is not annotated with @Rule; a rule cannot be a lambda or an anonymous class, it is a named class with @Rule"
 
     where:
-    ruleClass << [
-      lambda().getClass(),
-      anonymous().getClass()
-    ]
+    ruleClass << [lambda().getClass(), anonymous().getClass()]
   }
 
   def 'a subclass of a rule is told that @Rule is not inherited'() {
@@ -215,10 +212,7 @@ class RuleDefinitionSpec extends Specification {
     e.message == "${ruleClass.name} is not annotated with @Rule; @Rule is not inherited from ${NameUnique.name}"
 
     where:
-    ruleClass << [
-      SubclassOfRule,
-      SubclassOfSubclass
-    ]
+    ruleClass << [SubclassOfRule, SubclassOfSubclass]
   }
 
   def 'a rule id must have the format of rule ids'() {

@@ -330,10 +330,7 @@ class ViolationSpec extends Specification {
     copy.category() == original.category()
 
     where:
-    original << [
-      full(),
-      context.violation().internalArg('id', 42L).build()
-    ]
+    original << [full(), context.violation().internalArg('id', 42L).build()]
   }
 
   def 'a deserialized violation cannot have #what'() {

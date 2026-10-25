@@ -112,21 +112,14 @@ class BindingSpec extends EngineSpecification {
     binding.check(new CreateVehicle('TR-1', 'Atlas'))
 
     then:
-    ran == [
-      'fields.listed',
-      'fields.bound'
-    ]
+    ran == ['fields.listed', 'fields.bound']
 
     when:
     ran.clear()
     binding.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
 
     then:
-    ran == [
-      'fields.listed',
-      'fields.bound',
-      'identified.bound'
-    ]
+    ran == ['fields.listed', 'fields.bound', 'identified.bound']
   }
 
   def 'for an input that is not a rule target, a binding runs only the listed rules'() {
@@ -198,10 +191,7 @@ class BindingSpec extends EngineSpecification {
     binding.check(VALID)
 
     then:
-    ran == [
-      'fields.listed',
-      'fields.listed'
-    ]
+    ran == ['fields.listed', 'fields.listed']
     logged*.message == [
       "The chain for ${FIELDS} (${CREATE}) leaves out rules that require excluded rules: 'fields.needs-base' requires 'fields.base'; 'fields.top' requires 'fields.base'"
     ]
@@ -330,10 +320,7 @@ class BindingSpec extends EngineSpecification {
     where:
     mode || reported
     null || ['vehicle.code-format']
-    CheckMode.COLLECT_ALL || [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
+    CheckMode.COLLECT_ALL || ['vehicle.code-format', 'vehicle.name-unique']
   }
 
   def 'a binding for a final type prepares its rules when it is built, and logs them under its name'() {
@@ -443,8 +430,6 @@ class BindingSpec extends EngineSpecification {
 
     then:
     ran.size() == 32
-    logged*.message == [
-      "Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"
-    ]
+    logged*.message == ["Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"]
   }
 }
