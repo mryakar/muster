@@ -15,8 +15,9 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import me.yakar.muster.spring.MusterAutoConfiguration
-import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import me.yakar.muster.spring.fixture.transaction.TransactionProbe
 import me.yakar.muster.spring.fixture.transaction.TransactionalService
@@ -149,18 +150,17 @@ class TransactionAdviceSpec extends Specification {
   }
 
   def 'a method that requires a transaction fails when its rules run with none active'() {
-    expect:
+    when:
     runner.withUserConfiguration(TransactionsWithoutSynchronization).run { context ->
       def service = context.getBean(TransactionalService)
-      try {
-        service.required('call')
-        assert false: 'the call passed'
-      } catch (IllegalStateException e) {
-        assert e.message == 'TransactionalService.required(String) runs in a transaction, but its rules ran with none active; the transaction advice must run around Muster\'s'
-      }
-      assert TransactionProbe.IN_TRANSACTION.isEmpty()
       service.supports('call')
+      service.required('call')
     }
+
+    then: 'only the rule of the method that supports a transaction ran'
+    def e = thrown(IllegalStateException)
+    e.message == 'TransactionalService.required(String) runs in a transaction, but its rules ran with none active; the transaction advice must run around Muster\'s'
+    TransactionProbe.IN_TRANSACTION == [false]
   }
 
   def 'without transaction management nothing is guarded'() {
@@ -172,15 +172,14 @@ class TransactionAdviceSpec extends Specification {
   }
 
   def 'the guard reads the attribute source of the transaction advice, whatever other sources exist'() {
-    expect:
+    when:
     runner.withUserConfiguration(TransactionsWithoutSynchronization, SecondAttributeSource).run { context ->
-      try {
-        context.getBean(TransactionalService).required('call')
-        assert false: 'the call passed'
-      } catch (IllegalStateException e) {
-        assert e.message.startsWith('TransactionalService.required(String) runs in a transaction')
-      }
+      context.getBean(TransactionalService).required('call')
     }
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.message.startsWith('TransactionalService.required(String) runs in a transaction')
   }
 
   def 'without Spring transactions on the class path, rules still run'() {
@@ -197,7 +196,7 @@ class TransactionAdviceSpec extends Specification {
     runner.withInitializer {
       it.registerBeanDefinition('org.springframework.transaction.config.internalTransactionAspect', new RootBeanDefinition(Object))
     }.run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       'transactions are woven in with AspectJ, so they cannot run around Muster\'s advice, and rules would run outside them; use @EnableTransactionManagement in proxy mode'
     }
   }
@@ -214,26 +213,25 @@ class TransactionAdviceSpec extends Specification {
   def 'with the reordering switched off, equal orders stop the application'() {
     expect:
     runner.withUserConfiguration(Transactions).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message.startsWith(
+      assert getMostSpecificCause(context.startupFailure).message.startsWith(
       "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's")
     }
   }
 
   def 'a bean created after the start checks the order of the transaction advice when it is created'() {
-    expect:
+    when:
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
         .withUserConfiguration(LazyTransactionalService)
         .withPropertyValues('muster.transaction.reorder-advisor=false')
         .run { context ->
           assert context.startupFailure == null
-          try {
-            context.getBean('lazyService')
-            assert false: 'the bean was created'
-          } catch (Exception e) {
-            assert MusterAutoConfigurationSpec.rootCause(e).message.startsWith('the transaction advice has the order')
-          }
+          context.getBean('lazyService')
         }
+
+    then:
+    def e = thrown(Exception)
+    getMostSpecificCause(e).message.startsWith('the transaction advice has the order')
   }
 
   def 'an order set on the definition of the transaction advisor is left alone'() {
@@ -253,7 +251,7 @@ class TransactionAdviceSpec extends Specification {
   def 'the order check names how to fix it'() {
     expect:
     runner.withUserConfiguration(Transactions).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
-      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      assert getMostSpecificCause(context.startupFailure).message ==
       "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's, ${Ordered.LOWEST_PRECEDENCE}, so rules could run outside the transaction; let Muster move it, with the order of @EnableTransactionManagement at its default and muster.transaction.reorder-advisor on, or give it a lower order"
     }
   }

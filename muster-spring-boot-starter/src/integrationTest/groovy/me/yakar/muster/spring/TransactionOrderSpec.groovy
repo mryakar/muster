@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.boot.WebApplicationType
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
@@ -80,7 +82,7 @@ class TransactionOrderSpec extends Specification {
 
     then:
     def e = thrown(Exception)
-    rootCause(e).message ==
+    getMostSpecificCause(e).message ==
         "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's, ${Ordered.LOWEST_PRECEDENCE}, so rules could run outside the transaction; let Muster move it, with the order of @EnableTransactionManagement at its default and muster.transaction.reorder-advisor on, or give it a lower order"
   }
 
@@ -114,14 +116,6 @@ class TransactionOrderSpec extends Specification {
     } finally {
       context.close()
     }
-  }
-
-  static Throwable rootCause(Throwable failure) {
-    def cause = failure
-    while (cause.cause != null) {
-      cause = cause.cause
-    }
-    cause
   }
 
   static class ProbedService {

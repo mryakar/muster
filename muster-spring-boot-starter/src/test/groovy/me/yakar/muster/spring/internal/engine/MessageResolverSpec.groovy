@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.engine
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -120,10 +122,7 @@ class MessageResolverSpec extends Specification {
   def 'a message source that formats every message stops the application: #configuration'() {
     expect:
     configuration(runner).run {
-      def failure = it.startupFailure
-      while (failure.cause != null) {
-        failure = failure.cause
-      }
+      def failure = getMostSpecificCause(it.startupFailure)
       assert failure instanceof IllegalStateException
       assert failure.message == 'the message source of the application formats every message with' +
       ' MessageFormat, as spring.messages.always-use-message-format=true makes it, and MessageFormat' +

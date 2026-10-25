@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.problem
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import tools.jackson.databind.json.JsonMapper
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
@@ -175,13 +177,6 @@ class ProblemDetailsSpec extends Specification {
     ]
   }
 
-  static Throwable rootCause(Throwable failure) {
-    while (failure.cause != null) {
-      failure = failure.cause
-    }
-    failure
-  }
-
   def 'a violation becomes problem details with the status of its category'() {
     expect:
     runner.run {
@@ -275,7 +270,7 @@ class ProblemDetailsSpec extends Specification {
   def 'a mixed status that is no client error stops the application: #value'() {
     expect:
     runner.withPropertyValues("muster.problem-details.mixed-status=$value").run {
-      def failure = rootCause(it.startupFailure)
+      def failure = getMostSpecificCause(it.startupFailure)
       assert failure instanceof IllegalStateException
       assert failure.message == "muster.problem-details.mixed-status is $value; set it to a status code from 400 to 499, since a violation is an error of the client"
     }
@@ -301,7 +296,7 @@ class ProblemDetailsSpec extends Specification {
     expect:
     runner.withPropertyValues("muster.problem-details.mixed-status=$value").run {
       assert it.startupFailure != null
-      assert rootCause(it.startupFailure).message.contains(message)
+      assert getMostSpecificCause(it.startupFailure).message.contains(message)
     }
 
     where:

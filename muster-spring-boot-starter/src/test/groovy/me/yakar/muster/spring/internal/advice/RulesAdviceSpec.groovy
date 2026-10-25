@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
+
 import java.lang.reflect.Proxy
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
@@ -26,7 +28,6 @@ import java.util.logging.LogRecord
 import java.util.logging.Logger
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
-import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.advice.FinalMethod
 import me.yakar.muster.spring.fixture.advice.LazyVehicleService
 import me.yakar.muster.spring.fixture.advice.NameFree
@@ -259,7 +260,7 @@ class RulesAdviceSpec extends Specification {
         .withUserConfiguration(Rules)
         .withBean(bean)
         .run { context ->
-          assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message == message
+          assert getMostSpecificCause(context.startupFailure).message == message
         }
 
     where:
@@ -280,7 +281,7 @@ class RulesAdviceSpec extends Specification {
         .withUserConfiguration(Rules)
         .withBean(UnregisteredRule)
         .run { context ->
-          assert MusterAutoConfigurationSpec.rootCause(context.startupFailure) instanceof IllegalArgumentException
+          assert getMostSpecificCause(context.startupFailure) instanceof IllegalArgumentException
         }
   }
 
