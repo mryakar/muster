@@ -216,6 +216,8 @@ public final class Violation implements Serializable {
    *
    * <p>Every argument is either a client argument or an internal argument; a name can be used only
    * once across both.
+   *
+   * <p>A builder is for the thread that got it; threads may not share one.
    */
   public static final class Builder {
 
