@@ -69,6 +69,14 @@ class SettingsSpec extends Specification {
     }
   }
 
+  @Configuration(proxyBeanMethods = false)
+  static class OwnMuster {
+    @Bean
+    Muster muster() {
+      Muster.builder().build()
+    }
+  }
+
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Application)
@@ -243,5 +251,38 @@ class SettingsSpec extends Specification {
           assert cause instanceof IllegalArgumentException
           assert cause.message.contains("'Not Valid'")
         }
+  }
+
+  def 'with a Muster of its own, the application does not start if it configures the one built here: #properties'() {
+    expect:
+    runner.withUserConfiguration(OwnMuster).withPropertyValues(properties as String[]).run { context ->
+      assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
+      "$keys configure only the Muster that the starter builds, but the application defines a Muster bean of its own; remove these properties, or that bean"
+    }
+
+    where:
+    properties || keys
+    ['muster.mode=collect-all'] || 'muster.mode'
+    [
+      'muster.rules.vehicle.name-unique.enabled=false',
+      'muster.mode=fail-fast'
+    ] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
+  }
+
+  def 'with a Muster of its own, the application starts with the properties that the starter itself reads: #properties'() {
+    expect:
+    runner.withUserConfiguration(OwnMuster).withPropertyValues(properties as String[]).run { context ->
+      assert context.startupFailure == null
+      assert context.getBeansOfType(Muster).keySet() == ['muster'] as Set
+    }
+
+    where:
+    properties << [
+      [],
+      [
+        'muster.transaction.reorder-advisor=true',
+        'muster.problem-details.mixed-status=400'
+      ]
+    ]
   }
 }
