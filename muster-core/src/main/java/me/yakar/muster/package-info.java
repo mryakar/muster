@@ -13,7 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** Checking business rules: the entry point and the exception it throws. */
+/**
+ * Checking business rules: the entry point and the exception it throws.
+ *
+ * <p>Unless a parameter is {@code @Nullable}, passing {@code null} throws a {@link
+ * NullPointerException}.
+ */
 @NullMarked
 package me.yakar.muster;
 

@@ -25,16 +25,13 @@ import java.util.List;
 import me.yakar.muster.rule.Violation;
 
 /**
- * Thrown when a call violates one or more business rules. In {@link CheckMode#FAIL_FAST} mode, the
- * default, it holds the violations of the first violated rule only; in {@link
- * CheckMode#COLLECT_ALL} mode, those of every violated rule.
+ * Thrown when a check finds violated business rules. In {@link CheckMode#FAIL_FAST} mode, the
+ * default, it holds the violations of the first violated rule; in {@link CheckMode#COLLECT_ALL}
+ * mode, those of every violated rule.
  *
- * <p>A violation is an expected outcome, not a programming error, so this exception has no stack
- * trace. Its message lists the violation codes only, never argument values; it may end up in front
- * of a client.
- *
- * <p>Do not return {@link #violations()} as a response body as it is: map each violation to a
- * response type of your own.
+ * <p>A violation is an expected outcome, so the exception has no stack trace. Its message lists the
+ * violation codes, never argument values. Map {@link #violations()} to a response type of your own
+ * rather than returning them as they are.
  */
 public final class BusinessRuleViolationException extends RuntimeException {
 
@@ -60,8 +57,7 @@ public final class BusinessRuleViolationException extends RuntimeException {
   }
 
   /**
-   * Returns the number of violations and their codes, never argument values. It is built when asked
-   * for: a caller that maps the violations to a response never needs it.
+   * Returns the number of violations and their codes, never argument values.
    *
    * @return the message
    */

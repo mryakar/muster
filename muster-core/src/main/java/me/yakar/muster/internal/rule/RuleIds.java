@@ -26,13 +26,13 @@ public final class RuleIds {
   private RuleIds() {}
 
   /**
-   * Returns whether a string is a valid rule id. It walks the characters once instead of running a
-   * regular expression, since tests and applications may build many rule contexts.
+   * Returns whether a string is a valid rule id.
    *
    * @param id the string
    * @return whether it is a valid rule id
    */
   public static boolean isValid(String id) {
+    // One pass instead of a regular expression: tests and applications build many contexts.
     if (id.isEmpty() || !isLetter(id.charAt(0))) {
       return false;
     }

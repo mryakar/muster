@@ -30,21 +30,17 @@ import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The rules an input is checked against, prepared for repeated use. Get one from {@link
- * Muster#chain}.
+ * The rules that check inputs of one type, prepared once for repeated use. Get one from {@link
+ * Muster#chain} and keep it.
  *
- * <p>A rule runs after the rules it {@linkplain me.yakar.muster.rule.RequiresRule requires}. Muster
- * runs the listed rules in the order they are listed, and before each one the rules it requires
- * that have not run yet, each after its own requirements, ordered the same way: listed ones in the
- * order they are listed, the others in the order of their ids. A {@link Binding} runs the rules it
- * binds by type, and that no listed rule requires, after them, in the order of their ids. {@link
- * Muster#check}, which lists no rules, runs rules that do not depend on each other in the order of
- * their ids. Either way the violations come in the same order on every call. Muster has no notion
- * of cost: in {@link CheckMode#FAIL_FAST} mode, the order alone decides which violation is
- * reported, so list cheap rules first.
+ * <p>Rules run in the order they are listed. Before each one, the rules it {@linkplain
+ * me.yakar.muster.rule.RequiresRule requires} that have not run yet run first, each after its own
+ * requirements: listed ones in list order, the others in the order of their ids. The order is the
+ * same on every call, and in {@link CheckMode#FAIL_FAST} mode, which stops at the first violated
+ * rule, it decides which violation is reported, so list cheap rules first.
  *
- * <p>A chain checks in the {@linkplain #mode() mode} of the Muster that created it, unless {@link
- * #withMode} gives it its own.
+ * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
+ * gives it its own. Chains are immutable and thread-safe.
  *
  * @param <I> the type of input
  */
@@ -71,7 +67,7 @@ public final class RuleChain<I> {
 
   /**
    * Returns a chain with the same rules that checks in the given mode, whatever the mode of the
-   * Muster. This chain is not changed.
+   * {@code Muster}. This chain is not changed.
    *
    * @param mode the mode
    * @return the chain with the given mode
@@ -81,7 +77,8 @@ public final class RuleChain<I> {
   }
 
   /**
-   * Returns the mode this chain checks in: its own, or else the mode of the Muster that created it.
+   * Returns the mode this chain checks in: its own, or else the mode of the {@code Muster} that
+   * created it.
    *
    * @return the mode
    */
@@ -90,19 +87,14 @@ public final class RuleChain<I> {
   }
 
   /**
-   * Checks an input against the rules that apply to the call. In {@link CheckMode#FAIL_FAST} mode
-   * the check stops at the first violated rule; in {@link CheckMode#COLLECT_ALL} mode it collects
-   * the violations of every rule. A rule whose required rules did not all pass is skipped.
-   *
-   * <p>A rule that fails with an exception is not a violation: the exception propagates.
+   * Checks an input against the rules that apply to the call, in the mode of this chain. A rule is
+   * skipped if a rule it requires did not pass. An exception thrown by a rule propagates; it is not
+   * a violation.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
-   *     returns {@code null}
-   * @throws IllegalArgumentException if {@code input} is not of the type the chain checks, which
-   *     only unchecked code can pass
-   * @throws IllegalStateException if a rule reports a violation under another rule's id
+   * @throws IllegalArgumentException if {@code input} is not of the chain's type, which only
+   *     unchecked code can pass
    */
   public void check(I input) {
     requireNonNull(input, "input");
