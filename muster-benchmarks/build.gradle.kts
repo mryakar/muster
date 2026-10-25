@@ -24,6 +24,8 @@ dependencies {
   implementation(project(":muster-spring-boot-starter"))
   implementation(platform(libs.spring.boot.dependencies))
   implementation(libs.jmh.core)
+  // Reads JMH's results, which give each fork's measurements, for the published summary.
+  implementation(libs.jackson.databind)
   annotationProcessor(libs.jmh.generator.annprocess)
 }
 
@@ -31,32 +33,34 @@ dependencies {
 tasks.compileJava { options.compilerArgs.add("-Xlint:-processing") }
 
 // Runs every benchmark; --args selects some and overrides their settings, as in
-// --args="CheckBenchmark -f 1", except the result file and format. The results are written as CSV,
-// with the allocation per call.
+// --args="CheckBenchmark -f 1", except the result file and format. The results are written as JSON,
+// which keeps each fork's measurements, with the allocation per call.
 tasks.register<JavaExec>("jmh") {
   description = "Runs the JMH benchmarks."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "org.openjdk.jmh.Main"
-  val results = layout.buildDirectory.file("results/jmh/results.csv")
+  val results = layout.buildDirectory.file("results/jmh/results.json")
   // A run measures the machine as it is now, so it never counts as up to date.
   doNotTrackState("Benchmark results depend on the machine, not only on the inputs")
   argumentProviders.add {
-    listOf("-prof", "gc", "-rf", "csv", "-rff", results.get().asFile.absolutePath)
+    listOf("-prof", "gc", "-rf", "json", "-rff", results.get().asFile.absolutePath)
   }
   doFirst { results.get().asFile.parentFile.mkdirs() }
 }
 
-// Copies the results of the last run to docs/benchmarks and draws the chart that the README shows.
+// Copies the results of the last run to docs/benchmarks, with a summary of the median of each
+// benchmark's forks, and draws the chart that the README shows.
 tasks.register<JavaExec>("jmhReport") {
   description = "Publishes the results of the last JMH run to docs/benchmarks, with a chart."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "me.yakar.muster.benchmark.ResultsChart"
-  val results = layout.buildDirectory.file("results/jmh/results.csv")
+  val results = layout.buildDirectory.file("results/jmh/results.json")
   val docs = layout.settingsDirectory.dir("docs/benchmarks")
   inputs.file(results)
   outputs.files(
+    docs.file("results.json"),
     docs.file("results.csv"),
     docs.file("check-cost-light.svg"),
     docs.file("check-cost-dark.svg"),

@@ -50,7 +50,7 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 5, time = 1)
 @Measurement(iterations = 5, time = 1)
-@Fork(2)
+@Fork(5)
 @Threads(Threads.MAX)
 public class BindingBenchmark {
 

@@ -20,19 +20,32 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Draws the results of {@link CheckBenchmark} as a line chart for the README: the time of a passing
  * check against the number of rules, with the rules called by hand as the baseline. It writes the
- * chart as SVG in a light and a dark variant, next to a copy of the results.
+ * chart as SVG in a light and a dark variant, next to a copy of the results and a summary of them.
+ *
+ * <p>Each benchmark runs in several forks, and now and then a fork's JIT compiles the loop over
+ * twenty rule classes into slower code. The published time of a benchmark is therefore the median
+ * of its forks' averages; the summary also gives the range and the forks more than 10% from the
+ * median.
  */
 public final class ResultsChart {
 
@@ -101,78 +114,194 @@ public final class ResultsChart {
   private ResultsChart() {}
 
   /**
-   * Draws the chart.
+   * Draws the chart and writes the summary.
    *
-   * @param args the JMH results as CSV, and the directory to write the chart to
+   * @param args the JMH results as JSON, and the directory to write the chart and the results to
    * @throws IOException if the results cannot be read or the chart cannot be written
    */
   public static void main(String[] args) throws IOException {
     if (args.length != 2) {
-      throw new IllegalArgumentException("usage: ResultsChart <results.csv> <directory>");
+      throw new IllegalArgumentException("usage: ResultsChart <results.json> <directory>");
     }
     var results = Path.of(args[0]);
     var directory = Path.of(args[1]);
-    var lines = Files.readAllLines(results);
-    var scores = read(results, lines);
+    // JMH ends lines as the platform does; the copy ends them the same everywhere.
+    var json = Files.readString(results).replace("\r\n", "\n");
+    var runs = summarize(results, JsonMapper.shared().readTree(json));
+    var scores = scores(results, runs);
     // Everything is drawn before anything is written, so a failure leaves the published files.
     var charts = new LinkedHashMap<String, String>();
     for (var theme : Theme.values()) {
       charts.put("check-cost-" + theme.name + ".svg", draw(scores, theme));
     }
     Files.createDirectories(directory);
-    // JMH ends lines as the platform does; the copy ends them the same everywhere.
-    Files.writeString(directory.resolve("results.csv"), String.join("\n", lines) + "\n");
+    Files.writeString(directory.resolve("results.json"), json);
+    Files.writeString(directory.resolve("results.csv"), csv(runs));
     for (var chart : charts.entrySet()) {
       Files.writeString(directory.resolve(chart.getKey()), chart.getValue());
     }
   }
 
   /**
-   * Reads the scores of {@link CheckBenchmark}: by benchmark, then by the number of rules. The
-   * results replace the published ones, so they must come from a full run in the default mode.
+   * One benchmark with one set of parameters, over its forks.
+   *
+   * @param benchmark the class and method, as in {@code CheckBenchmark.chain}
+   * @param params the parameters, in the order JMH lists them
+   * @param forks the average time of each fork, in ns
+   * @param median the median of all the forks' averages, the published time
+   * @param outliers the forks, counted from 1, whose average is more than 10% from the median
+   * @param allocated the median of the forks' allocation per call, in bytes
    */
-  private static Map<String, TreeMap<Integer, Double>> read(Path results, List<String> lines) {
-    if (lines.isEmpty()) {
-      throw new IllegalArgumentException(results + " is empty");
+  private record Run(
+      String benchmark,
+      Map<String, String> params,
+      List<Double> forks,
+      double median,
+      List<Integer> outliers,
+      double allocated) {
+
+    /** Returns the lowest average of the forks within 10% of the median. */
+    double min() {
+      return kept().min().orElseThrow();
     }
-    var header = split(lines.getFirst());
-    var benchmark = header.indexOf("Benchmark");
-    var mode = header.indexOf("Mode");
-    var score = header.indexOf("Score");
-    var unit = header.indexOf("Unit");
-    var rules = header.indexOf("Param: rules");
-    var violated = header.indexOf("Param: violated");
-    var checkMode = header.indexOf("Param: mode");
-    var bound = header.indexOf("Param: bound");
-    var prefix = CheckBenchmark.class.getName() + ".";
-    var violations = new HashSet<List<String>>();
-    var bindings = new HashSet<String>();
-    var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
-    for (var line : lines.subList(1, lines.size())) {
-      var cells = split(line);
-      var name = cells.get(benchmark);
-      if (name.contains(":")) {
-        continue;
-      }
-      if (!cells.get(mode).equals("avgt") || !cells.get(unit).equals("ns/op")) {
+
+    /** Returns the highest average of the forks within 10% of the median. */
+    double max() {
+      return kept().max().orElseThrow();
+    }
+
+    private DoubleStream kept() {
+      return IntStream.range(0, forks.size())
+          .filter(i -> !outliers.contains(i + 1))
+          .mapToDouble(forks::get);
+    }
+  }
+
+  /**
+   * Reads every run from JMH's results. The results replace the published ones, so they must come
+   * from a full run in the default mode, with as many forks as each benchmark declares.
+   */
+  private static List<Run> summarize(Path results, JsonNode root) {
+    var runs = new ArrayList<Run>();
+    for (var node : root) {
+      var name = node.get("benchmark").asString();
+      var className = name.substring(0, name.lastIndexOf('.'));
+      var benchmark = name.substring(name.lastIndexOf('.', name.lastIndexOf('.') - 1) + 1);
+      var metric = node.get("primaryMetric");
+      if (!node.get("mode").asString().equals("avgt")
+          || !metric.get("scoreUnit").asString().equals("ns/op")) {
         throw new IllegalArgumentException(
-            name
-                + " was measured as "
-                + cells.get(mode)
-                + " in "
-                + cells.get(unit)
-                + "; the published results are average times in ns/op");
+            name + " was not measured as average time in ns/op, as the published results are");
       }
-      if (name.startsWith(prefix)) {
+      var forks = averages(metric.get("rawData"));
+      var declared = declaredForks(className);
+      if (forks.size() != declared) {
+        throw new IllegalArgumentException(
+            results + " has " + forks.size() + " forks of " + name + ", not " + declared);
+      }
+      var median = median(forks);
+      var outliers = new ArrayList<Integer>();
+      for (var i = 0; i < forks.size(); i++) {
+        if (Math.abs(forks.get(i) / median - 1) > OUTLIER) {
+          outliers.add(i + 1);
+        }
+      }
+      var allocation = node.get("secondaryMetrics").get("gc.alloc.rate.norm");
+      if (allocation == null) {
+        throw new IllegalArgumentException(name + " was measured without -prof gc");
+      }
+      var params = new LinkedHashMap<String, String>();
+      var paramsNode = node.get("params");
+      if (paramsNode != null) {
+        for (var param : paramsNode.properties()) {
+          params.put(param.getKey(), param.getValue().asString());
+        }
+      }
+      runs.add(
+          new Run(
+              benchmark,
+              params,
+              forks,
+              median,
+              outliers,
+              median(averages(allocation.get("rawData")))));
+    }
+    return runs;
+  }
+
+  /** How far from the median a fork may be before the published results leave it out: 10%. */
+  private static final double OUTLIER = 0.10;
+
+  /** Returns the average of each fork's measurements. */
+  private static List<Double> averages(JsonNode rawData) {
+    var averages = new ArrayList<Double>();
+    for (var fork : rawData) {
+      var sum = 0.0;
+      for (var measurement : fork) {
+        sum += measurement.asDouble();
+      }
+      averages.add(sum / fork.size());
+    }
+    return averages;
+  }
+
+  /** Returns the median, the middle value or the average of the two middle values. */
+  private static double median(List<Double> values) {
+    var sorted = values.stream().sorted().toList();
+    var middle = sorted.size() / 2;
+    return sorted.size() % 2 == 1
+        ? sorted.get(middle)
+        : (sorted.get(middle - 1) + sorted.get(middle)) / 2;
+  }
+
+  private static int declaredForks(String className) {
+    try {
+      return Class.forName(className).getAnnotation(Fork.class).value();
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(className + " is no benchmark of this module", e);
+    }
+  }
+
+  /** Writes the summary that docs/benchmarks links to: one line per benchmark and parameters. */
+  private static String csv(List<Run> runs) {
+    var csv =
+        new StringBuilder(
+            "Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median (ns),"
+                + "Allocated (B)\n");
+    for (var run : runs) {
+      var params = new ArrayList<String>();
+      run.params().forEach((name, value) -> params.add(name + "=" + value));
+      csv.append(
+          format(
+              "%s,%s,%.1f,%.1f,%.1f,%s,%.0f\n",
+              run.benchmark(),
+              String.join(" ", params),
+              run.median(),
+              run.min(),
+              run.max(),
+              run.outliers().stream()
+                  .map(fork -> format("%d (%.1f)", fork, run.forks().get(fork - 1)))
+                  .collect(Collectors.joining(" ")),
+              run.allocated()));
+    }
+    return csv.toString();
+  }
+
+  /**
+   * Returns the median times of {@link CheckBenchmark}, by benchmark, then by the number of rules,
+   * and checks that the results hold every benchmark with every parameter.
+   */
+  private static Map<String, TreeMap<Integer, Double>> scores(Path results, List<Run> runs) {
+    var scores = new LinkedHashMap<String, TreeMap<Integer, Double>>();
+    var measured = new HashMap<String, Set<Map<String, String>>>();
+    for (var run : runs) {
+      var className = run.benchmark().substring(0, run.benchmark().indexOf('.'));
+      measured.computeIfAbsent(className, key -> new HashSet<>()).add(run.params());
+      if (className.equals(CheckBenchmark.class.getSimpleName())) {
         scores
-            .computeIfAbsent(name.substring(prefix.length()), key -> new TreeMap<>())
-            .put(Integer.parseInt(cells.get(rules)), Double.parseDouble(cells.get(score)));
-      }
-      if (name.startsWith(ViolationBenchmark.class.getName() + ".")) {
-        violations.add(List.of(cells.get(violated), cells.get(checkMode)));
-      }
-      if (name.startsWith(BindingBenchmark.class.getName() + ".")) {
-        bindings.add(cells.get(bound));
+            .computeIfAbsent(
+                run.benchmark().substring(className.length() + 1), key -> new TreeMap<>())
+            .put(Integer.parseInt(run.params().get("rules")), run.median());
       }
     }
     var ruleCounts = new TreeSet<Integer>();
@@ -180,34 +309,54 @@ public final class ResultsChart {
       ruleCounts.add(Integer.parseInt(count));
     }
     for (var series : SERIES) {
-      var measured = scores.getOrDefault(series.benchmark(), new TreeMap<>()).keySet();
-      if (!measured.equals(ruleCounts)) {
+      var counts = scores.getOrDefault(series.benchmark(), new TreeMap<>()).keySet();
+      if (!counts.equals(ruleCounts)) {
         throw new IllegalArgumentException(
             results
                 + " has CheckBenchmark."
                 + series.benchmark()
                 + " for "
-                + measured
+                + counts
                 + " rules, not for "
                 + ruleCounts);
       }
     }
-    var expected = new HashSet<List<String>>();
-    for (var count : params(ViolationBenchmark.class, "violated")) {
-      for (var checked : params(ViolationBenchmark.class, "mode")) {
-        expected.add(List.of(count, checked));
-      }
-    }
-    if (!violations.equals(expected)) {
-      throw new IllegalArgumentException(
-          results + " has ViolationBenchmark for " + violations + ", not for " + expected);
-    }
-    var expectedBindings = new HashSet<>(params(BindingBenchmark.class, "bound"));
-    if (!bindings.equals(expectedBindings)) {
-      throw new IllegalArgumentException(
-          results + " has BindingBenchmark for " + bindings + ", not for " + expectedBindings);
-    }
+    expect(results, measured, ViolationBenchmark.class, "violated", "mode");
+    expect(results, measured, BindingBenchmark.class, "bound");
+    expect(results, measured, StarterBenchmark.class, "rules");
     return scores;
+  }
+
+  /** Checks that the results hold a benchmark class with every combination of its parameters. */
+  private static void expect(
+      Path results,
+      Map<String, Set<Map<String, String>>> measured,
+      Class<?> benchmark,
+      String... fields) {
+    var expected = new HashSet<Map<String, String>>();
+    expected.add(Map.of());
+    for (var field : fields) {
+      var next = new HashSet<Map<String, String>>();
+      for (var prefix : expected) {
+        for (var value : params(benchmark, field)) {
+          var combination = new HashMap<>(prefix);
+          combination.put(field, value);
+          next.add(combination);
+        }
+      }
+      expected = next;
+    }
+    var actual = measured.getOrDefault(benchmark.getSimpleName(), Set.of());
+    if (!actual.equals(expected)) {
+      throw new IllegalArgumentException(
+          results
+              + " has "
+              + benchmark.getSimpleName()
+              + " for "
+              + actual
+              + ", not for "
+              + expected);
+    }
   }
 
   /** Returns the values a benchmark declares for one of its parameters. */
@@ -217,15 +366,6 @@ public final class ResultsChart {
     } catch (NoSuchFieldException e) {
       throw new IllegalStateException(benchmark.getSimpleName() + " has no parameter " + field, e);
     }
-  }
-
-  /** Splits a line of JMH's CSV, whose text cells are quoted and hold no quotes or commas. */
-  private static List<String> split(String line) {
-    var cells = new ArrayList<String>();
-    for (var cell : line.split(",", -1)) {
-      cells.add(cell.startsWith("\"") ? cell.substring(1, cell.length() - 1) : cell);
-    }
-    return cells;
   }
 
   private static String draw(Map<String, TreeMap<Integer, Double>> scores, Theme theme) {

@@ -45,7 +45,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 5, time = 1)
 @Measurement(iterations = 5, time = 1)
-@Fork(2)
+@Fork(5)
 public class CheckBenchmark {
 
   /** How many rules the input is checked against. */
