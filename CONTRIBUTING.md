@@ -41,14 +41,15 @@ against the same rules called by hand. It is not published, and the build only c
 ./gradlew jmh
 ```
 
-The run takes about seven minutes and writes `muster-benchmarks/build/results/jmh/results.csv`, with
-the time and the allocation per call. `--args` selects benchmarks and overrides their settings,
+The run takes about half an hour and writes `muster-benchmarks/build/results/jmh/results.json`, with
+the time and the allocation per call of each fork. `--args` selects benchmarks and overrides their settings,
 except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -f 1"`. For numbers
 worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a fixed CPU
 frequency.
 
-`./gradlew jmhReport` copies the results of the last run to `docs/benchmarks` and draws the chart
-that the README shows. A change that affects performance is compared with the budget in
+`./gradlew jmhReport` copies the results of the last run to `docs/benchmarks`, writes the median of
+each benchmark's forks to `results.csv` there, and draws the chart that the README shows. It refuses
+results that lack a benchmark or have fewer forks than a benchmark declares. A change that affects performance is compared with the budget in
 [docs/benchmarks](docs/benchmarks/README.md), on the same machine.
 
 ## Dependencies
