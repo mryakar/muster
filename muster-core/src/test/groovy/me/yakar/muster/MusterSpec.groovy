@@ -16,12 +16,44 @@
 package me.yakar.muster
 
 import java.util.logging.Level
+import me.yakar.muster.EngineSpecification.NameUnique
+import me.yakar.muster.EngineSpecification.VehicleFields
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
+import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.spi.RuleFactory
 
 /** Building a Muster: registering rules, creating them, and switching them off. */
 class MusterSpec extends EngineSpecification {
+
+  @Rule(id = 'vehicle.name-unique')
+  static class NameUniqueAgain implements BusinessRule<VehicleFields> {
+    RuleResult check(VehicleFields input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class Unannotated implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class ProxiedNameUnique extends NameUnique {}
+
+  /** Throws without wrapping, as a factory in another JVM language may, checked exceptions included. */
+  static class ThrowingFactory implements RuleFactory {
+    final Exception failure
+
+    ThrowingFactory(Exception failure) {
+      this.failure = failure
+    }
+
+    BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass) {
+      throw failure
+    }
+  }
 
   static final RuleFactory NEVER_CALLED = {
     throw new AssertionError('not called')
