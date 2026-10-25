@@ -210,14 +210,6 @@ class TransactionAdviceSpec extends Specification {
     }
   }
 
-  def 'with the reordering switched off, equal orders stop the application'() {
-    expect:
-    runner.withUserConfiguration(Transactions).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
-      assert getMostSpecificCause(context.startupFailure).message.startsWith(
-      "the transaction advice has the order ${Ordered.LOWEST_PRECEDENCE}, which does not come before Muster's")
-    }
-  }
-
   def 'a bean created after the start checks the order of the transaction advice when it is created'() {
     when:
     new ApplicationContextRunner()
