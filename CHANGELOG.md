@@ -11,6 +11,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The constraints of a `@Validated` method are checked before its rules, and before its transaction: the starter tells Spring Boot's method validation to add its advice ahead of the advice a proxy already has, unless the application defines the `MethodValidationPostProcessor` itself. `muster.validation.reorder-advisor=false` leaves the order to Spring, where the rules run before the constraints.
 
+### Fixed
+
+- A `@WebMvcTest` answers a `BusinessRuleViolationException` with problem details, as the application does: the slice now gets the handler and the message resolver.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

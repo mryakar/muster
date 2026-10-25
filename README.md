@@ -207,7 +207,8 @@ ordered before it still can. The handler also answers an exception that a violat
 an earlier advice handles that exception. A controller advice that names
 `BusinessRuleViolationException` in an `@ExceptionHandler`, in the context of the application or a
 parent one, replaces the handler for every controller, even if the advice applies to some
-controllers only. A controller's own handler comes first anyway.
+controllers only. A controller's own handler comes first anyway. A `@WebMvcTest` gets the handler
+and the message resolver, without the rules.
 
 ## Usage without Spring
 

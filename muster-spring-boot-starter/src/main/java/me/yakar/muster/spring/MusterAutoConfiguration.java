@@ -19,6 +19,7 @@ import me.yakar.muster.Muster;
 import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
 import me.yakar.muster.spring.internal.engine.EngineConfiguration;
+import me.yakar.muster.spring.internal.engine.MessagesConfiguration;
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -32,7 +33,8 @@ import org.springframework.context.i18n.LocaleContextHolder;
  * It reads the caller from Spring Security and the locale from {@link LocaleContextHolder},
  * resolves messages through a {@link MessageResolver} bean backed by the message source of the
  * application, and, in a Spring MVC application, answers a {@link
- * me.yakar.muster.BusinessRuleViolationException} with problem details (RFC 9457).
+ * me.yakar.muster.BusinessRuleViolationException} with problem details (RFC 9457). A {@code
+ * WebMvcTest} gets the message resolver and the problem details, without the rules.
  *
  * <p>A {@code Muster}, {@code MessageResolver}, {@code Supplier<Principal>} or {@code
  * Supplier<Locale>} bean of the application replaces the starter's; an application with a {@code
@@ -41,7 +43,12 @@ import org.springframework.context.i18n.LocaleContextHolder;
  * href="https://github.com/mryakar/muster#usage-with-spring-boot">README</a>.
  */
 @AutoConfiguration
-@Import({EngineConfiguration.class, AdviceConfiguration.class, ProblemDetailsConfiguration.class})
+@Import({
+  EngineConfiguration.class,
+  MessagesConfiguration.class,
+  AdviceConfiguration.class,
+  ProblemDetailsConfiguration.class
+})
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}

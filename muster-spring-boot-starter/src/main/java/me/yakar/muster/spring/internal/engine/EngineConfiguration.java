@@ -19,14 +19,12 @@ import java.security.Principal;
 import java.util.Locale;
 import java.util.function.Supplier;
 import me.yakar.muster.Muster;
-import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -90,12 +88,6 @@ public final class EngineConfiguration {
     }
     var security = securityCaller.getIfAvailable();
     return security == null ? null : security::current;
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  MessageResolver musterMessageResolver(ApplicationContext context) {
-    return MessageResolver.ofTemplates(new MessageSourceTemplates(context));
   }
 
   /**
