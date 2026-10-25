@@ -41,6 +41,9 @@ tasks.withType<Javadoc>().configureEach {
   }
 }
 
+// The API docs are part of the product; a broken link or a missing comment fails the build.
+tasks.check { dependsOn(tasks.javadoc) }
+
 // Published to consumers: modules that require me.yakar.muster read org.jspecify, and
 // null-aware tools need the annotations on their classpath.
 dependencies { api(libs.findLibrary("jspecify").get()) }

@@ -75,7 +75,4 @@ testing {
 
 tasks.check { dependsOn(testing.suites.named("integrationTest")) }
 
-// The API docs are part of the product; a broken link or a missing comment fails the build.
-tasks.check { dependsOn(tasks.javadoc) }
-
 tasks.jar { manifest { attributes("Automatic-Module-Name" to "me.yakar.muster.spring") } }
