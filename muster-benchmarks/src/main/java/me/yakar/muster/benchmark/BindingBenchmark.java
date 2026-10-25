@@ -65,8 +65,8 @@ public class BindingBenchmark {
   @Setup
   public void setUp() {
     muster = Muster.builder().rules(new AnyTarget()).build();
-    var first = (RuleTarget) null;
-    var second = (RuleTarget) null;
+    RuleTarget first = null;
+    RuleTarget second = null;
     for (var i = 0; i < TARGETS.size() && second == null; i++) {
       for (var j = i + 1; j < TARGETS.size() && second == null; j++) {
         if (bucket(TARGETS.get(i)) == bucket(TARGETS.get(j))) {
@@ -92,7 +92,7 @@ public class BindingBenchmark {
   /** The bucket of a class in a map of sixteen, as ConcurrentHashMap spreads hashes. */
   private static int bucket(RuleTarget target) {
     var hash = target.getClass().hashCode();
-    return (hash ^ (hash >>> 16)) & 0x7fffffff & 15;
+    return (hash ^ (hash >>> 16)) & 15;
   }
 
   /** A rule that every target passes. */
