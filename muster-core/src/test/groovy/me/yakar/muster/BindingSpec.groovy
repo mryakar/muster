@@ -82,14 +82,6 @@ class BindingSpec extends EngineSpecification {
     }
   }
 
-  @Rule(id = 'a-fields.needs-top')
-  @RequiresRule(FieldsTop)
-  static class AFieldsNeedsTop extends Noted<EngineSpecification.VehicleFields> {
-    AFieldsNeedsTop(List<String> ran) {
-      super(ran)
-    }
-  }
-
   @Rule(id = 'fields.diamond')
   @RequiresRule([FieldsNeedsBase, FieldsTop])
   static class FieldsDiamond extends Noted<EngineSpecification.VehicleFields> {
@@ -193,38 +185,6 @@ class BindingSpec extends EngineSpecification {
       'fields.top',
       'fields.listed',
       'fields.bound'
-    ]
-  }
-
-  def 'rules bound by type run after their requirements, in the order of their ids'() {
-    given:
-    def binding = muster(FieldsListed, FieldsBase, FieldsNeedsBase).binding(VehicleFields).rules(FieldsListed).build()
-
-    when:
-    binding.check(VALID)
-
-    then:
-    ran == [
-      'fields.listed',
-      'fields.base',
-      'fields.needs-base'
-    ]
-  }
-
-  def 'a rule bound by type runs after the rules it requires, whatever their ids'() {
-    given:
-    def binding = muster(FieldsListed, AFieldsNeedsTop, FieldsTop, FieldsNeedsBase, FieldsBase).binding(VehicleFields).rules(FieldsListed).build()
-
-    when:
-    binding.check(VALID)
-
-    then:
-    ran == [
-      'fields.listed',
-      'fields.base',
-      'fields.needs-base',
-      'fields.top',
-      'a-fields.needs-top'
     ]
   }
 

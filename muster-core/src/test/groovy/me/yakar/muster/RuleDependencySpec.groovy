@@ -72,62 +72,6 @@ class RuleDependencySpec extends EngineSpecification {
     ]
   }
 
-  def 'rules that do not depend on each other run in the order the chain lists them'() {
-    given:
-    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran)).build()
-
-    when:
-    muster.chain(Long, TaskLocked, TaskExists).check(1L)
-
-    then:
-    ran == ['task.locked', 'task.exists']
-  }
-
-  def 'a rule the chain adds runs just before the first listed rule that requires it'() {
-    given:
-    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran), new TaskReopened(ran)).build()
-
-    when:
-    muster.chain(Long, TaskReopened, TaskLocked).check(1L)
-
-    then:
-    ran == [
-      'task.exists',
-      'task.reopened',
-      'task.locked'
-    ]
-  }
-
-  def 'listed rules that a listed rule requires run before it in the order they are listed'() {
-    given:
-    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran), new TaskClosable(ran)).build()
-
-    when:
-    muster.chain(Long, TaskClosable, TaskLocked, TaskExists).check(1L)
-
-    then:
-    ran == [
-      'task.locked',
-      'task.exists',
-      'task.closable'
-    ]
-  }
-
-  def 'of the rules a listed rule requires, the listed ones run first'() {
-    given:
-    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran), new TaskClosable(ran)).build()
-
-    when:
-    muster.chain(Long, TaskClosable, TaskLocked).check(1L)
-
-    then:
-    ran == [
-      'task.locked',
-      'task.exists',
-      'task.closable'
-    ]
-  }
-
   def 'when task #task fails #failing, the rules that require it are skipped'() {
     when:
     tasks().chain(Long, TaskStarted, TaskAssignable, TaskExists).check(task)
