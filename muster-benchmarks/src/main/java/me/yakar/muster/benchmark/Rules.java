@@ -57,22 +57,12 @@ final class Rules {
 
   private Rules() {}
 
-  /**
-   * Returns the first rules.
-   *
-   * @param count how many
-   * @return the rules
-   */
+  /** Returns the first {@code count} rules. */
   static List<IndexedRule> first(int count) {
     return ALL.subList(0, count);
   }
 
-  /**
-   * Returns the classes of the rules.
-   *
-   * @param rules the rules
-   * @return their classes
-   */
+  /** Returns the classes of the rules, for {@code muster.chain}. */
   @SuppressWarnings("unchecked")
   static Class<? extends BusinessRule<?>>[] classes(List<IndexedRule> rules) {
     return rules.stream().map(IndexedRule::getClass).toArray(Class[]::new);

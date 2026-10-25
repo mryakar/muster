@@ -72,8 +72,7 @@ public class StarterBenchmark {
             .web(WebApplicationType.NONE)
             .bannerMode(Banner.Mode.OFF)
             .logStartupInfo(false)
-            // With no rules, Muster warns that none binds to the service, which the benchmark
-            // means.
+            // With no rules, Muster warns that none binds to the service; here that is intended.
             .properties("logging.level.root=warn", "logging.level.me.yakar.muster=error")
             .initializers(
                 applicationContext ->
@@ -126,11 +125,6 @@ public class StarterBenchmark {
   @Service
   static class AdvisedService {
 
-    /**
-     * Saves an order.
-     *
-     * @param order the order
-     */
     public void save(Order order) {}
   }
 

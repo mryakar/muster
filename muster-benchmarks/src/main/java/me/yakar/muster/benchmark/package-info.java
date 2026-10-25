@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /**
- * JMH benchmarks of what Muster adds to a call: checks that pass, checks that fail, and the same
- * rules called by hand as the baseline.
+ * JMH benchmarks of what Muster adds to a call, with and without Spring, against the same rules
+ * called by hand; and {@link ResultsChart}, which publishes their results to docs/benchmarks.
  */
 @NullMarked
 package me.yakar.muster.benchmark;
