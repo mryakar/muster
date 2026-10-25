@@ -43,9 +43,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * What the Spring Boot starter adds to a service method: the same rules checked through the
- * starter's advice, for a {@code @Service} method that takes a rule target, and by a bean that
- * calls the same binding by hand. {@code manual} is the baseline: the difference to it is the proxy
- * and the advice. There is no transaction, so that the numbers show Muster.
+ * starter's advice, for a {@code @Service} method that takes a rule target, and by a plain class
+ * that calls the same binding by hand. {@code manual} is the baseline: the difference to it is the
+ * proxy and the advice. There is no transaction, so that the numbers show Muster.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
@@ -72,7 +72,9 @@ public class StarterBenchmark {
             .web(WebApplicationType.NONE)
             .bannerMode(Banner.Mode.OFF)
             .logStartupInfo(false)
-            .properties("logging.level.root=warn")
+            // With no rules, Muster warns that none binds to the service, which the benchmark
+            // means.
+            .properties("logging.level.root=warn", "logging.level.me.yakar.muster=error")
             .initializers(
                 applicationContext ->
                     Rules.first(rules)
