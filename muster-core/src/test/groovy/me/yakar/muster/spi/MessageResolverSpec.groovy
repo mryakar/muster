@@ -81,9 +81,7 @@ class MessageResolverSpec extends Specification {
 
     then:
     message == 'vehicle.name-taken'
-    logged*.message == [
-      "No message for 'vehicle.name-taken' in locale 'fr'; using the code"
-    ]
+    logged*.message == ["No message for 'vehicle.name-taken' in locale 'fr'; using the code"]
     logged*.level == [Level.FINE]
   }
 
@@ -113,13 +111,7 @@ class MessageResolverSpec extends Specification {
 
     then:
     message == 'message'
-    seen == [
-      [
-        'vehicle.name-taken',
-        [name: 'Atlas'],
-        Locale.ENGLISH
-      ]
-    ]
+    seen == [['vehicle.name-taken', [name: 'Atlas'], Locale.ENGLISH]]
   }
 
   def 'a template that refers to an internal argument leaves it unfilled'() {
@@ -149,12 +141,7 @@ class MessageResolverSpec extends Specification {
     resolver.resolve('VEHICLE_NAME_TAKEN', [:], Locale.forLanguageTag('tr-TR'))
 
     then:
-    seen == [
-      [
-        'VEHICLE_NAME_TAKEN',
-        Locale.forLanguageTag('tr-TR')
-      ]
-    ]
+    seen == [['VEHICLE_NAME_TAKEN', Locale.forLanguageTag('tr-TR')]]
   }
 
   def 'ofTemplates needs a lookup'() {

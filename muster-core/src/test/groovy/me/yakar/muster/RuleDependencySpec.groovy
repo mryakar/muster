@@ -66,10 +66,7 @@ class RuleDependencySpec extends EngineSpecification {
     tasks().chain(Long, TaskAssignable, TaskExists).check(1L)
 
     then:
-    ran == [
-      'task.exists',
-      'task.assignable'
-    ]
+    ran == ['task.exists', 'task.assignable']
   }
 
   def 'when task #task fails #failing, the rules that require it are skipped'() {
@@ -84,15 +81,8 @@ class RuleDependencySpec extends EngineSpecification {
     where:
     task | failing || expectedRan
     404L | 'task.exists' || ['task.exists']
-    409L | 'task.assignable' || [
-      'task.exists',
-      'task.assignable'
-    ]
-    410L | 'task.started' || [
-      'task.exists',
-      'task.assignable',
-      'task.started'
-    ]
+    409L | 'task.assignable' || ['task.exists', 'task.assignable']
+    410L | 'task.started' || ['task.exists', 'task.assignable', 'task.started']
   }
 
   def 'a rule is skipped only when one of its own required rules did not pass'() {
@@ -109,11 +99,7 @@ class RuleDependencySpec extends EngineSpecification {
     then: 'closable needs locked, which failed; reopened needs only exists'
     def e = thrown(BusinessRuleViolationException)
     e.violations()*.ruleId() == ['task.locked']
-    ran == [
-      'task.exists',
-      'task.locked',
-      'task.reopened'
-    ]
+    ran == ['task.exists', 'task.locked', 'task.reopened']
   }
 
   def 'a required rule that several listed rules share is added and logged once, and gates them all'() {
@@ -150,11 +136,7 @@ class RuleDependencySpec extends EngineSpecification {
     tasks().chain(Long, TaskStarted).check(1L)
 
     then:
-    ran == [
-      'task.exists',
-      'task.assignable',
-      'task.started'
-    ]
+    ran == ['task.exists', 'task.assignable', 'task.started']
     logged*.level == [Level.INFO, Level.INFO]
     logged*.message == [
       "The chain for java.lang.Long includes rule 'task.assignable' because 'task.started' requires it",
@@ -177,10 +159,7 @@ class RuleDependencySpec extends EngineSpecification {
 
     then:
     noExceptionThrown()
-    ran == [
-      'task.exists',
-      'task.assignable'
-    ]
+    ran == ['task.exists', 'task.assignable']
   }
 
   def 'a disabled rule adds none of the rules it requires to a chain'() {

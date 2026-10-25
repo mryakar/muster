@@ -166,10 +166,7 @@ class MusterSpec extends EngineSpecification {
     e.cause.is(failure)
 
     where:
-    failure << [
-      new IllegalStateException('no such bean'),
-      new IOException('disk unavailable')
-    ]
+    failure << [new IllegalStateException('no such bean'), new IOException('disk unavailable')]
   }
 
   def 'a factory that returns #returned stops the build'() {

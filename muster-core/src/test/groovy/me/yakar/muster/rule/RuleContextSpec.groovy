@@ -152,12 +152,7 @@ class RuleContextSpec extends Specification {
     where:
     factory << ['forRule', 'builder']
     combined:
-    ruleId << [
-      '',
-      ' ',
-      'Not An Id',
-      'task..ready'
-    ]
+    ruleId << ['', ' ', 'Not An Id', 'task..ready']
   }
 
   def 'a context rejects a null rule id'() {

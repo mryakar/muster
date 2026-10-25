@@ -61,10 +61,7 @@ class TypeBindingSpec extends EngineSpecification {
     where:
     mode || reported
     CheckMode.FAIL_FAST || ['vehicle.code-format']
-    CheckMode.COLLECT_ALL || [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
+    CheckMode.COLLECT_ALL || ['vehicle.code-format', 'vehicle.name-unique']
   }
 
   def 'a check in #mode mode is reported in that mode, whatever the mode of the Muster, #musterMode'() {
@@ -80,10 +77,7 @@ class TypeBindingSpec extends EngineSpecification {
 
     where:
     musterMode            | mode || reported
-    CheckMode.FAIL_FAST   | CheckMode.COLLECT_ALL || [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
+    CheckMode.FAIL_FAST   | CheckMode.COLLECT_ALL || ['vehicle.code-format', 'vehicle.name-unique']
     CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['vehicle.code-format']
   }
 
@@ -115,9 +109,7 @@ class TypeBindingSpec extends EngineSpecification {
     then:
     def e = thrown(BusinessRuleViolationException)
     e.violations()*.ruleId() == ['vehicle.code-format']
-    logged*.message == [
-      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
-    ]
+    logged*.message == ["Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"]
   }
 
   def 'a check with a mode rejects a null #name'() {
@@ -157,14 +149,9 @@ class TypeBindingSpec extends EngineSpecification {
 
     then:
     reported == modes.collect {
-      it == CheckMode.FAIL_FAST ? ['vehicle.code-format'] : [
-        'vehicle.code-format',
-        'vehicle.name-unique'
-      ]
+      it == CheckMode.FAIL_FAST ? ['vehicle.code-format'] : ['vehicle.code-format', 'vehicle.name-unique']
     }
-    logged*.message == [
-      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
-    ]
+    logged*.message == ["Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"]
   }
 
   def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
@@ -177,13 +164,8 @@ class TypeBindingSpec extends EngineSpecification {
 
     then:
     def e = thrown(BusinessRuleViolationException)
-    e.violations()*.ruleId() == [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
-    logged*.message == [
-      "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
-    ]
+    e.violations()*.ruleId() == ['vehicle.code-format', 'vehicle.name-unique']
+    logged*.message == ["Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"]
   }
 
   def 'rules bind to the class of the input at run time'() {
@@ -204,10 +186,7 @@ class TypeBindingSpec extends EngineSpecification {
 
     then:
     def second = thrown(BusinessRuleViolationException)
-    second.violations()*.ruleId() == [
-      'vehicle.known',
-      'vehicle.name-unique'
-    ]
+    second.violations()*.ruleId() == ['vehicle.known', 'vehicle.name-unique']
   }
 
   def 'a rule whose input type is Object checks every rule target'() {
@@ -320,9 +299,7 @@ class TypeBindingSpec extends EngineSpecification {
 
     then:
     noExceptionThrown()
-    logged*.message == [
-      "Rules bound to ${CreateVehicle.name}: [vehicle.name-unique]"
-    ]
+    logged*.message == ["Rules bound to ${CreateVehicle.name}: [vehicle.name-unique]"]
 
     cleanup:
     log.removeHandler(checking)

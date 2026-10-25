@@ -120,14 +120,8 @@ class BusinessRuleViolationExceptionSpec extends Specification {
 
     then:
     copy.message == '2 business rule violations: request.not-owner, task.ready'
-    copy.violations()*.code() == [
-      'request.not-owner',
-      'task.ready'
-    ]
-    copy.violations()*.clientArgs() == [
-      [requestNo: 'TR-1047'],
-      [currentStatus: 'DRAFT']
-    ]
+    copy.violations()*.code() == ['request.not-owner', 'task.ready']
+    copy.violations()*.clientArgs() == [[requestNo: 'TR-1047'], [currentStatus: 'DRAFT']]
     copy.violations().every { it.internalArgs().isEmpty() }
     copy.stackTrace.length == 0
   }

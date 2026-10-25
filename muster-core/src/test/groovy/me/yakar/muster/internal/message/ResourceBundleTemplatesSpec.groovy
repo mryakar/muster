@@ -120,11 +120,7 @@ class ResourceBundleTemplatesSpec extends Specification {
     messages().apply('vehicle.plate-format', locale) == Optional.empty()
 
     where:
-    locale << [
-      TURKISH,
-      Locale.FRENCH,
-      Locale.ROOT
-    ]
+    locale << [TURKISH, Locale.FRENCH, Locale.ROOT]
   }
 
   def 'a family without a base bundle is rejected: default locale #jvmLocale'() {
