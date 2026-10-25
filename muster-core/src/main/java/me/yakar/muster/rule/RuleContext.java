@@ -21,7 +21,6 @@ import java.security.Principal;
 import java.util.Locale;
 import java.util.Optional;
 import me.yakar.muster.internal.rule.RuleDefinition;
-import me.yakar.muster.internal.rule.RuleIds;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -186,12 +185,7 @@ public final class RuleContext {
     private Locale locale = Locale.ROOT;
 
     private Builder(String ruleId) {
-      requireNonNull(ruleId, "ruleId");
-      if (!RuleIds.isValid(ruleId)) {
-        throw new IllegalArgumentException(
-            "the rule id '" + ruleId + "' is invalid; " + RuleIds.FORMAT);
-      }
-      this.ruleId = ruleId;
+      this.ruleId = Checks.requireRuleId(ruleId);
     }
 
     private Builder(RuleContext context) {

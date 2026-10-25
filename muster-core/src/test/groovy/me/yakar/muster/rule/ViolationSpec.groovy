@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.rule
 
+import java.io.InvalidObjectException
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -333,6 +334,30 @@ class ViolationSpec extends Specification {
       full().build(),
       context.violation().internalArg('id', 42L).build()
     ]
+  }
+
+  def 'a deserialized violation cannot have #what'() {
+    given: 'a violation whose field holds what a crafted stream could put there'
+    def violation = full().build()
+    def field = Violation.getDeclaredField(name)
+    field.accessible = true
+    field.set(violation, value)
+
+    when:
+    Serialization.roundTrip(violation)
+
+    then:
+    def e = thrown(InvalidObjectException)
+    e.message == message
+    e.cause.message == message
+
+    where:
+    what                       | name         | value || message
+    'an invalid rule id'       | 'ruleId'     | 'Not An Id' || "the rule id 'Not An Id' is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
+    'no rule id'               | 'ruleId'     | null || 'ruleId'
+    'an invalid code'          | 'code'       | 'name taken' || "code 'name taken' contains U+0020; it cannot contain whitespace, spaces, control or format characters, or unpaired surrogates"
+    'an invalid argument name' | 'clientArgs' | new LinkedHashMap(['{name}': 'Truck 1']) || "argument name '{name}' contains U+007B; it cannot contain braces, which mark arguments in message templates"
+    'a blank target'           | 'target'     | ' ' || 'target must not be blank'
   }
 
   def 'arguments of a deserialized violation keep their order and cannot be changed'() {
