@@ -23,7 +23,7 @@
     {
       "name": "muster.validation.reorder-advisor",
       "type": "java.lang.Boolean",
-      "description": "Whether to move the method validation advice ahead of Muster's, so that the constraints of a method are checked before its rules and before its transaction, unless the application defines the MethodValidationPostProcessor itself. Off, Spring Boot adds the validation advice last, and the rules run before the constraints.",
+      "description": "Whether to move the method validation advice ahead of Muster's on the proxies Muster advises, so that the constraints of a method are checked before its rules and before its transaction. Other advice, and beans without rules, keep Spring's order. Off, Spring adds the validation advice last, and the rules run before the constraints.",
       "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
       "defaultValue": true
     },
