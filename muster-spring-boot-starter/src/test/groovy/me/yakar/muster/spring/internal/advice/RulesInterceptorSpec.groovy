@@ -15,16 +15,33 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import java.lang.reflect.Method
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.Rules
+import me.yakar.muster.spring.fixture.advice.SaveVehicle
 import me.yakar.muster.spring.fixture.advice.VehicleComponent
+import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import org.aopalliance.intercept.MethodInvocation
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
+import org.springframework.transaction.interceptor.TransactionAttributeSource
+import org.springframework.transaction.interceptor.TransactionInterceptor
 import spock.lang.Specification
 
 class RulesInterceptorSpec extends Specification {
+
+  static class OtherComponent {
+    @Rules
+    void checked(SaveVehicle vehicle) {}
+  }
+
+  static class LaterComponent {
+    @Rules
+    void checked(SaveVehicle vehicle) {}
+  }
 
   def muster = Muster.builder().build()
   def interceptor = new RulesInterceptor(
@@ -92,5 +109,43 @@ class RulesInterceptorSpec extends Specification {
     cleanup:
     release.countDown()
     holder.join()
+  }
+
+  def 'a class that preparing another notes on the same thread joins the running pass'() {
+    given: 'a transaction test that notes another class the first time it runs'
+    RulesInterceptor reentered
+    def noted = false
+    def source = { Method m, Class<?> c ->
+      if (!noted) {
+        noted = true
+        reentered.note(LaterComponent)
+      }
+      null
+    } as TransactionAttributeSource
+    def advisor = new BeanFactoryTransactionAttributeSourceAdvisor()
+    advisor.advice = new TransactionInterceptor(new FakeTransactionManager(), source)
+    advisor.order = RulesAdvisor.ORDER - 1
+    def guard = new TransactionGuard([getIfUnique: { Object[] args ->
+        advisor
+      }] as ObjectProvider)
+    def resolved = 0
+    reentered = new RulesInterceptor(
+        [getObject: { Object[] args ->
+            resolved++
+            muster
+          }] as ObjectProvider,
+        [getIfAvailable: { Object[] args ->
+            guard
+          }] as ObjectProvider)
+    reentered.note(VehicleComponent)
+    reentered.note(OtherComponent)
+
+    when:
+    reentered.afterSingletonsInstantiated()
+
+    then: 'all are prepared, and Muster is got once, before the lock'
+    noted
+    reentered.@prepared.keySet() == [VehicleComponent, OtherComponent, LaterComponent] as Set
+    resolved == 1
   }
 }

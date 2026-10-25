@@ -43,8 +43,10 @@ import org.springframework.util.ReflectionUtils;
  * wrong binding fails when its class is prepared.
  *
  * <p>Concurrency: a pass gets the {@code Muster} before it takes {@link #lock}, so that no bean is
- * created under the lock; a class noted meanwhile joins the pass. A call reads {@link #prepared}
- * without a lock: two map lookups.
+ * created under the lock. A class that the same thread notes while it gets the {@code Muster} or
+ * prepares a class, such as when preparing creates an advised bean, starts no pass of its own: the
+ * running pass prepares it, since the pass repeats until no noted class is left unprepared. A call
+ * reads {@link #prepared} without a lock: two map lookups.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
@@ -66,6 +68,12 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   /** Guarded by {@link #lock}. */
   private boolean started;
+
+  /**
+   * Set while a pass prepares classes, so that a class its thread notes meanwhile waits for the
+   * pass rather than change {@link #noted} under it. Guarded by {@link #lock}.
+   */
+  private boolean preparing;
 
   /**
    * Set while this thread gets the {@code Muster} or the guard for a pass, so that a class it notes
@@ -114,6 +122,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     if (resolving.get() != null) {
       return;
     }
+    synchronized (lock) {
+      if (preparing) {
+        return;
+      }
+    }
     Muster muster;
     @Nullable TransactionGuard guard;
     @Nullable BiPredicate<Method, Class<?>> transactional;
@@ -127,10 +140,16 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     }
     boolean checkOrder;
     synchronized (lock) {
-      for (var targetClass : noted) {
-        if (!prepared.containsKey(targetClass)) {
-          prepared.put(targetClass, adviceOf(muster, guard, transactional, targetClass));
+      preparing = true;
+      try {
+        // Preparing a class may note another, so the pass goes over a copy until none is left.
+        for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
+          for (var targetClass : unprepared) {
+            prepared.put(targetClass, adviceOf(muster, guard, transactional, targetClass));
+          }
         }
+      } finally {
+        preparing = false;
       }
       checkOrder = guard != null && !orderChecked && !prepared.isEmpty();
       orderChecked |= checkOrder;
@@ -138,6 +157,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     if (checkOrder) {
       guard.checkOrder(RulesAdvisor.ORDER);
     }
+  }
+
+  /** Returns the noted classes that are not prepared yet. Called under {@link #lock}. */
+  private List<Class<?>> unprepared() {
+    return noted.stream().filter(targetClass -> !prepared.containsKey(targetClass)).toList();
   }
 
   /**
