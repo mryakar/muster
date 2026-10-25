@@ -18,6 +18,7 @@ package me.yakar.muster.spring
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration
 import me.yakar.muster.spring.internal.engine.EngineConfiguration
+import me.yakar.muster.spring.internal.engine.MessagesConfiguration
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -56,6 +57,7 @@ class ComponentScanSpec extends Specification {
             MusterAutoConfiguration.name,
             EngineConfiguration.name,
             EngineConfiguration.name + '$SecurityConfiguration',
+            MessagesConfiguration.name,
             AdviceConfiguration.name,
             AdviceConfiguration.name + '$TransactionConfiguration',
             ProblemDetailsConfiguration.name

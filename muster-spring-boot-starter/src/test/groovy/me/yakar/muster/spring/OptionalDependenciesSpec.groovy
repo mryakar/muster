@@ -19,6 +19,7 @@ import java.lang.reflect.Executable
 import me.yakar.muster.spring.internal.Settings
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration
 import me.yakar.muster.spring.internal.engine.EngineConfiguration
+import me.yakar.muster.spring.internal.engine.MessagesConfiguration
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import spock.lang.Specification
 
@@ -41,6 +42,7 @@ class OptionalDependenciesSpec extends Specification {
     Rules,
     Settings,
     EngineConfiguration,
+    MessagesConfiguration,
     classOf('internal.engine.RuleBeans'),
     classOf('internal.engine.RuleScanner'),
     classOf('internal.engine.MessageSourceTemplates'),
