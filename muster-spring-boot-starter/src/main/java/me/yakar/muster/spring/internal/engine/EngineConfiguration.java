@@ -95,7 +95,6 @@ public final class EngineConfiguration {
   @Bean
   @ConditionalOnMissingBean
   MessageResolver musterMessageResolver(ApplicationContext context) {
-    // The context resolves messages through the message source of the application.
     return MessageResolver.ofTemplates(new MessageSourceTemplates(context));
   }
 

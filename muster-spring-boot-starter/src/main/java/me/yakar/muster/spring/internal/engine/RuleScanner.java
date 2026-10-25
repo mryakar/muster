@@ -99,7 +99,6 @@ final class RuleScanner
         var className = requireNonNull(candidate.getBeanClassName());
         if (defined.add(className)) {
           candidate.setScope(scopes.resolveScopeMetadata(candidate).getScopeName());
-          // @Lazy, @DependsOn, @Primary and the like, as in component scanning.
           AnnotationConfigUtils.processCommonDefinitionAnnotations(
               (AnnotatedBeanDefinition) candidate);
           registry.registerBeanDefinition(className, candidate);

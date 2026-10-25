@@ -37,7 +37,8 @@ dependencies {
   compileOnly(platform(springBoot))
   // Optional: the caller comes from Spring Security when the application has it.
   compileOnly("org.springframework.security:spring-security-core")
-  // Optional: rules run inside the transaction when the application has Spring's transactions.
+  // Optional: rules run inside the transaction when the application has Spring's transaction
+  // support.
   compileOnly("org.springframework:spring-tx")
   // Optional: violations become problem details in a Spring MVC application.
   compileOnly("org.springframework:spring-web")

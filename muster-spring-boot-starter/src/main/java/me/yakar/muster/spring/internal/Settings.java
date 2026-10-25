@@ -79,7 +79,8 @@ public final class Settings {
     var keys = new HashMap<ConfigurationPropertyName, String>();
     var disabled = new ArrayList<String>();
     for (var id : ids) {
-      // An id that is no valid name is not a valid rule id either, which Muster reports.
+      // Muster.Builder.rules has already rejected invalid ids, and a valid rule id is a valid
+      // property name.
       var key = ConfigurationPropertyName.adapt(RULES + "." + id + ".enabled", '.');
       var other = keys.putIfAbsent(key, id);
       if (other != null) {

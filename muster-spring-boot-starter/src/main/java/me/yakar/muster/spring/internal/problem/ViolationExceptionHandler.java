@@ -33,17 +33,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Answers a {@link BusinessRuleViolationException} with problem details: a status that the
- * categories of the violations decide, and the violations in the {@code violations} property, each
- * with its code, its message in the locale of the call, its target and category if it has them, and
- * its client arguments.
+ * Answers a {@link BusinessRuleViolationException} with problem details: the status that the
+ * categories of the violations decide, and a {@code violations} property of {@link ViolationEntry}
+ * items.
  *
- * <p>Its order is 0, as that of Spring Boot's own problem details, so that it comes before
- * controller advice without an order of its own, and a handler of {@link Exception} there does not
- * answer violations as errors of the server. An application that handles the exception itself, by
- * naming it in an {@link ExceptionHandler} of a controller advice, has no such handler; see {@link
- * ViolationHandlerRemover}. The class is not final, so that an advisor of the application can proxy
- * it.
+ * <p>Its order is 0, as for Spring Boot's own problem details, so it comes before controller advice
+ * without an order, whose handler of {@link Exception} would answer violations as server errors.
+ * {@link ViolationHandlerRemover} removes it when the application handles the exception itself. Not
+ * final, so that an advisor of the application can proxy it.
  */
 @RestControllerAdvice
 @Order(0)

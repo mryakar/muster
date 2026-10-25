@@ -27,27 +27,17 @@ import me.yakar.muster.rule.BusinessRule;
  * Checks the input of a method against business rules before the method runs, inside its
  * transaction.
  *
- * <p>The input is the only parameter of the method; a method that needs more takes a command object
- * that holds them, such as a record. The rules are the ones listed here, in this order, and, for a
- * {@link me.yakar.muster.rule.RuleTarget}, the rules that bind to its class by type, less the
- * excluded ones. Methods of a {@code @Service} bean check the rules bound by type without this
+ * <p>The input is the only parameter of the method; a method that needs more takes a command
+ * object, such as a record. The rules are the ones listed, in this order, and, for a {@link
+ * me.yakar.muster.rule.RuleTarget}, the rules that bind to its class by type, less the excluded
+ * ones. Public methods of a {@code @Service} bean that take a rule target check those without this
  * annotation.
  *
- * <p>Muster finds the annotation as Spring finds {@code @Transactional}: on the method, on the
- * method it overrides or implements, and as a meta-annotation. A method with rules must be public,
- * and neither static nor final, so that a proxy can call it. Wrong use stops the application when
- * it starts.
- *
- * <p>Rules run inside the transaction of the method: Muster moves the transaction advice one step
- * ahead of its own unless the application gives it an order, and the application does not start if
- * the transaction advice would not run around Muster's. A call from one advised method to another
- * with the same input checks the rules again; a call within the same bean, through {@code this},
- * passes no proxy and checks none.
- *
- * <p>Other advice runs around Muster's as Spring orders it. Method validation with
- * {@code @Validated} may run after the rules, so a rule should not rely on {@code @Valid} having
- * checked its input. A call answered from the cache of {@code @Cacheable} checks no rules, and an
- * {@code @Async} method checks them on its own thread, where a violation does not reach the caller.
+ * <p>The annotation is found as Spring finds {@code @Transactional}: on the method, on a method it
+ * overrides or implements, and as a meta-annotation. The method must be public and neither static
+ * nor final; wrong use stops the application. A call through {@code this} checks no rules. Other
+ * advice runs as Spring orders it: {@code @Validated} may run after the rules, a {@code @Cacheable}
+ * hit checks none, and an {@code @Async} method checks them on its own thread.
  */
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -69,7 +59,7 @@ public @interface Rules {
   Class<? extends BusinessRule<?>>[] exclude() default {};
 
   /**
-   * Returns how far a check goes once a rule is violated: one mode, or none for the mode of Muster.
+   * Returns the mode of the check: one mode, or none for the mode of the {@code Muster}.
    *
    * @return the mode, if any
    */
