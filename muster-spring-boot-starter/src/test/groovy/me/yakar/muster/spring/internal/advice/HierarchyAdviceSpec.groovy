@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.advice
 
 import java.lang.reflect.Proxy
 import me.yakar.muster.BusinessRuleViolationException
+import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.advice.BaseFinder
 import me.yakar.muster.spring.fixture.advice.BaseSaver
 import me.yakar.muster.spring.fixture.advice.GenericOperations
