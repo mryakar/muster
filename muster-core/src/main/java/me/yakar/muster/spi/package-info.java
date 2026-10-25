@@ -13,7 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** What integrations implement to plug Muster into an application. */
+/**
+ * What integrations implement to plug Muster into an application.
+ *
+ * <p>Unless a parameter is {@code @Nullable}, passing {@code null} throws a {@link
+ * NullPointerException}.
+ */
 @NullMarked
 package me.yakar.muster.spi;
 

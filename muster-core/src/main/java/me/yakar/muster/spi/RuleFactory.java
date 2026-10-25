@@ -31,7 +31,7 @@ public interface RuleFactory {
    * Returns an instance of the given rule class.
    *
    * @param ruleClass the rule class
-   * @return an instance of {@code ruleClass}, never {@code null}
+   * @return an instance of {@code ruleClass}; must not be {@code null}
    */
   BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass);
 }
