@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
@@ -64,57 +65,33 @@ public final class ResultsChart {
   private static final String FONT =
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-  /** The colors of GitHub's light and dark themes, where the README is read. */
-  private enum Theme {
-    LIGHT("light", "#1f2328", "#59636e", "#d1d9e0", "#ffffff", "#2a78d6", "#169a6b", "#818b98"),
-    DARK("dark", "#f0f6fc", "#9198a1", "#3d444d", "#0d1117", "#3987e5", "#199e70", "#9198a1");
+  /** The colors of one of GitHub's themes, where the README is read. */
+  private record Theme(
+      String name,
+      String ink,
+      String muted,
+      String grid,
+      String surface,
+      String chain,
+      String target,
+      String direct) {}
 
-    final String name;
-    final String ink;
-    final String muted;
-    final String grid;
-    final String surface;
-    final String chain;
-    final String target;
-    final String direct;
+  private static final List<Theme> THEMES =
+      List.of(
+          new Theme(
+              "light", "#1f2328", "#59636e", "#d1d9e0", "#ffffff", "#2a78d6", "#169a6b", "#818b98"),
+          new Theme(
+              "dark", "#f0f6fc", "#9198a1", "#3d444d", "#0d1117", "#3987e5", "#199e70", "#9198a1"));
 
-    Theme(
-        String name,
-        String ink,
-        String muted,
-        String grid,
-        String surface,
-        String chain,
-        String target,
-        String direct) {
-      this.name = name;
-      this.ink = ink;
-      this.muted = muted;
-      this.grid = grid;
-      this.surface = surface;
-      this.chain = chain;
-      this.target = target;
-      this.direct = direct;
-    }
-  }
-
-  /** A line of the chart. */
-  private record Series(String benchmark, String label, String dash) {
-
-    String color(Theme theme) {
-      return switch (benchmark) {
-        case "chain" -> theme.chain;
-        case "target" -> theme.target;
-        default -> theme.direct;
-      };
-    }
-  }
+  /** A line of the chart, with the color that each theme gives it. */
+  private record Series(
+      String benchmark, String label, String dash, Function<Theme, String> color) {}
 
   private static final List<Series> SERIES =
       List.of(
-          new Series("target", "muster.check(target)", "7 4"),
-          new Series("chain", "RuleChain.check", ""),
-          new Series("direct", "By hand (baseline)", "2 4"));
+          new Series("target", "muster.check(target)", "7 4", Theme::target),
+          new Series("chain", "RuleChain.check", "", Theme::chain),
+          new Series("direct", "By hand (baseline)", "2 4", Theme::direct));
 
   private ResultsChart() {}
 
@@ -138,8 +115,8 @@ public final class ResultsChart {
     var scores = scores(results, runs);
     // Everything is drawn before anything is written, so a failure leaves the published files.
     var charts = new LinkedHashMap<String, String>();
-    for (var theme : Theme.values()) {
-      charts.put("check-cost-" + theme.name + ".svg", draw(scores, theme));
+    for (var theme : THEMES) {
+      charts.put("check-cost-" + theme.name() + ".svg", draw(scores, theme));
     }
     Files.createDirectories(directory);
     Files.writeString(directory.resolve("results.json"), json);
@@ -442,30 +419,30 @@ public final class ResultsChart {
       svg.append(
           format(
               "  <line x1=\"%d\" y1=\"%.1f\" x2=\"%d\" y2=\"%.1f\" stroke=\"%s\"/>\n",
-              LEFT, tickY, LEFT + plotWidth, tickY, theme.grid));
+              LEFT, tickY, LEFT + plotWidth, tickY, theme.grid()));
       svg.append(
           format(
               "  <text x=\"%d\" y=\"%.1f\" fill=\"%s\" font-size=\"12\" text-anchor=\"end\""
                   + " dominant-baseline=\"middle\">%.0f</text>\n",
-              LEFT - 8, tickY, theme.muted, tick));
+              LEFT - 8, tickY, theme.muted(), tick));
     }
     for (var rules : scores.get("chain").keySet()) {
       svg.append(
           format(
               "  <text x=\"%.1f\" y=\"%d\" fill=\"%s\" font-size=\"12\""
                   + " text-anchor=\"middle\">%d</text>\n",
-              x.at(rules), TOP + plotHeight + 20, theme.muted, rules));
+              x.at(rules), TOP + plotHeight + 20, theme.muted(), rules));
     }
     svg.append(
         format(
             "  <text x=\"%.1f\" y=\"%d\" fill=\"%s\" font-size=\"12\""
                 + " text-anchor=\"middle\">Rules in the check</text>\n",
-            LEFT + plotWidth / 2.0, HEIGHT - 12, theme.muted));
+            LEFT + plotWidth / 2.0, HEIGHT - 12, theme.muted()));
     svg.append(
         format(
             "  <text x=\"16\" y=\"%.1f\" fill=\"%s\" font-size=\"12\" text-anchor=\"middle\""
                 + " transform=\"rotate(-90 16 %.1f)\">ns per check</text>\n",
-            TOP + plotHeight / 2.0, theme.muted, TOP + plotHeight / 2.0));
+            TOP + plotHeight / 2.0, theme.muted(), TOP + plotHeight / 2.0));
 
     for (var series : SERIES) {
       var points = new StringBuilder();
@@ -477,7 +454,7 @@ public final class ResultsChart {
               "  <polyline points=\"%s\" fill=\"none\" stroke=\"%s\" stroke-width=\"2\""
                   + " stroke-linejoin=\"round\" stroke-linecap=\"round\"%s/>\n",
               points.toString().strip(),
-              series.color(theme),
+              series.color().apply(theme),
               series.dash().isEmpty() ? "" : " stroke-dasharray=\"" + series.dash() + "\""));
       scores
           .get(series.benchmark())
@@ -487,7 +464,7 @@ public final class ResultsChart {
                       format(
                           "  <circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"%s\" stroke=\"%s\""
                               + " stroke-width=\"2\"/>\n",
-                          x.at(rules), y.at(ns), series.color(theme), theme.surface)));
+                          x.at(rules), y.at(ns), series.color().apply(theme), theme.surface())));
     }
 
     // Each line is named at its end, with its last value; labels that would overlap move apart.
@@ -506,10 +483,10 @@ public final class ResultsChart {
                   + " <tspan fill=\"%s\">%.0f ns</tspan></text>\n",
               LEFT + plotWidth + 14,
               labels.get(i)[0],
-              theme.ink,
-              series.color(theme),
+              theme.ink(),
+              series.color().apply(theme),
               series.label(),
-              theme.muted,
+              theme.muted(),
               last));
     }
     return svg.append("</svg>\n").toString();
