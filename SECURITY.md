@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes go into the latest minor release, currently 0.1.x. Upgrade to the latest release
+Security fixes go into the latest minor release, currently 0.2.x. Upgrade to the latest release
 to get them.
 
 ## Verifying a release
@@ -18,7 +18,7 @@ To check a file against its `.asc` signature:
 
 ```bash
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 4C3AF91B1B7F67BD50D28A406CCE03949E2A4A49
-gpg --verify muster-core-0.1.0.jar.asc muster-core-0.1.0.jar
+gpg --verify muster-core-0.2.0.jar.asc muster-core-0.2.0.jar
 ```
 
 Releases are signed with the key's signing subkey, `46BA04A6815A97C7`; `gpg` names the subkey

@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-25
+
 ### Added
 
 - A Spring Boot starter, `me.yakar.muster:muster-spring-boot-starter`, released on Maven Central with the core and the BOM. It builds a `Muster` bean from the rule beans of the application and registers the `@Rule` classes in the application's packages as beans. It works with Spring Boot 4.0.8 and later; Spring Security, Spring's transactions and Spring MVC are optional.
@@ -59,5 +61,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call, also from many threads at once. `./gradlew jmh` runs them.
 - The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 100 ns over calling them by hand.
 
-[Unreleased]: https://github.com/mryakar/muster/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mryakar/muster/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mryakar/muster/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0
