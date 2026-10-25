@@ -32,15 +32,19 @@ dependencies {
 // javac warns of every annotation that the JMH processor does not claim, such as @Rule.
 tasks.compileJava { options.compilerArgs.add("-Xlint:-processing") }
 
-// Runs every benchmark; --args selects some and overrides their settings, as in
-// --args="CheckBenchmark -f 1", except the result file and format. The results are written as JSON,
-// which keeps each fork's measurements, with the allocation per call.
+// Each task copies it to a local value: a lambda that read the script's own value would capture
+// the script, which the configuration cache cannot store.
+val jmhResults = layout.buildDirectory.file("results/jmh/results.json")
+
+// --args selects benchmarks and overrides their settings, but not the result file or format: JSON
+// keeps each fork's measurements and -prof gc the allocation per call, which jmhReport needs.
+// jmhReport publishes only a full run with the settings that the classes declare.
 tasks.register<JavaExec>("jmh") {
   description = "Runs the JMH benchmarks."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "org.openjdk.jmh.Main"
-  val results = layout.buildDirectory.file("results/jmh/results.json")
+  val results = jmhResults
   // A run measures the machine as it is now, so it never counts as up to date.
   doNotTrackState("Benchmark results depend on the machine, not only on the inputs")
   argumentProviders.add {
@@ -49,14 +53,12 @@ tasks.register<JavaExec>("jmh") {
   doFirst { results.get().asFile.parentFile.mkdirs() }
 }
 
-// Copies the results of the last run to docs/benchmarks, with a summary of the median of each
-// benchmark's forks, and draws the chart that the README shows.
 tasks.register<JavaExec>("jmhReport") {
-  description = "Publishes the results of the last JMH run to docs/benchmarks, with a chart."
+  description = "Publishes the medians of the last JMH run to docs/benchmarks, with a chart."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "me.yakar.muster.benchmark.ResultsChart"
-  val results = layout.buildDirectory.file("results/jmh/results.json")
+  val results = jmhResults
   val docs = layout.settingsDirectory.dir("docs/benchmarks")
   inputs.file(results)
   outputs.files(
@@ -65,5 +67,5 @@ tasks.register<JavaExec>("jmhReport") {
     docs.file("check-cost-light.svg"),
     docs.file("check-cost-dark.svg"),
   )
-  args(results.get().asFile.absolutePath, docs.asFile.absolutePath)
+  argumentProviders.add { listOf(results.get().asFile.absolutePath, docs.asFile.absolutePath) }
 }
