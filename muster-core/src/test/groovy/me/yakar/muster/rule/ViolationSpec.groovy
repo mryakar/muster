@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import me.yakar.muster.Serialization
-import me.yakar.muster.internal.RuleIds
+import me.yakar.muster.internal.rule.RuleIds
 import spock.lang.Shared
 import spock.lang.Specification
 

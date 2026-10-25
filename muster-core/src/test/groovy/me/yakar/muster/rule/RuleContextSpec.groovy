@@ -55,7 +55,7 @@ class RuleContextSpec extends Specification {
     where:
     problem         | ruleClass || exception                | message
     'no @Rule'      | NoRule || IllegalArgumentException | "${NoRule.typeName} is not annotated with @Rule"
-    'an invalid id' | InvalidId || IllegalArgumentException | "the id 'Task Ready' of ${InvalidId.typeName} is invalid; ${me.yakar.muster.internal.RuleIds.FORMAT}"
+    'an invalid id' | InvalidId || IllegalArgumentException | "the id 'Task Ready' of ${InvalidId.typeName} is invalid; ${me.yakar.muster.internal.rule.RuleIds.FORMAT}"
   }
 
   def 'a context rejects a null rule class'() {

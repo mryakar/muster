@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import java.security.Principal;
 import java.util.Locale;
 import java.util.Optional;
-import me.yakar.muster.internal.RuleDefinition;
-import me.yakar.muster.internal.RuleIds;
+import me.yakar.muster.internal.rule.RuleDefinition;
+import me.yakar.muster.internal.rule.RuleIds;
 import org.jspecify.annotations.Nullable;
 
 /**
