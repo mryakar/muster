@@ -1,4 +1,4 @@
-Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median (ns),Allocated (B)
+Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median: fork (ns),Allocated (B)
 BindingBenchmark.check,bound=first,40.1,39.5,43.5,3 (45.4),0
 BindingBenchmark.check,bound=second,46.1,42.1,47.0,,0
 CheckBenchmark.chain,rules=0,13.4,12.8,13.9,,16
