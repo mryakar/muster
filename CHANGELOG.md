@@ -35,6 +35,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The Javadoc of `RuleContext.locale()` no longer suggests comparing names in the caller's locale, which lets the same name pass for one language and fail for another; it says to normalize stored data in one fixed locale.
 - When rules that require a disabled rule are still enabled, Muster names all of them at once, also those that require it through other rules, so one change to the configuration fixes the setup.
 
+### Fixed
+
+- The purls in the SBOM of `muster-core` no longer carry a `project_path` qualifier, which named the module's path in Muster's build and no published artifact has.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added
