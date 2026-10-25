@@ -47,10 +47,10 @@ import tools.jackson.databind.json.JsonMapper;
  * check against the number of rules, with the rules called by hand as the baseline. It writes the
  * chart as SVG in a light and a dark variant, next to a copy of the results and a summary of them.
  *
- * <p>Each benchmark runs in several forks, and now and then a fork's JIT compiles the loop over
- * twenty rule classes into slower code. The published time of a benchmark is therefore the median
- * of its forks' averages; the summary also gives the range and the forks more than 10% from the
- * median.
+ * <p>Each benchmark runs in several forks, and now and then a fork's JIT compiles a benchmark into
+ * other code than the others, nearly always slower. The published time of a benchmark is therefore
+ * the median of its forks' averages; the summary also gives the range and the forks more than 10%
+ * from the median.
  */
 public final class ResultsChart {
 
