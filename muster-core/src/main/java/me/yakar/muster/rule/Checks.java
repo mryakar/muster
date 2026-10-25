@@ -36,40 +36,42 @@ final class Checks {
    * or hide in it unseen.
    */
   static String requireKey(String value, String name) {
+    return requireKey(value, name, false);
+  }
+
+  /**
+   * Requires a name a message template can refer to, as in {@code {name}}: a {@linkplain
+   * #requireKey(String, String) key} with no brace.
+   */
+  static void requireArgumentName(String value) {
+    requireKey(value, "argument name", true);
+  }
+
+  private static String requireKey(String value, String name, boolean argumentName) {
     requireNonBlank(value, name);
     for (var i = 0; i < value.length(); ) {
       var c = value.codePointAt(i);
-      if (Character.isWhitespace(c)
-          || Character.isSpaceChar(c)
+      var type = Character.getType(c);
+      // Every whitespace character is a space or a control character.
+      if (Character.isSpaceChar(c)
           || Character.isISOControl(c)
-          || Character.getType(c) == Character.FORMAT
-          || Character.getType(c) == Character.SURROGATE) {
+          || type == Character.FORMAT
+          || type == Character.SURROGATE) {
         throw new IllegalArgumentException(
             String.format(
                 "%s '%s' contains U+%04X; it cannot contain whitespace, spaces, control or format"
                     + " characters, or unpaired surrogates",
                 name, value, c));
       }
-      i += Character.charCount(c);
-    }
-    return value;
-  }
-
-  /**
-   * Requires a name a message template can refer to, as in {@code {name}}: a {@linkplain
-   * #requireKey key} with no brace.
-   */
-  static void requireArgumentName(String value) {
-    requireKey(value, "argument name");
-    for (var i = 0; i < value.length(); i++) {
-      var c = value.charAt(i);
-      if (c == '{' || c == '}') {
+      if (argumentName && (c == '{' || c == '}')) {
         throw new IllegalArgumentException(
             String.format(
                 "argument name '%s' contains U+%04X; it cannot contain braces, which mark arguments"
                     + " in message templates",
-                value, (int) c));
+                value, c));
       }
+      i += Character.charCount(c);
     }
+    return value;
   }
 }
