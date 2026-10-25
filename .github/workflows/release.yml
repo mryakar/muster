@@ -44,8 +44,8 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Check that the tag is on main
         run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-      # Gradle signs with a revoked or expired key as well, and users check the signatures against
-      # the published key. The subkey is the one the publish job names by its short id.
+      # Gradle would sign with a revoked or expired key too. The subkey is the one the publish job
+      # names by its short id.
       - name: Check the signing key on keys.openpgp.org
         run: .github/scripts/check-signing-key.sh 4C3AF91B1B7F67BD50D28A406CCE03949E2A4A49 46BA04A6815A97C7
       - run: ./gradlew build publishToMavenLocal
@@ -75,9 +75,8 @@ jobs:
     environment: release
     env:
       VERSION: ${{ needs.verify.outputs.version }}
-      # SIGNING_KEY holds only the signing subkey, so the build has to name it. Gradle takes the
-      # short id, the last 8 hex digits; without it, it looks for the primary key and fails. It
-      # changes together with the subkey that the verify job checks.
+      # SIGNING_KEY holds only the signing subkey, so Gradle needs its short id (the last 8 hex
+      # digits). Change it together with the subkey that the verify job checks.
       ORG_GRADLE_PROJECT_signingInMemoryKeyId: 815A97C7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -149,10 +148,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.verify.outputs.version }}
 
-  # Runs after a maintainer has published the upload in the Central Portal and approved this job in
-  # the release-publish environment. It publishes the draft only once Maven Central serves the jars
-  # that were tested, so that a release on GitHub never points at a version Central does not have.
-  # Until it ends, the next tag's run waits in the concurrency group.
+  # Runs once a maintainer has published the Central upload and approved the release-publish
+  # environment. It publishes the draft only when Maven Central serves the tested jars, so that no
+  # GitHub release names a version Central lacks; the next tag's run waits until it ends.
   publish-github-release:
     name: Publish the GitHub Release
     needs: [verify, github-release]
