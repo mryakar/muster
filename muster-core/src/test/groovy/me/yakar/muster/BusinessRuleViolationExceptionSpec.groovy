@@ -138,7 +138,7 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     copy.violations()*.clientArgs().every { it.is(empty) }
     copy.violations()*.internalArgs().every { it.is(empty) }
 
-    where: 'the released 0.1.0 wrote the file; it pins the serialized form, so it is never written anew'
+    where: 'the released 0.1.0 wrote the file, so it is never written anew; it pins what this version reads, not what it writes, which differs in size since the violations now share one empty map of arguments'
     how                       | copied
     'reads as 0.1.0 wrote it' | {
       Serialization.read(BusinessRuleViolationExceptionSpec.getResourceAsStream('exception-with-violations-without-arguments-0.1.0.ser').bytes)
