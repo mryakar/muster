@@ -112,14 +112,5 @@ chart; the tables and the image descriptions here are updated by hand.
 
 ## Running the benchmarks
 
-```bash
-./gradlew jmh
-```
-
-The run takes about half an hour. For numbers worth comparing, run `jmh` on its own, on a machine
-plugged in and otherwise idle, with a fixed CPU frequency. To publish the results here and draw the
-chart again:
-
-```bash
-./gradlew jmhReport
-```
+[CONTRIBUTING.md](../../CONTRIBUTING.md#benchmarks) says how to run the benchmarks and publish
+their results here.
