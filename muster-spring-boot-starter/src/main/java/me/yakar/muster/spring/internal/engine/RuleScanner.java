@@ -50,6 +50,8 @@ final class RuleScanner
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
+  // Set through Aware rather than injected: resolving a parameter of the bean method by type would
+  // create factory beans early to learn what they make.
   private @Nullable Environment environment;
   private @Nullable ResourceLoader resourceLoader;
 
