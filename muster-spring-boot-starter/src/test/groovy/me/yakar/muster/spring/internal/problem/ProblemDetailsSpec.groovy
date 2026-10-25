@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.problem
 
 import tools.jackson.databind.json.JsonMapper
 import java.nio.charset.StandardCharsets
@@ -30,6 +30,7 @@ import me.yakar.muster.rule.Category
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.Violation
 import me.yakar.muster.spi.MessageResolver
+import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.web.CatchAllAdvice
 import me.yakar.muster.spring.fixture.web.LaterErrorsAutoConfiguration
 import me.yakar.muster.spring.fixture.web.ListingAdvice
