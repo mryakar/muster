@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -130,7 +131,9 @@ public final class ResultsChart {
     var results = Path.of(args[0]);
     var directory = Path.of(args[1]);
     // JMH ends lines as the platform does; the copy ends them the same everywhere.
-    var json = Files.readString(results).replace("\r\n", "\n");
+    // The path of the JVM names the machine's user and directories; the published copy keeps none.
+    var json =
+        JVM_PATH.matcher(Files.readString(results).replace("\r\n", "\n")).replaceAll("$1java\"");
     var runs = summarize(results, JsonMapper.shared().readTree(json));
     var scores = scores(results, runs);
     // Everything is drawn before anything is written, so a failure leaves the published files.
@@ -234,6 +237,9 @@ public final class ResultsChart {
     }
     return runs;
   }
+
+  /** The path of the JVM that ran a benchmark, as JMH writes it, up to its file name. */
+  private static final Pattern JVM_PATH = Pattern.compile("(\"jvm\"\\s*:\\s*\")[^\"]*\"");
 
   /** How far from the median a fork may be before the published results leave it out: 10%. */
   private static final double OUTLIER = 0.10;
