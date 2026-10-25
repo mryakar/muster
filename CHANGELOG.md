@@ -35,6 +35,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The Javadoc of `RuleContext.locale()` no longer suggests comparing names in the caller's locale, which lets the same name pass for one language and fail for another; it says to normalize stored data in one fixed locale.
 - When rules that require a disabled rule are still enabled, Muster names all of them at once, also those that require it through other rules, so one change to the configuration fixes the setup.
 - A violation that has no client arguments, or no internal ones, allocates no map for them, so a failing check allocates less.
+- An application that defines a `Muster` bean of its own does not start if it also sets `muster.rules.*` or `muster.mode`, which configure only the `Muster` that the starter builds and would do nothing; the error names the keys. `muster.transaction.reorder-advisor` and `muster.problem-details.mixed-status` apply either way.
 
 ### Fixed
 

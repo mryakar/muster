@@ -51,6 +51,11 @@ public final class EngineConfiguration {
   }
 
   @Bean
+  static OwnMusterCheck musterOwnMusterCheck() {
+    return new OwnMusterCheck();
+  }
+
+  @Bean
   @ConditionalOnMissingBean
   Muster muster(
       ConfigurableListableBeanFactory beanFactory,

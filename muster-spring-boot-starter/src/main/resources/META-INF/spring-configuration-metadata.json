@@ -9,7 +9,7 @@
     {
       "name": "muster.mode",
       "type": "me.yakar.muster.CheckMode",
-      "description": "How far a check goes once a rule is violated: fail-fast stops at the first violated rule, collect-all runs every rule and reports every violation.",
+      "description": "How far a check goes once a rule is violated: fail-fast stops at the first violated rule, collect-all runs every rule and reports every violation. It configures only the Muster that the starter builds: an application with a Muster bean of its own does not start if it sets it.",
       "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
       "defaultValue": "fail-fast"
     },
@@ -30,7 +30,7 @@
     {
       "name": "muster.rules",
       "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
-      "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application.",
+      "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application, and so does any key in an application with a Muster bean of its own.",
       "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration"
     }
   ],

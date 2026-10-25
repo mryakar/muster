@@ -114,6 +114,29 @@ public final class Settings {
   }
 
   /**
+   * Fails if the configuration sets {@code muster.rules} or {@code muster.mode}, which configure
+   * only the {@code Muster} that the starter builds, while the application defines its own.
+   *
+   * @throws IllegalStateException if either is set, naming the keys
+   */
+  public static void requireNoneForOwnMuster(Environment environment) {
+    var keys = new TreeSet<String>();
+    for (var source : ConfigurationPropertySources.get(environment)) {
+      if (source instanceof IterableConfigurationPropertySource iterable) {
+        iterable
+            .filter(name -> MODE.equals(name) || RULES.equals(name) || RULES.isAncestorOf(name))
+            .forEach(name -> keys.add(name.toString()));
+      }
+    }
+    if (!keys.isEmpty()) {
+      throw new IllegalStateException(
+          String.join(", ", keys)
+              + " configure only the Muster that the starter builds, but the application defines"
+              + " a Muster bean of its own; remove these properties, or that bean");
+    }
+  }
+
+  /**
    * Returns whether Muster may move the transaction advice one step ahead of its own.
    *
    * @throws IllegalStateException if {@code muster.transaction.reorder-advisor} is set to nothing
