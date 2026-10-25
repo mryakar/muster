@@ -28,9 +28,6 @@ public class VehicleNameUnique implements BusinessRule<CreateVehicle> {
 
   private static final Set<String> TAKEN = Set.of("Atlas");
 
-  /** Creates the rule. */
-  public VehicleNameUnique() {}
-
   @Override
   public RuleResult check(CreateVehicle input, RuleContext ctx) {
     return TAKEN.contains(input.name())
