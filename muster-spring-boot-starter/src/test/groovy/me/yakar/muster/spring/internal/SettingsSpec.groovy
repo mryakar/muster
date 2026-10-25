@@ -152,6 +152,7 @@ class SettingsSpec extends Specification {
     'muster.rules.vehicle.name-unique.enabled= ' || 'muster.rules.vehicle.name-unique.enabled is set to nothing; set it to true or false'
     'muster.mode=' || 'muster.mode is set to nothing; set it to fail-fast or collect-all'
     'muster.transaction.reorder-advisor=' || 'muster.transaction.reorder-advisor is set to nothing; set it to true or false'
+    'muster.validation.reorder-advisor=' || 'muster.validation.reorder-advisor is set to nothing; set it to true or false'
   }
 
   def 'muster.rules itself switches no rule'() {

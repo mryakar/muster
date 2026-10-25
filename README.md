@@ -163,6 +163,7 @@ build; a property set to nothing stops the application:
 | `muster.rules.<rule id>.enabled` | `true` | Switches a rule off, also as an environment variable such as `MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED`; a key under `muster.rules` that switches no rule, such as a misspelled id, stops the application |
 | `muster.problem-details.mixed-status` | `422` | The status of violations of different categories, from 400 to 499 |
 | `muster.transaction.reorder-advisor` | `true` | Moves the transaction advice ahead of Muster's, so that rules run inside the transaction, unless `@EnableTransactionManagement` has an order of its own |
+| `muster.validation.reorder-advisor` | `true` | Moves the method validation advice ahead of Muster's, so that the constraints of a `@Validated` method are checked before its rules and before its transaction, unless the application defines the `MethodValidationPostProcessor` itself |
 
 [`muster-examples/spring-boot`](muster-examples/spring-boot) is a complete application along these
 lines.
@@ -179,9 +180,12 @@ replaces the starter's; such an application does not start if it also sets `must
 overrides or implements, and as a meta-annotation. A method with rules is public, and neither
 static nor final; wrong use stops the application when it starts, as does a transaction advice that
 would not run around Muster's. A call through `this` passes no proxy and checks no rules; a call
-from one advised method to another checks them again. Other advice runs as Spring orders it:
-`@Validated` may run after the rules, a `@Cacheable` hit checks none, and an `@Async` method checks
-them on its own thread, where a violation does not reach the caller.
+from one advised method to another checks them again. The constraints of a `@Validated` method are
+checked before its rules, and before its transaction, since Muster tells Spring Boot's method
+validation to add its advice first; with `muster.validation.reorder-advisor=false`, Spring adds it
+last and the rules run before the constraints. Other advice runs as Spring orders it: a `@Cacheable`
+hit checks no rules, and an `@Async` method checks them on its own thread, where a violation does
+not reach the caller.
 
 **Caller and locale.** The caller is read through the `SecurityContextHolderStrategy` bean of the
 application if it has one; a call that is anonymous or not authenticated has no caller. Without a

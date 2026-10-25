@@ -33,7 +33,8 @@ import org.springframework.core.env.Environment;
 /**
  * Reads the properties that the starter takes: {@code muster.rules.<rule id>.enabled}, {@code
  * muster.mode}, {@code muster.transaction.reorder-advisor}, {@code
- * muster.problem-details.mixed-status} and {@code spring.aop.proxy-target-class}.
+ * muster.validation.reorder-advisor}, {@code muster.problem-details.mixed-status} and {@code
+ * spring.aop.proxy-target-class}.
  *
  * <p>The keys of the rules are read one rule id at a time rather than bound as a map: a rule id has
  * dots and hyphens, which a map key loses, and so does an environment variable such as {@code
@@ -45,8 +46,10 @@ public final class Settings {
   private static final ConfigurationPropertyName RULES =
       ConfigurationPropertyName.of("muster.rules");
   private static final ConfigurationPropertyName MODE = ConfigurationPropertyName.of("muster.mode");
-  private static final ConfigurationPropertyName REORDER_ADVISOR =
+  private static final ConfigurationPropertyName REORDER_TRANSACTION_ADVISOR =
       ConfigurationPropertyName.of("muster.transaction.reorder-advisor");
+  private static final ConfigurationPropertyName REORDER_VALIDATION_ADVISOR =
+      ConfigurationPropertyName.of("muster.validation.reorder-advisor");
   private static final ConfigurationPropertyName MIXED_STATUS =
       ConfigurationPropertyName.of("muster.problem-details.mixed-status");
   private static final ConfigurationPropertyName PROXY_TARGET_CLASS =
@@ -130,10 +133,17 @@ public final class Settings {
    *
    * @throws IllegalStateException if {@code muster.transaction.reorder-advisor} is set to nothing
    */
-  public static boolean reorderAdvisor(Environment environment) {
-    var binder = Binder.get(environment);
-    requireValue(binder, REORDER_ADVISOR, "true or false");
-    return binder.bind(REORDER_ADVISOR, Bindable.of(Boolean.class)).orElse(true);
+  public static boolean reorderTransactionAdvisor(Environment environment) {
+    return flag(environment, REORDER_TRANSACTION_ADVISOR);
+  }
+
+  /**
+   * Returns whether Muster may move the method validation advice ahead of its own.
+   *
+   * @throws IllegalStateException if {@code muster.validation.reorder-advisor} is set to nothing
+   */
+  public static boolean reorderValidationAdvisor(Environment environment) {
+    return flag(environment, REORDER_VALIDATION_ADVISOR);
   }
 
   /**
@@ -165,6 +175,13 @@ public final class Settings {
     return Binder.get(environment)
         .bind(PROXY_TARGET_CLASS, Bindable.of(Boolean.class))
         .orElse(true);
+  }
+
+  /** Returns a flag that is on unless the configuration sets it to {@code false}. */
+  private static boolean flag(Environment environment, ConfigurationPropertyName key) {
+    var binder = Binder.get(environment);
+    requireValue(binder, key, "true or false");
+    return binder.bind(key, Bindable.of(Boolean.class)).orElse(true);
   }
 
   private static boolean inRules(ConfigurationPropertyName name) {

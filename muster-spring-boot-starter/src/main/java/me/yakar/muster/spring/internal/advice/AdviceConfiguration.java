@@ -25,9 +25,9 @@ import org.springframework.context.annotation.Role;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 
 /**
- * Checks the rules of advised methods, inside their transaction. Not annotated with {@code
- * Configuration}, so that component scanning does not find it; Muster's auto-configuration imports
- * it.
+ * Checks the rules of advised methods, inside their transaction and after the constraints of the
+ * method. Not annotated with {@code Configuration}, so that component scanning does not find it;
+ * Muster's auto-configuration imports it.
  */
 @Import({ProxyCreatorRegistrar.class, AdviceConfiguration.TransactionConfiguration.class})
 public final class AdviceConfiguration {
@@ -46,6 +46,11 @@ public final class AdviceConfiguration {
   @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
   static RulesAdvisor musterRulesAdvisor(RulesInterceptor musterRulesInterceptor) {
     return new RulesAdvisor(musterRulesInterceptor);
+  }
+
+  @Bean
+  static ValidationOrdering musterValidationOrdering() {
+    return new ValidationOrdering();
   }
 
   /** Keeps rules inside the transaction when the application has Spring's transaction support. */
