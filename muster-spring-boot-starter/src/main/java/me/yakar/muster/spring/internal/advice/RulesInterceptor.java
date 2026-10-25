@@ -16,7 +16,6 @@
 package me.yakar.muster.spring.internal.advice;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -26,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiPredicate;
-import me.yakar.muster.Binding;
 import me.yakar.muster.Muster;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -159,8 +157,8 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     var bySpecific = new HashMap<Method, MethodAdvice>();
     var advice = new HashMap<Method, MethodAdvice>();
     for (var method : candidates) {
-      if (AdvisedMethods.advised(method, targetClass)) {
-        var specific = AdvisedMethods.specific(method, targetClass);
+      var specific = AdvisedMethods.advised(method, targetClass);
+      if (specific != null) {
         var methodAdvice = bySpecific.get(specific);
         if (methodAdvice == null) {
           methodAdvice = MethodAdvice.of(muster, guard, transactional, specific, targetClass);
@@ -208,69 +206,5 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
               + " advised methods from the constructors of rules or of the beans they need");
     }
     return methods;
-  }
-
-  /** What Muster does before an advised method runs. */
-  private record MethodAdvice(
-      String label, Binding<Object> binding, @Nullable TransactionGuard transaction) {
-
-    @SuppressWarnings("unchecked")
-    static MethodAdvice of(
-        Muster muster,
-        @Nullable TransactionGuard guard,
-        @Nullable BiPredicate<Method, Class<?>> transactional,
-        Method method,
-        Class<?> targetClass) {
-      var label = AdvisedMethods.label(method, targetClass);
-      var modifiers = method.getModifiers();
-      if (!Modifier.isPublic(modifiers)) {
-        throw new IllegalStateException(
-            label + " has rules but is not public; a proxy calls public methods only");
-      }
-      if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers)) {
-        throw new IllegalStateException(
-            label
-                + " has rules but is "
-                + (Modifier.isStatic(modifiers) ? "static" : "final")
-                + ", so a proxy cannot check them before it runs");
-      }
-      var count = method.getParameterCount();
-      if (count != 1) {
-        throw new IllegalStateException(
-            label
-                + (count == 0
-                    ? " has rules but no parameter; rules check the only parameter of a method"
-                    : " takes "
-                        + count
-                        + " parameters; a method with rules takes one, so pass a command object"
-                        + " that holds them, such as a record"));
-      }
-      var builder = muster.binding((Class<Object>) method.getParameterTypes()[0]).name(label);
-      var rules = AdvisedMethods.rules(method);
-      if (rules != null) {
-        builder.rules(rules.value()).exclude(rules.exclude());
-        if (rules.mode().length > 1) {
-          throw new IllegalStateException(
-              "@Rules on "
-                  + label
-                  + " names "
-                  + rules.mode().length
-                  + " modes; give one, or none for the mode of Muster");
-        }
-        if (rules.mode().length == 1) {
-          builder.mode(rules.mode()[0]);
-        }
-      }
-      var transaction =
-          transactional != null && transactional.test(method, targetClass) ? guard : null;
-      return new MethodAdvice(label, builder.build(), transaction);
-    }
-
-    void check(@Nullable Object input) {
-      if (transaction != null) {
-        transaction.requireTransaction(label);
-      }
-      binding.check(input);
-    }
   }
 }
