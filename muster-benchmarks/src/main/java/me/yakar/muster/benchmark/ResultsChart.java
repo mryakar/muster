@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -468,40 +469,45 @@ public final class ResultsChart {
     }
 
     // Each line is named at its end, with its last value; labels that would overlap move apart.
-    var labels = new ArrayList<double[]>();
-    for (var series : SERIES) {
-      labels.add(new double[] {y.at(scores.get(series.benchmark()).lastEntry().getValue())});
-    }
-    spread(labels);
+    var last =
+        SERIES.stream()
+            .mapToDouble(series -> scores.get(series.benchmark()).lastEntry().getValue())
+            .toArray();
+    var labelYs = spread(Arrays.stream(last).map(y::at).toArray());
     for (var i = 0; i < SERIES.size(); i++) {
       var series = SERIES.get(i);
-      var last = scores.get(series.benchmark()).lastEntry().getValue();
       svg.append(
           format(
               "  <text x=\"%d\" y=\"%.1f\" fill=\"%s\" font-size=\"13\""
                   + " dominant-baseline=\"middle\"><tspan fill=\"%s\">●</tspan> %s"
                   + " <tspan fill=\"%s\">%.0f ns</tspan></text>\n",
               LEFT + plotWidth + 14,
-              labels.get(i)[0],
+              labelYs[i],
               theme.ink(),
               series.color().apply(theme),
               series.label(),
               theme.muted(),
-              last));
+              last[i]));
     }
     return svg.append("</svg>\n").toString();
   }
 
-  /** Moves label positions apart, top to bottom, until no two are closer than the minimum gap. */
-  private static void spread(List<double[]> labels) {
-    var sorted = new ArrayList<>(labels);
-    sorted.sort(Comparator.comparingDouble(label -> label[0]));
-    for (var i = 1; i < sorted.size(); i++) {
-      var above = sorted.get(i - 1)[0];
-      if (sorted.get(i)[0] - above < MIN_LABEL_GAP) {
-        sorted.get(i)[0] = above + MIN_LABEL_GAP;
+  /** Returns the label positions moved apart, top to bottom, until none is too close to another. */
+  private static double[] spread(double[] ys) {
+    var spread = ys.clone();
+    var order =
+        IntStream.range(0, ys.length)
+            .boxed()
+            .sorted(Comparator.comparingDouble(i -> ys[i]))
+            .mapToInt(Integer::intValue)
+            .toArray();
+    for (var i = 1; i < order.length; i++) {
+      var above = spread[order[i - 1]];
+      if (spread[order[i]] - above < MIN_LABEL_GAP) {
+        spread[order[i]] = above + MIN_LABEL_GAP;
       }
     }
+    return spread;
   }
 
   /** The step between gridlines: a round number that gives at most six of them. */
@@ -518,18 +524,19 @@ public final class ResultsChart {
   }
 
   private static String description(Map<String, TreeMap<Integer, Double>> scores) {
-    var text = new StringBuilder();
-    for (var series : SERIES) {
-      text.append(series.label()).append(':');
-      scores
-          .get(series.benchmark())
-          .forEach(
-              (rules, ns) ->
-                  text.append(format(" %d %s %.1f ns,", rules, rules == 1 ? "rule" : "rules", ns)));
-      text.setLength(text.length() - 1);
-      text.append(". ");
-    }
-    return text.toString().strip();
+    return SERIES.stream()
+        .map(
+            series ->
+                scores.get(series.benchmark()).entrySet().stream()
+                    .map(
+                        score -> {
+                          var rules = score.getKey();
+                          return format(
+                              " %d %s %.1f ns",
+                              rules, rules == 1 ? "rule" : "rules", score.getValue());
+                        })
+                    .collect(Collectors.joining(",", series.label() + ":", ".")))
+        .collect(Collectors.joining(" "));
   }
 
   private static String format(String template, Object... args) {
