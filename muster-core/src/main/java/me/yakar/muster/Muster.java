@@ -42,18 +42,18 @@ import org.jspecify.annotations.Nullable;
  *
  * {@snippet :
  * Muster muster = Muster.builder()
- *     .rules(new VehicleNameUnique(vehicles), new VehicleCodeFormat())
+ *     .rules(new VehicleNameUnique(vehicles), new VehiclePlateFormat())
  *     .caller(() -> currentUser())
  *     .build();
  *
- * RuleChain<UpdateVehicle> update =
- *     muster.chain(UpdateVehicle.class, VehicleNameUnique.class, VehicleCodeFormat.class);
- * update.check(command); // throws BusinessRuleViolationException if a rule is violated
+ * RuleChain<CreateVehicle> create =
+ *     muster.chain(CreateVehicle.class, VehicleNameUnique.class, VehiclePlateFormat.class);
+ * create.check(command); // throws BusinessRuleViolationException if a rule is violated
  * }
  *
- * <p>Muster checks the setup when it is built and when a chain or a binding is created, and rejects
- * a wrong one with an {@link IllegalArgumentException} or {@link IllegalStateException} that says
- * what is wrong. A chain then only runs its rules.
+ * <p>Muster validates the setup when it is built and when a chain or a binding is created, and
+ * rejects a wrong one with an {@link IllegalArgumentException} or {@link IllegalStateException}
+ * that says what is wrong; a check then only runs the rules. Instances are thread-safe.
  */
 public final class Muster {
 
@@ -79,7 +79,7 @@ public final class Muster {
   }
 
   /**
-   * Starts building a Muster.
+   * Starts building a {@code Muster}.
    *
    * @return the builder
    */
@@ -88,21 +88,19 @@ public final class Muster {
   }
 
   /**
-   * Creates a chain that checks inputs of the given type against the given rules. Create it once,
+   * Creates a chain that checks inputs of the given type against the given rules, in that order,
+   * after the rules they {@linkplain me.yakar.muster.rule.RequiresRule require}. Create it once,
    * for example per service method, and keep it.
    *
-   * <p>The chain also includes the rules that the given ones {@linkplain
-   * me.yakar.muster.rule.RequiresRule require}, and logs each one it adds. It leaves out the rules
-   * that are {@linkplain Builder#disable disabled}. Rules run in the order they are listed, after
-   * the rules they require; see {@link RuleChain} for the order in full.
+   * <p>Disabled rules are left out; required rules that the list leaves out are added and logged.
+   * Unlike a {@link Binding}, a chain binds no rules by type, even to a rule target.
    *
-   * @param inputType the type of input the chain checks; a primitive type stands for its wrapper
-   * @param ruleClasses the rules, registered with this Muster, in the order they should run
+   * @param inputType the type of input; a primitive type stands for its wrapper
+   * @param ruleClasses the registered rules, in the order they should run
    * @param <I> the type of input
    * @return the chain
-   * @throws IllegalArgumentException if a rule is not registered or listed twice, or does not check
-   *     inputs of {@code inputType}
-   * @throws NullPointerException if {@code inputType} or a rule class is {@code null}
+   * @throws IllegalArgumentException if a rule is not registered, is listed twice, or does not
+   *     accept {@code inputType}
    */
   @SafeVarargs
   public final <I> RuleChain<I> chain(
@@ -127,7 +125,7 @@ public final class Muster {
    * {@snippet :
    * Binding<VehicleFields> save = muster.binding(VehicleFields.class)
    *     .rules(VehicleNameUnique.class)
-   *     .exclude(LegacyCodeFormat.class)
+   *     .exclude(VehiclePlateFormat.class)
    *     .build();
    * save.check(command); // the listed rules, and the rules bound to the class of the command
    * }
@@ -135,8 +133,6 @@ public final class Muster {
    * @param inputType the type of input the binding checks; a primitive type stands for its wrapper
    * @param <I> the type of input
    * @return a builder for the binding
-   * @throws NullPointerException if {@code inputType} is {@code null}
-   * @see Binding
    */
   public <I> Binding.Builder<I> binding(Class<I> inputType) {
     return new Binding.Builder<>(this, requireNonNull(inputType, "inputType"));
@@ -144,21 +140,13 @@ public final class Muster {
 
   /**
    * Checks a rule target against every enabled rule whose input type accepts its class, in the mode
-   * of this Muster; {@link #check(RuleTarget, CheckMode)} checks in another mode. A rule whose
-   * input type is {@code Object} checks every target.
+   * of this {@code Muster}. Rules run in the order of their ids, each after the rules it requires.
    *
-   * <p>The rules bind to the class of the input at run time: an input declared as an interface
-   * binds to the rules of its actual class. Muster prepares the chain for a class once, on its
-   * first check, and keeps it for as long as the Muster is used. It logs the bound rules at {@code
-   * DEBUG}, or a warning if no rule binds, since that usually means a rule was not registered.
-   * Threads may check at the same time; the check of a class that is already bound takes no lock.
+   * <p>The rules of each class are bound on its first check and kept. Muster logs them at {@code
+   * DEBUG}, or warns if no rule binds, which usually means a rule is not registered.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
-   *     returns {@code null}
-   * @throws IllegalStateException if a rule reports a violation under another rule's id
-   * @see RuleChain#check
    */
   public void check(RuleTarget input) {
     requireNonNull(input, "input");
@@ -166,15 +154,11 @@ public final class Muster {
   }
 
   /**
-   * Checks a rule target as {@link #check(RuleTarget)} does, in the given mode instead of the mode
-   * of this Muster. The rules of a class are bound once, whatever mode the checks use.
+   * Checks a rule target as {@link #check(RuleTarget)} does, in the given mode.
    *
    * @param input the input
    * @param mode the mode of this check
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if {@code input} or {@code mode} is {@code null}, or the locale
-   *     supplier or a rule returns {@code null}
-   * @throws IllegalStateException if a rule reports a violation under another rule's id
    */
   public void check(RuleTarget input, CheckMode mode) {
     requireNonNull(input, "input");
@@ -196,12 +180,12 @@ public final class Muster {
         new RuleChain<>(type, plan.steps(), caller, locale, chainMode), plan);
   }
 
-  /** The rules registered with this Muster. */
+  /** The rules registered with this {@code Muster}. */
   RuleCatalog catalog() {
     return catalog;
   }
 
-  /** The mode of this Muster. */
+  /** The mode of this {@code Muster}. */
   CheckMode mode() {
     return mode;
   }
@@ -218,7 +202,10 @@ public final class Muster {
     }
   }
 
-  /** Builds a {@link Muster}. Get one from {@link Muster#builder()}. */
+  /**
+   * Builds a {@link Muster}. Get one from {@link Muster#builder()}. A builder is not safe for use
+   * by multiple threads.
+   */
   public static final class Builder {
 
     private final Map<Class<?>, Registration> registrations = new LinkedHashMap<>();
@@ -249,7 +236,7 @@ public final class Muster {
 
     /**
      * Registers rule classes whose instances the factory creates. The factory is called once per
-     * class, when Muster is built.
+     * class, when the {@code Muster} is built.
      *
      * @param factory the factory
      * @param ruleClasses the rule classes
@@ -312,15 +299,12 @@ public final class Muster {
     }
 
     /**
-     * Switches rules off without changing code, for example from configuration. A disabled rule
-     * runs in no chain, but it is still checked and created, so that switching it on again cannot
-     * reveal a setup error. Muster logs every disabled rule when it is built.
+     * Switches rules off, for example from configuration. A disabled rule runs in no chain, but it
+     * is still validated and created, so switching it on cannot reveal a setup error. Muster logs
+     * each disabled rule when it is built.
      *
-     * <p>A rule that requires a disabled rule, directly or through other rules, must be disabled as
-     * well; {@link #build()} names every such rule at once.
-     *
-     * <p>Muster reads the ids when it is built and does not change them while it runs: switching a
-     * rule on or off takes a new Muster, which for an application usually means a restart.
+     * <p>A rule that requires a disabled rule, directly or through other rules, must be disabled
+     * too. Switching a rule on or off takes a new {@code Muster}.
      *
      * @param ids the ids of the rules to switch off
      * @return this builder
@@ -333,8 +317,9 @@ public final class Muster {
     }
 
     /**
-     * Sets who makes a call. Muster asks once at the start of every check; {@code null} stands for
-     * an anonymous or system call. Unless set, no call has a caller.
+     * Sets who makes a call. Muster asks once at the start of every check, on the thread that
+     * checks, so the supplier must be thread-safe; {@code null} stands for an anonymous or system
+     * call. Unless set, no call has a caller.
      *
      * @param caller supplies the caller of the current call
      * @return this builder
@@ -345,10 +330,10 @@ public final class Muster {
     }
 
     /**
-     * Sets the locale of a call. Muster asks once at the start of every check. Unless set, it is
-     * the default locale of the JVM.
+     * Sets the locale of a call. Muster asks once at the start of every check, on the thread that
+     * checks, so the supplier must be thread-safe. Unless set, it is the default locale of the JVM.
      *
-     * @param locale supplies the locale of the current call
+     * @param locale supplies the locale of the current call; it must not return {@code null}
      * @return this builder
      */
     public Builder locale(Supplier<Locale> locale) {
@@ -370,9 +355,9 @@ public final class Muster {
     }
 
     /**
-     * Builds Muster, creating the rules registered with a factory.
+     * Builds the {@code Muster}, creating the rules registered with a factory.
      *
-     * @return the Muster
+     * @return the {@code Muster}
      * @throws IllegalArgumentException if a disabled id belongs to no rule, a rule requires a rule
      *     that is not registered, does not accept its input or is disabled while the rule is not,
      *     or rules require each other in a cycle

@@ -170,13 +170,10 @@ public final class RuleGraph {
   }
 
   /**
-   * Orders rules so that each comes after the rules it requires. With rules listed, it takes the
-   * listed rules in the order they are listed, and before each one the rules it requires that are
-   * not ordered yet, each after its own requirements, ordered the same way: listed ones in the
-   * order they are listed, the others in the order of their ids. The rules that no listed rule
-   * requires come after them. Rules that do not depend on each other and come neither from the
-   * listed rules nor from their requirements come in the order of their ids. Every required rule
-   * must be among the given ones, and there must be no cycle.
+   * Orders rules so that each comes after the rules it requires: the listed rules as {@link
+   * me.yakar.muster.RuleChain} describes, then the others as {@link me.yakar.muster.Binding}
+   * describes, or, with none listed, by id. Every required rule must be among the given ones, and
+   * there must be no cycle.
    *
    * @param rules the rules
    * @param listed the classes of the listed rules, in the order they are listed

@@ -22,11 +22,11 @@ package me.yakar.muster;
 public enum CheckMode {
 
   /**
-   * Stop at the first rule that is violated and report all of its violations. Rules that are
+   * Stops at the first rule that is violated and reports all of its violations. Rules that are
    * skipped, because they do not apply or a rule they require did not pass, do not stop the check.
    */
   FAIL_FAST,
 
-  /** Run every rule that applies and report the violations of all of them. */
+  /** Runs every rule that applies and reports the violations of all of them. */
   COLLECT_ALL
 }

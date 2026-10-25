@@ -28,20 +28,13 @@ import me.yakar.muster.rule.RuleTarget;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The rules an input is checked against: the rules a binding lists, and, for a {@link RuleTarget},
- * the rules that bind to its class by type, less the rules it excludes. Get one from {@link
- * Muster#binding}.
+ * The rules an input is checked against: the rules this binding lists and, for a {@link
+ * RuleTarget}, the rules that bind to its class by type, less the excluded ones. Get one from
+ * {@link Muster#binding}; unlike a {@link RuleChain}, a binding binds rules by type.
  *
- * <p>The listed rules and the rules they require run first, in the order {@link RuleChain}
- * describes; the rules bound by type follow, after the rules they require, in the order of their
- * ids. A rule bound by type that requires an excluded rule, directly or through other rules, is
- * left out too, and logged once for each class.
- *
- * <p>The rules bind to the class of the input at run time. For an input type that is a final class,
- * such as a record, there is only one such class: the binding prepares its rules when it is built,
- * and logs them then. For another type, it prepares the rules of a class on its first check and
- * keeps them for as long as the binding is used. Threads may check at the same time; the check of a
- * class that is already bound takes no lock.
+ * <p>The listed rules run first, in the order {@link RuleChain} describes. The rules bound by type
+ * follow, each after the rules it requires, in the order of their ids. A rule bound by type that
+ * requires an excluded rule is left out and logged. Bindings are thread-safe.
  *
  * @param <I> the type of input
  */
@@ -73,15 +66,12 @@ public final class Binding<I> {
   }
 
   /**
-   * Checks an input against the rules of the binding, in its {@linkplain #mode() mode}.
+   * Checks an input against the rules of this binding, in its {@linkplain #mode() mode}.
    *
    * @param input the input
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if {@code input} is {@code null}, or the locale supplier or a rule
-   *     returns {@code null}
-   * @throws IllegalArgumentException if {@code input} is not of the type the binding checks, which
-   *     only unchecked code can pass
-   * @throws IllegalStateException if a rule reports a violation under another rule's id
+   * @throws IllegalArgumentException if {@code input} is not of the binding's type, which only
+   *     unchecked code can pass
    */
   public void check(I input) {
     requireNonNull(input, "input");
@@ -100,7 +90,7 @@ public final class Binding<I> {
   }
 
   /**
-   * Returns the mode the binding checks in: its own, or else the mode of the Muster.
+   * Returns the mode this binding checks in: its own, or else the mode of the {@code Muster}.
    *
    * @return the mode
    */
@@ -109,7 +99,7 @@ public final class Binding<I> {
   }
 
   /**
-   * Describes the binding for developers and logs: its name, input type, mode, and the ids of its
+   * Describes this binding for developers and logs: its name, input type, mode, and the ids of its
    * listed and excluded rules.
    *
    * @return the description
@@ -138,7 +128,8 @@ public final class Binding<I> {
   }
 
   /**
-   * Builds a {@link Binding}. Get one from {@link Muster#binding}.
+   * Builds a {@link Binding}. Get one from {@link Muster#binding}. A builder is not safe for use by
+   * multiple threads.
    *
    * @param <I> the type of input
    */
@@ -157,13 +148,12 @@ public final class Binding<I> {
     }
 
     /**
-     * Lists rules to check, in the order they should run. Each must be registered with the Muster
-     * and check inputs of the binding's type.
+     * Lists rules to check, in the order they should run. Each must be registered with the {@code
+     * Muster} and accept inputs of the binding's type.
      *
      * @param ruleClasses the rules
      * @return this builder
      * @throws IllegalArgumentException if a rule is listed twice
-     * @throws NullPointerException if a rule class is {@code null}
      */
     @SafeVarargs
     public final Builder<I> rules(Class<? extends BusinessRule<?>>... ruleClasses) {
@@ -177,10 +167,9 @@ public final class Binding<I> {
      * Leaves out rules that would bind by type. A listed rule cannot require an excluded rule; a
      * rule bound by type that requires one is left out too.
      *
-     * @param ruleClasses the rules, registered with the Muster
+     * @param ruleClasses the rules, registered with the {@code Muster}
      * @return this builder
      * @throws IllegalArgumentException if a rule is excluded twice
-     * @throws NullPointerException if a rule class is {@code null}
      */
     @SafeVarargs
     public final Builder<I> exclude(Class<? extends BusinessRule<?>>... ruleClasses) {
@@ -191,11 +180,10 @@ public final class Binding<I> {
     }
 
     /**
-     * Sets the mode the binding checks in. Unless set, it is the mode of the Muster.
+     * Sets the mode the binding checks in. Unless set, it is the mode of the {@code Muster}.
      *
      * @param mode the mode
      * @return this builder
-     * @throws NullPointerException if {@code mode} is {@code null}
      */
     public Builder<I> mode(CheckMode mode) {
       this.mode = requireNonNull(mode, "mode");
@@ -209,7 +197,6 @@ public final class Binding<I> {
      * @param name the name
      * @return this builder
      * @throws IllegalArgumentException if {@code name} is blank
-     * @throws NullPointerException if {@code name} is {@code null}
      */
     public Builder<I> name(String name) {
       requireNonNull(name, "name");
@@ -221,12 +208,13 @@ public final class Binding<I> {
     }
 
     /**
-     * Builds the binding. For a final input type, it also prepares the rules.
+     * Builds the binding. For a final input type, such as a record, it also binds the rules now and
+     * logs them; for other types, each class is bound on its first check.
      *
      * @return the binding
-     * @throws IllegalArgumentException if a listed rule is not registered or does not check inputs
-     *     of the binding's type, an excluded rule is not registered or is also listed, or a listed
-     *     rule requires an excluded rule, directly or through other rules
+     * @throws IllegalArgumentException if a listed rule is not registered or does not accept the
+     *     binding's type, an excluded rule is not registered or is also listed, or a listed rule
+     *     requires an excluded rule, directly or through other rules
      */
     public Binding<I> build() {
       var catalog = muster.catalog();
