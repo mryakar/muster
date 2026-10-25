@@ -212,16 +212,17 @@ A rule that needs the time takes a `Clock` in its constructor, so that its tests
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 369 ns and muster.check(target) 383 ns, against 274 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 371 ns and muster.check(target) 382 ns, against 264 ns for calling the same rules by hand." src="docs/benchmarks/check-cost-light.svg">
 </picture>
 
 Muster checks and orders the rules of a chain once, when the chain is created, and does no
-reflection while it checks. A passing `RuleChain.check` costs about 11 ns more than calling the
-same rules by hand; with 20 rules it adds about 100 ns, most of it the 24-byte context each rule
+reflection while it checks. A passing `RuleChain.check` costs about 12 ns more than calling the
+same rules by hand; with 20 rules it adds about 110 ns, most of it the 24-byte context each rule
 receives. A check that fails throws an exception without a stack trace and takes 0.4 to 1 µs,
-depending on the mode and the violations. The numbers come from JMH on a 2013 laptop CPU; [the
-benchmarks](docs/benchmarks/README.md) give the method, every result and the budget a change is
-held to.
+depending on the mode and the violations. The Spring Boot starter adds about 120 ns to a call of an
+advised service method, most of it the cost of a Spring AOP proxy. The numbers come from JMH on a
+2013 laptop CPU; [the benchmarks](docs/benchmarks/README.md) give the method, every result and the
+budget a change is held to.
 
 ## Modules
 

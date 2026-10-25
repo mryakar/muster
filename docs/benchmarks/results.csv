@@ -1,83 +1,29 @@
-"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: bound","Param: mode","Param: rules","Param: violated"
-"me.yakar.muster.benchmark.BindingBenchmark.check","avgt",8,10,42.761083,6.447652,"ns/op",first,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.alloc.rate","avgt",8,10,0.011504,0.000095,"MB/sec",first,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.alloc.rate.norm","avgt",8,10,0.000065,0.000010,"B/op",first,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.count","avgt",8,10,0.000000,NaN,"counts",first,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check","avgt",8,10,50.992112,12.425861,"ns/op",second,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.alloc.rate","avgt",8,10,0.011474,0.000120,"MB/sec",second,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.alloc.rate.norm","avgt",8,10,0.000077,0.000018,"B/op",second,,,
-"me.yakar.muster.benchmark.BindingBenchmark.check:gc.count","avgt",8,10,0.000000,NaN,"counts",second,,,
-"me.yakar.muster.benchmark.CheckBenchmark.chain","avgt",1,10,12.643102,0.106364,"ns/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate","avgt",1,10,1206.590309,10.123346,"MB/sec",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate.norm","avgt",1,10,16.000087,0.000001,"B/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.count","avgt",1,10,60.000000,NaN,"counts",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.time","avgt",1,10,39.000000,NaN,"ms",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.chain","avgt",1,10,11.276607,0.169665,"ns/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate","avgt",1,10,0.006566,0.000000,"MB/sec",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate.norm","avgt",1,10,0.000078,0.000001,"B/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.count","avgt",1,10,0.000000,NaN,"counts",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.chain","avgt",1,10,101.262333,2.053482,"ns/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate","avgt",1,10,1356.020647,27.534423,"MB/sec",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate.norm","avgt",1,10,144.000700,0.000014,"B/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.count","avgt",1,10,67.000000,NaN,"counts",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.time","avgt",1,10,44.000000,NaN,"ms",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.chain","avgt",1,10,368.944730,5.907498,"ns/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate","avgt",1,10,1343.910501,21.506203,"MB/sec",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.alloc.rate.norm","avgt",1,10,520.002550,0.000041,"B/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.count","avgt",1,10,66.000000,NaN,"counts",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.chain:gc.time","avgt",1,10,42.000000,NaN,"ms",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.direct","avgt",1,10,1.334133,0.013071,"ns/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate","avgt",1,10,0.006566,0.000000,"MB/sec",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate.norm","avgt",1,10,0.000009,0.000000,"B/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.count","avgt",1,10,0.000000,NaN,"counts",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.direct","avgt",1,10,11.002738,0.097244,"ns/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate","avgt",1,10,0.006566,0.000001,"MB/sec",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate.norm","avgt",1,10,0.000076,0.000001,"B/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.count","avgt",1,10,0.000000,NaN,"counts",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.direct","avgt",1,10,65.564177,0.851666,"ns/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate","avgt",1,10,0.006566,0.000001,"MB/sec",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate.norm","avgt",1,10,0.000452,0.000006,"B/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.count","avgt",1,10,0.000000,NaN,"counts",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.direct","avgt",1,10,273.737476,13.613861,"ns/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate","avgt",1,10,0.006560,0.000020,"MB/sec",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.alloc.rate.norm","avgt",1,10,0.001883,0.000096,"B/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.direct:gc.count","avgt",1,10,0.000000,NaN,"counts",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.target","avgt",1,10,21.473395,0.090869,"ns/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate","avgt",1,10,710.403009,2.998353,"MB/sec",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate.norm","avgt",1,10,16.000148,0.000001,"B/op",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.count","avgt",1,10,43.000000,NaN,"counts",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.time","avgt",1,10,26.000000,NaN,"ms",,,0,
-"me.yakar.muster.benchmark.CheckBenchmark.target","avgt",1,10,21.915881,0.152359,"ns/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate","avgt",1,10,0.006566,0.000001,"MB/sec",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate.norm","avgt",1,10,0.000151,0.000001,"B/op",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.count","avgt",1,10,0.000000,NaN,"counts",,,1,
-"me.yakar.muster.benchmark.CheckBenchmark.target","avgt",1,10,112.164262,2.386861,"ns/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate","avgt",1,10,1224.139876,25.900070,"MB/sec",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate.norm","avgt",1,10,144.000775,0.000016,"B/op",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.count","avgt",1,10,61.000000,NaN,"counts",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.time","avgt",1,10,40.000000,NaN,"ms",,,5,
-"me.yakar.muster.benchmark.CheckBenchmark.target","avgt",1,10,382.574560,2.301973,"ns/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate","avgt",1,10,1295.884907,7.802117,"MB/sec",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.alloc.rate.norm","avgt",1,10,520.002644,0.000016,"B/op",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.count","avgt",1,10,64.000000,NaN,"counts",,,20,
-"me.yakar.muster.benchmark.CheckBenchmark.target:gc.time","avgt",1,10,43.000000,NaN,"ms",,,20,
-"me.yakar.muster.benchmark.ViolationBenchmark.check","avgt",1,10,812.003874,2.385580,"ns/op",,FAIL_FAST,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate","avgt",1,10,1437.151127,4.278582,"MB/sec",,FAIL_FAST,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate.norm","avgt",1,10,1224.005612,0.000016,"B/op",,FAIL_FAST,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.count","avgt",1,10,70.000000,NaN,"counts",,FAIL_FAST,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.time","avgt",1,10,46.000000,NaN,"ms",,FAIL_FAST,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check","avgt",1,10,362.220441,10.835569,"ns/op",,FAIL_FAST,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate","avgt",1,10,1579.833597,47.273839,"MB/sec",,FAIL_FAST,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate.norm","avgt",1,10,600.002503,0.000075,"B/op",,FAIL_FAST,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.count","avgt",1,10,77.000000,NaN,"counts",,FAIL_FAST,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.time","avgt",1,10,51.000000,NaN,"ms",,FAIL_FAST,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check","avgt",1,10,902.856625,29.593052,"ns/op",,COLLECT_ALL,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate","avgt",1,10,1293.090158,42.307909,"MB/sec",,COLLECT_ALL,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate.norm","avgt",1,10,1224.006239,0.000205,"B/op",,COLLECT_ALL,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.count","avgt",1,10,65.000000,NaN,"counts",,COLLECT_ALL,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.time","avgt",1,10,43.000000,NaN,"ms",,COLLECT_ALL,,1
-"me.yakar.muster.benchmark.ViolationBenchmark.check","avgt",1,10,1058.110038,39.356995,"ns/op",,COLLECT_ALL,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate","avgt",1,10,2113.172579,78.776925,"MB/sec",,COLLECT_ALL,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.alloc.rate.norm","avgt",1,10,2344.007312,0.000272,"B/op",,COLLECT_ALL,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.count","avgt",1,10,86.000000,NaN,"counts",,COLLECT_ALL,,5
-"me.yakar.muster.benchmark.ViolationBenchmark.check:gc.time","avgt",1,10,59.000000,NaN,"ms",,COLLECT_ALL,,5
+Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median (ns),Allocated (B)
+BindingBenchmark.check,bound=first,40.1,39.5,43.5,3 (45.4),0
+BindingBenchmark.check,bound=second,46.1,42.1,47.0,,0
+CheckBenchmark.chain,rules=0,13.4,12.8,13.9,,16
+CheckBenchmark.chain,rules=1,11.5,11.4,11.6,,0
+CheckBenchmark.chain,rules=5,101.7,100.7,107.6,1 (117.7),144
+CheckBenchmark.chain,rules=20,371.2,367.5,371.7,,520
+CheckBenchmark.direct,rules=0,1.3,1.3,1.3,,0
+CheckBenchmark.direct,rules=1,11.0,10.9,11.0,,0
+CheckBenchmark.direct,rules=5,65.3,65.1,65.9,,0
+CheckBenchmark.direct,rules=20,264.2,262.9,266.1,,0
+CheckBenchmark.target,rules=0,22.8,22.7,24.1,,16
+CheckBenchmark.target,rules=1,23.1,23.1,23.2,,0
+CheckBenchmark.target,rules=5,113.8,112.4,118.4,,144
+CheckBenchmark.target,rules=20,381.6,380.3,382.1,1 (420.5),520
+CheckBenchmark.targetWithMode,rules=0,21.3,21.2,22.5,4 (23.5),16
+CheckBenchmark.targetWithMode,rules=1,21.9,21.7,21.9,,0
+CheckBenchmark.targetWithMode,rules=5,111.5,111.1,112.7,,144
+CheckBenchmark.targetWithMode,rules=20,380.6,379.5,385.3,,520
+StarterBenchmark.advised,rules=0,147.4,144.6,153.9,,112
+StarterBenchmark.advised,rules=1,149.3,147.6,154.2,,120
+StarterBenchmark.advised,rules=20,537.1,523.5,547.0,,616
+StarterBenchmark.manual,rules=0,29.3,29.2,29.7,,16
+StarterBenchmark.manual,rules=1,29.1,29.1,29.2,1 (34.2),24
+StarterBenchmark.manual,rules=20,401.3,399.6,411.1,,520
+ViolationBenchmark.check,mode=FAIL_FAST violated=1,820.9,812.7,856.5,,1224
+ViolationBenchmark.check,mode=FAIL_FAST violated=5,354.7,349.2,356.6,,600
+ViolationBenchmark.check,mode=COLLECT_ALL violated=1,874.8,865.1,897.9,,1224
+ViolationBenchmark.check,mode=COLLECT_ALL violated=5,983.2,982.3,1047.8,,2344
