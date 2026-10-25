@@ -101,7 +101,4 @@ jobs:
           cache-disabled: true
       - run: ./gradlew publishToMavenLocal
       - name: Use the published artifacts as a consumer would
-        run: |
-          version="$(sed -n 's/^version=//p' gradle.properties)"
-          ./gradlew -p consumer-test run -PmusterVersion="$version"
-          ./gradlew -p consumer-test run -PmusterVersion="$version" -PpomOnly
+        run: .github/scripts/consumer-test.sh
