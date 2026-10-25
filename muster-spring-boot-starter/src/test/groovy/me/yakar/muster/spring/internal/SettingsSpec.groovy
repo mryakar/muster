@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal
 
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.MusterAutoConfiguration
+import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.app.NameUnique
 import me.yakar.muster.spring.fixture.app.Names
 import me.yakar.muster.spring.fixture.app.Vehicle
@@ -32,7 +34,7 @@ import org.springframework.core.env.StandardEnvironment
 import org.springframework.core.env.SystemEnvironmentPropertySource
 import spock.lang.Specification
 
-class RuleSwitchesSpec extends Specification {
+class SettingsSpec extends Specification {
 
   /** Taken, too long and not capitalized: it violates all three rules of the application. */
   static final Vehicle BAD = new Vehicle('a-name-that-is-taken-and-long')

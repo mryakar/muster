@@ -18,11 +18,11 @@ package me.yakar.muster.spring;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
@@ -59,11 +59,7 @@ final class TransactionOrdering implements BeanFactoryPostProcessor, Environment
               + " rules would run outside them; use @EnableTransactionManagement in proxy mode");
     }
     var advisor = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME;
-    var reorder =
-        Binder.get(requireNonNull(environment))
-            .bind("muster.transaction.reorder-advisor", Boolean.class)
-            .orElse(true);
-    if (!reorder
+    if (!Settings.reorderAdvisor(requireNonNull(environment))
         || !beanFactory.containsBeanDefinition(advisor)
         // An order set on the definition, as with <tx:annotation-driven order="...">, is the
         // application's.

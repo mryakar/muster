@@ -17,10 +17,10 @@ package me.yakar.muster.spring;
 
 import static java.util.Objects.requireNonNull;
 
+import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.aop.config.AopConfigUtils;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.env.Environment;
@@ -45,9 +45,7 @@ final class ProxyCreatorRegistrar implements ImportBeanDefinitionRegistrar, Envi
   public void registerBeanDefinitions(
       AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
     AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
-    if (Binder.get(requireNonNull(environment))
-        .bind("spring.aop.proxy-target-class", Boolean.class)
-        .orElse(true)) {
+    if (Settings.proxyTargetClass(requireNonNull(environment))) {
       AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
     }
   }
