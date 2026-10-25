@@ -40,6 +40,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - A violation read with Java serialization must have a valid rule id, as a rule context requires, not only a rule id that is not blank. A stream that holds a violation no rule could build fails with an `InvalidObjectException`, as one with a broken `BusinessRuleViolationException` does, instead of an `IllegalArgumentException` or a `NullPointerException`.
 - Muster logs the rules it binds to a class after it has bound them, no longer while it holds the lock of the map that keeps them. A logging backend that is slow no longer holds up the first check of other classes, and one that checks the same class again no longer fails with `IllegalStateException: Recursive update`.
+- `muster.transaction.reorder-advisor` set to nothing stops the application, as the starter's other properties do, rather than counting as not set.
 - The purls in the SBOM of `muster-core` no longer carry a `project_path` qualifier, which named the module's path in Muster's build and no published artifact has.
 
 ## [0.1.0] - 2026-10-23
