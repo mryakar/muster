@@ -19,7 +19,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import me.yakar.muster.CheckMode;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -95,14 +97,7 @@ public final class Settings {
         disabled.add(id);
       }
     }
-    var unknown = new TreeSet<String>();
-    for (var source : ConfigurationPropertySources.get(environment)) {
-      if (source instanceof IterableConfigurationPropertySource iterable) {
-        iterable.filter(name -> RULES.equals(name) || RULES.isAncestorOf(name)).stream()
-            .filter(name -> !keys.containsKey(name))
-            .forEach(name -> unknown.add(name.toString()));
-      }
-    }
+    var unknown = setKeys(environment, name -> inRules(name) && !keys.containsKey(name));
     if (!unknown.isEmpty()) {
       throw new IllegalStateException(
           "no rule has the key "
@@ -120,14 +115,7 @@ public final class Settings {
    * @throws IllegalStateException if either is set, naming the keys
    */
   public static void requireNoneForOwnMuster(Environment environment) {
-    var keys = new TreeSet<String>();
-    for (var source : ConfigurationPropertySources.get(environment)) {
-      if (source instanceof IterableConfigurationPropertySource iterable) {
-        iterable
-            .filter(name -> MODE.equals(name) || RULES.equals(name) || RULES.isAncestorOf(name))
-            .forEach(name -> keys.add(name.toString()));
-      }
-    }
+    var keys = setKeys(environment, name -> MODE.equals(name) || inRules(name));
     if (!keys.isEmpty()) {
       throw new IllegalStateException(
           String.join(", ", keys)
@@ -176,6 +164,22 @@ public final class Settings {
     return Binder.get(environment)
         .bind(PROXY_TARGET_CLASS, Bindable.of(Boolean.class))
         .orElse(true);
+  }
+
+  private static boolean inRules(ConfigurationPropertyName name) {
+    return RULES.equals(name) || RULES.isAncestorOf(name);
+  }
+
+  /** Returns the keys that the configuration sets, among the wanted ones, in their order. */
+  private static SortedSet<String> setKeys(
+      Environment environment, Predicate<ConfigurationPropertyName> wanted) {
+    var keys = new TreeSet<String>();
+    for (var source : ConfigurationPropertySources.get(environment)) {
+      if (source instanceof IterableConfigurationPropertySource iterable) {
+        iterable.filter(wanted).forEach(name -> keys.add(name.toString()));
+      }
+    }
+    return keys;
   }
 
   /**

@@ -77,6 +77,14 @@ class SettingsSpec extends Specification {
     }
   }
 
+  @Configuration(proxyBeanMethods = false)
+  static class OwnMusterOfOtherName {
+    @Bean
+    Muster ownMuster() {
+      Muster.builder().build()
+    }
+  }
+
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Application)
@@ -255,15 +263,16 @@ class SettingsSpec extends Specification {
 
   def 'with a Muster of its own, the application does not start if it configures the one built here: #properties'() {
     expect:
-    runner.withUserConfiguration(OwnMuster).withPropertyValues(properties as String[]).run { context ->
+    runner.withUserConfiguration(own).withPropertyValues(properties as String[]).run { context ->
       assert MusterAutoConfigurationSpec.rootCause(context.startupFailure).message ==
       "$keys configure only the Muster that the starter builds, but the application defines a Muster bean of its own; remove these properties, or that bean"
     }
 
     where:
-    properties || keys
-    ['muster.mode=collect-all'] || 'muster.mode'
-    [
+    own                  | properties || keys
+    OwnMuster            | ['muster.mode=collect-all'] || 'muster.mode'
+    OwnMuster            | ['muster.rules=false'] || 'muster.rules'
+    OwnMusterOfOtherName | [
       'muster.rules.vehicle.name-unique.enabled=false',
       'muster.mode=fail-fast'
     ] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
