@@ -17,18 +17,12 @@ package me.yakar.muster.spring;
 
 import me.yakar.muster.Muster;
 import me.yakar.muster.spi.MessageResolver;
-import me.yakar.muster.spring.internal.Settings;
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
 import me.yakar.muster.spring.internal.engine.EngineConfiguration;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.env.Environment;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -109,29 +103,8 @@ import org.springframework.core.env.Environment;
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
-@Import({EngineConfiguration.class, AdviceConfiguration.class})
+@Import({EngineConfiguration.class, AdviceConfiguration.class, ProblemDetailsConfiguration.class})
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
-
-  /** Answers violations with problem details in a Spring MVC application. */
-  @Configuration(proxyBeanMethods = false)
-  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-  @ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
-  static class ProblemDetailsConfiguration {
-
-    @Bean
-    static ViolationHandlerRemover musterViolationHandlerRemover() {
-      return new ViolationHandlerRemover();
-    }
-
-    @Bean(ViolationHandlerRemover.HANDLER)
-    ViolationExceptionHandler musterViolationExceptionHandler(
-        MessageResolver messages,
-        ConfigurableListableBeanFactory beanFactory,
-        Environment environment) {
-      return new ViolationExceptionHandler(
-          messages, EngineConfiguration.locale(beanFactory), Settings.mixedStatus(environment));
-    }
-  }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring;
+package me.yakar.muster.spring.internal.problem;
 
 import java.lang.System.Logger.Level;
 import java.util.List;
@@ -53,8 +53,9 @@ class ViolationExceptionHandler {
   /**
    * Keeps component scanning from registering the handler, since a controller advice is a
    * component: an application that scans the packages of Muster, such as {@code me.yakar}, would
-   * register it a second time, without its configuration. {@link MusterAutoConfiguration} registers
-   * it through a bean method, which reads the conditions of the method only.
+   * register it a second time, without its configuration. {@link
+   * me.yakar.muster.spring.MusterAutoConfiguration} registers it through a bean method, which reads
+   * the conditions of the method only.
    */
   static final class NotScanned implements Condition {
 
