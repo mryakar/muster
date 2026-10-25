@@ -15,8 +15,9 @@
  */
 package me.yakar.muster
 
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.lang.ref.WeakReference
-import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -131,27 +132,19 @@ class TypeBindingSpec extends EngineSpecification {
     given:
     log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(16)
-    def modes = (1..16).collect {
+    def modes = (0..<16).collect {
       it % 2 == 0 ? CheckMode.FAIL_FAST : CheckMode.COLLECT_ALL
-    }
-    def checks = modes.collect { mode ->
-      pool.submit({
-        ->
-        start.await()
-        try {
-          muster.check(INVALID, mode)
-          []
-        } catch (BusinessRuleViolationException e) {
-          e.violations()*.ruleId()
-        }
-      } as Callable<List<String>>)
     }
 
     when:
-    start.countDown()
-    def reported = checks.collect { it.get(1, TimeUnit.MINUTES) }
+    def reported = concurrently { n ->
+      try {
+        muster.check(INVALID, modes[n])
+        []
+      } catch (BusinessRuleViolationException e) {
+        e.violations()*.ruleId()
+      }
+    }
 
     then:
     reported == modes.collect {
@@ -165,7 +158,6 @@ class TypeBindingSpec extends EngineSpecification {
     ]
 
     cleanup:
-    pool.shutdownNow()
     log.level = null
   }
 
@@ -276,62 +268,29 @@ class TypeBindingSpec extends EngineSpecification {
     log.level = null
   }
 
-  def 'threads that check a new class at the same time bind its rules once'() {
-    given:
-    log.level = Level.FINE
-    def muster = Muster.builder().rules(new NameUnique()).build()
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(16)
-    def checks = (1..16).collect {
-      pool.submit {
-        start.await(); muster.check(VALID)
-      }
-    }
-
-    when:
-    start.countDown()
-    checks*.get()
-
-    then:
-    logged*.message == [
-      "Rules bound to ${CreateVehicle.name}: [vehicle.name-unique]"
-    ]
-
-    cleanup:
-    pool.shutdownNow()
-    log.level = null
-  }
-
   def 'threads that check a class being bound and one already bound each get the rules of its class'() {
     given: 'a Muster that has bound a class no rule binds to, but not CreateVehicle'
     log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
     muster.check(new Unbound('text'))
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(16)
-    def runs = (1..16).collect {
-      pool.submit({
-        start.await()
-        def wrong = 0
-        1_000.times {
-          try {
-            muster.check(INVALID)
-            wrong++
-          } catch (BusinessRuleViolationException e) {
-            if (e.violations()*.ruleId() != ['vehicle.code-format']) {
-              wrong++
-            }
-          }
-          muster.check(VALID)
-          muster.check(new Unbound('text'))
-        }
-        wrong
-      } as Callable<Integer>)
-    }
 
     when:
-    start.countDown()
-    def mistakes = runs.collect { it.get(1, TimeUnit.MINUTES) }
+    def mistakes = concurrently {
+      def wrong = 0
+      1_000.times {
+        try {
+          muster.check(INVALID)
+          wrong++
+        } catch (BusinessRuleViolationException e) {
+          if (e.violations()*.ruleId() != ['vehicle.code-format']) {
+            wrong++
+          }
+        }
+        muster.check(VALID)
+        muster.check(new Unbound('text'))
+      }
+      wrong
+    }
 
     then: 'every check saw the rules of its class, and each class was bound once'
     mistakes.every { it == 0 }
@@ -341,7 +300,6 @@ class TypeBindingSpec extends EngineSpecification {
     ]
 
     cleanup:
-    pool.shutdownNow()
     log.level = null
   }
 
