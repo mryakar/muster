@@ -33,24 +33,21 @@ import java.util.SequencedMap;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A business rule a call does not satisfy.
+ * A business rule that a call does not satisfy. Rules create violations through {@link
+ * RuleContext#violation()}.
  *
- * <p>A violation carries a stable code and named arguments instead of a message; messages are
- * resolved at the edge, in the caller's locale. Arguments come in two kinds:
+ * <p>A violation carries a stable code and named arguments, not a message; the edge of the
+ * application resolves the message in the locale of the call. Arguments come in two kinds:
  *
  * <ul>
  *   <li><b>Client arguments</b> fill the message template and are sent to the client.
- *   <li><b>Internal arguments</b> are for the application only: code, logs and {@link #toString()}.
- *       They never reach a message or a response, and they are dropped when a violation is
- *       serialized with Java serialization. A deserialized violation therefore does not equal the
- *       original if the original had internal arguments.
+ *   <li><b>Internal arguments</b> are for code and logs only and never reach a message or a
+ *       response. Java serialization drops them, so a deserialized copy of a violation that had
+ *       them does not equal the original.
  * </ul>
  *
- * <p>Rules create violations through {@link RuleContext#violation()}.
- *
- * <p>A violation is not meant to be written as JSON: JSON mappers find nothing to write in it. Map
- * it to a response type of your own, which shows the client arguments and leaves out the internal
- * ones.
+ * <p>Violations are immutable. Map them to a response type of your own: JSON mappers find nothing
+ * to write in a violation.
  */
 public final class Violation implements Serializable {
 
@@ -225,10 +222,10 @@ public final class Violation implements Serializable {
   /**
    * Builds a {@link Violation}. Get one from {@link RuleContext#violation()}.
    *
-   * <p>Every argument is either a client argument or an internal argument; a name can be used only
-   * once across both.
+   * <p>An argument name is not blank and contains no whitespace, control or format character,
+   * unpaired surrogate or brace. A name is used once, across client and internal arguments.
    *
-   * <p>A builder is for the thread that got it; threads may not share one.
+   * <p>A builder is not safe for use by multiple threads.
    */
   public static final class Builder {
 
@@ -252,17 +249,14 @@ public final class Violation implements Serializable {
     }
 
     /**
-     * Adds an argument that fills the message template and is sent to the client.
+     * Adds an argument that fills the message template and is sent to the client. For Java
+     * serialization, the value must be {@link Serializable}.
      *
-     * <p>To send a violation through Java serialization, for example inside a {@link
-     * me.yakar.muster.BusinessRuleViolationException} kept in a replicated session, the value must
-     * be {@link Serializable}.
-     *
-     * @param name the name the message template refers to, as in {@code {name}}
+     * @param name the name the template refers to, as in {@code {name}}
      * @param value the value
      * @return this builder
-     * @throws IllegalArgumentException if {@code name} is blank or already used, or contains
-     *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
+     * @throws IllegalArgumentException if {@code name} is already used or is not a valid argument
+     *     name
      */
     public Builder clientArg(String name, Object value) {
       requireNew(name, value);
@@ -279,8 +273,8 @@ public final class Violation implements Serializable {
      * @param name the name
      * @param value the value
      * @return this builder
-     * @throws IllegalArgumentException if {@code name} is blank or already used, or contains
-     *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
+     * @throws IllegalArgumentException if {@code name} is already used or is not a valid argument
+     *     name
      */
     public Builder internalArg(String name, Object value) {
       requireNew(name, value);

@@ -35,21 +35,22 @@ package me.yakar.muster.rule;
  * }
  * }
  *
- * <p>Rules are stateless: a single instance serves every call, possibly from many threads at once.
+ * <p>A single instance serves every call, possibly from many threads at once, so a rule must be
+ * thread-safe.
  *
  * @param <T> the type of input the rule checks
  */
 public interface BusinessRule<T> {
 
   /**
-   * Checks the input of a call.
+   * Checks the input of a call. Report what is wrong as violations created from {@code ctx}; a
+   * violation of another rule fails the check with an {@link IllegalStateException}. A technical
+   * failure, such as a lost database connection, is not a violation: let it propagate.
    *
-   * <p>A rule reports what is wrong as violations and does not throw for it. A technical failure,
-   * such as a lost database connection, is not a violation: let it propagate.
-   *
-   * @param input the input of the call, never {@code null}
+   * @param input the input of the call
    * @param ctx the context of the call, which also creates the violations
-   * @return {@link RuleResult#passed()}, or a failed result with the violations
+   * @return {@link RuleResult#passed()}, or a failed result with the violations; must not be {@code
+   *     null}, or the check fails with a {@link NullPointerException}
    */
   RuleResult check(T input, RuleContext ctx);
 

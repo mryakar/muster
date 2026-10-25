@@ -16,6 +16,9 @@
 /**
  * What a business rule is made of: the rule contract, the context a rule runs in, and the results
  * and violations it reports.
+ *
+ * <p>Unless a parameter is {@code @Nullable}, passing {@code null} throws a {@link
+ * NullPointerException}.
  */
 @NullMarked
 package me.yakar.muster.rule;

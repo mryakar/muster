@@ -16,11 +16,8 @@
 package me.yakar.muster.rule;
 
 /**
- * The kind of business problem a {@link Violation} reports.
- *
- * <p>Muster itself does not know HTTP. Integrations map categories to their own error model; the
- * Spring Boot starter maps them to response status codes, and a violation without a category to 422
- * Unprocessable Content.
+ * The kind of business problem a {@link Violation} reports. Integrations map categories to their
+ * own error model, such as HTTP status codes.
  */
 public enum Category {
 

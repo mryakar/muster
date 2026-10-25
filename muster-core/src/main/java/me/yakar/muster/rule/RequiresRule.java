@@ -23,8 +23,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Declares that a rule only makes sense once other rules have passed, as a check of a task's state
- * needs the task to exist.
+ * Declares the rules that must pass before a rule runs, as a check of a task's state needs the task
+ * to exist.
  *
  * {@snippet :
  * @Rule(id = "task.ready")
@@ -32,17 +32,13 @@ import java.lang.annotation.Target;
  * final class TaskReady implements BusinessRule<Long> { ... }
  * }
  *
- * <p>A rule runs after the rules it requires, and only if all of them passed for the call. If one
- * of them failed or did not apply, the rule is skipped and reports nothing. A chain that does not
- * list a required rule includes it anyway.
+ * <p>The rule runs after the rules it requires, and is skipped if any of them failed or did not
+ * apply. A chain includes required rules it does not list. A required rule must accept the input
+ * type of the rule that requires it, and rules cannot require each other in a cycle.
  *
- * <p>A required rule receives the same input, so it must accept the input type of the rule that
- * requires it. Rules cannot require each other in a cycle.
- *
- * <p>Like {@link Rule}, the annotation is not inherited, from superclasses or interfaces. So that a
- * rule cannot lose its requirements unnoticed, Muster rejects a rule that does not declare {@code
- * RequiresRule} while one of its supertypes does: declare the requirements on every rule class. A
- * subclass that requires nothing says so with {@code @RequiresRule({})}.
+ * <p>Like {@link Rule}, the annotation is not inherited. Muster rejects a rule class that does not
+ * declare it while a supertype does; a class that requires nothing declares
+ * {@code @RequiresRule({})}.
  */
 @Documented
 @Retention(RUNTIME)

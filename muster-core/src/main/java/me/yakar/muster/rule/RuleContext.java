@@ -28,7 +28,7 @@ import org.jspecify.annotations.Nullable;
  * locale.
  *
  * <p>Each rule receives its own context. Rules create their violations through it, so every
- * violation carries the id of the rule that reported it.
+ * violation carries the id of the rule that reported it. Contexts are immutable and thread-safe.
  *
  * <p>The context holds what differs from call to call. What stays the same, such as a {@link
  * java.time.Clock} or a repository, is a dependency of the rule: take it in the constructor, and a
@@ -96,8 +96,7 @@ public final class RuleContext {
 
   /**
    * Returns a builder that starts from this context: the same rule, caller and locale. Use it to
-   * create the context of the same rule for another call. The rule id is not checked again, since
-   * it was checked when this context was built.
+   * create the context of the same rule for another call.
    *
    * @return the builder
    */
@@ -125,11 +124,10 @@ public final class RuleContext {
   }
 
   /**
-   * Returns the locale of the call. Messages are resolved elsewhere; use the locale for business
-   * logic that depends on the caller's language. Do not use it to normalize data that must stay
-   * unique: compared without regard to case in the caller's locale, the same name can pass for one
-   * language and fail for another, as Turkish dotted and dotless i do. Normalize stored data in one
-   * fixed locale instead.
+   * Returns the locale of the call, for business logic that depends on the caller's language;
+   * messages are resolved elsewhere. Do not normalize unique data, such as names, in this locale:
+   * the same name could pass in one language and fail in another, as Turkish dotted and dotless i
+   * do. Normalize it in one fixed locale.
    *
    * @return the locale
    */
@@ -152,8 +150,8 @@ public final class RuleContext {
    *
    * @param code the stable, machine-readable code of the violation
    * @return a builder for the violation
-   * @throws IllegalArgumentException if {@code code} is blank or contains whitespace, a space,
-   *     control or format character, or an unpaired surrogate
+   * @throws IllegalArgumentException if {@code code} is blank or contains whitespace, control or
+   *     format characters, or unpaired surrogates
    */
   public Violation.Builder violation(String code) {
     return new Violation.Builder(ruleId, code);
@@ -176,7 +174,8 @@ public final class RuleContext {
 
   /**
    * Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}, or from {@link
-   * RuleContext#toBuilder()} to start from an existing context.
+   * RuleContext#toBuilder()} to start from an existing context. A builder is not safe for use by
+   * multiple threads.
    */
   public static final class Builder {
 
@@ -189,6 +188,7 @@ public final class RuleContext {
     }
 
     private Builder(RuleContext context) {
+      // The id was checked when the context was built.
       ruleId = context.ruleId;
       caller = context.caller;
       locale = context.locale;
