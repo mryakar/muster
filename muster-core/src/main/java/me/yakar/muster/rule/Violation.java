@@ -53,6 +53,10 @@ public final class Violation implements Serializable {
 
   @Serial private static final long serialVersionUID = 1L;
 
+  /** The arguments of every violation that has none of a kind, so that it allocates no map. */
+  private static final SequencedMap<String, Object> NO_ARGS =
+      Collections.unmodifiableSequencedMap(new LinkedHashMap<>());
+
   /** The id of the rule that reported the violation. */
   private final String ruleId;
 
@@ -77,10 +81,14 @@ public final class Violation implements Serializable {
   private Violation(Builder builder) {
     ruleId = builder.ruleId;
     code = builder.code;
-    clientArgs = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(builder.clientArgs));
-    internalArgs = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(builder.internalArgs));
+    clientArgs = copy(builder.clientArgs);
+    internalArgs = copy(builder.internalArgs);
     target = builder.target;
     category = builder.category;
+  }
+
+  private static SequencedMap<String, Object> copy(@Nullable SequencedMap<String, Object> args) {
+    return args == null ? NO_ARGS : Collections.unmodifiableSequencedMap(new LinkedHashMap<>(args));
   }
 
   /**
@@ -213,8 +221,9 @@ public final class Violation implements Serializable {
 
     private final String ruleId;
     private final String code;
-    private final SequencedMap<String, Object> clientArgs = new LinkedHashMap<>();
-    private final SequencedMap<String, Object> internalArgs = new LinkedHashMap<>();
+    // Created with the first argument of their kind, since most violations have none.
+    private @Nullable SequencedMap<String, Object> clientArgs;
+    private @Nullable SequencedMap<String, Object> internalArgs;
     private @Nullable String target;
     private @Nullable Category category;
 
@@ -246,7 +255,11 @@ public final class Violation implements Serializable {
      *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
      */
     public Builder clientArg(String name, Object value) {
-      put(clientArgs, name, value);
+      requireNew(name, value);
+      if (clientArgs == null) {
+        clientArgs = new LinkedHashMap<>();
+      }
+      clientArgs.put(name, value);
       return this;
     }
 
@@ -260,20 +273,23 @@ public final class Violation implements Serializable {
      *     whitespace, a space, a control or format character, an unpaired surrogate or a brace
      */
     public Builder internalArg(String name, Object value) {
-      put(internalArgs, name, value);
+      requireNew(name, value);
+      if (internalArgs == null) {
+        internalArgs = new LinkedHashMap<>();
+      }
+      internalArgs.put(name, value);
       return this;
     }
 
-    private void put(SequencedMap<String, Object> args, String name, Object value) {
+    private void requireNew(String name, Object value) {
       requireArgumentName(name);
       requireNonNull(value, () -> "value of argument '" + name + "'");
-      if (clientArgs.containsKey(name)) {
+      if (clientArgs != null && clientArgs.containsKey(name)) {
         throw new IllegalArgumentException("'" + name + "' is already a client argument");
       }
-      if (internalArgs.containsKey(name)) {
+      if (internalArgs != null && internalArgs.containsKey(name)) {
         throw new IllegalArgumentException("'" + name + "' is already an internal argument");
       }
-      args.put(name, value);
     }
 
     /**

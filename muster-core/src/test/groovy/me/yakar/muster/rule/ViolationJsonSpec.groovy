@@ -31,6 +31,9 @@ class ViolationJsonSpec extends Specification {
 
   static final String SECRET = 'internal-7731'
 
+  static final String FIELDS_WITHOUT_ARGUMENTS =
+  '{"category":null,"clientArgs":{},"code":"request.owner-only","ruleId":"request.owner-only","target":null}'
+
   static final List<String> CONFIGURATIONS = [
     'default',
     'field visibility ANY',
@@ -74,6 +77,18 @@ class ViolationJsonSpec extends Specification {
     expect:
     mapper('default').writeValueAsString(violation) == '{}'
     mapper('default').writeValueAsString(RuleResult.failed(violation)) == '{"violations":[{}]}'
+  }
+
+  def 'what the #configuration mapper writes for a violation without arguments'() {
+    expect:
+    mapper(configuration).writeValueAsString(RuleContext.forRule('request.owner-only').violation().build()) == json
+
+    where:
+    configuration                 | json
+    'default'                     | '{}'
+    'field visibility ANY'        | FIELDS_WITHOUT_ARGUMENTS
+    'all visibility ANY'          | FIELDS_WITHOUT_ARGUMENTS
+    'transient marker propagated' | FIELDS_WITHOUT_ARGUMENTS
   }
 
   private Object value(String what) {

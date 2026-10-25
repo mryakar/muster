@@ -22,10 +22,18 @@ final class Serialization {
   }
 
   static <T> T roundTrip(T value) {
+    (T) read(write(value))
+  }
+
+  static byte[] write(Object value) {
     def bytes = new ByteArrayOutputStream()
     new ObjectOutputStream(bytes).withCloseable { it.writeObject(value) }
-    new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray())).withCloseable {
-      (T) it.readObject()
+    bytes.toByteArray()
+  }
+
+  static Object read(byte[] bytes) {
+    new ObjectInputStream(new ByteArrayInputStream(bytes)).withCloseable {
+      it.readObject()
     }
   }
 }

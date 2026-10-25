@@ -15,6 +15,10 @@
  */
 package me.yakar.muster.rule
 
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import me.yakar.muster.Serialization
 import me.yakar.muster.internal.RuleIds
 import spock.lang.Shared
@@ -338,6 +342,79 @@ class ViolationSpec extends Specification {
     then:
     copy.clientArgs().keySet() as List == ['c', 'a']
     thrown(UnsupportedOperationException)
+  }
+
+  def 'violations without arguments share one empty map, also after Java serialization'() {
+    given:
+    def empty = context.violation().build().clientArgs()
+
+    expect:
+    context.violation().build().clientArgs().is(empty)
+    context.violation().build().internalArgs().is(empty)
+    context.violation().clientArg('a', 1).build().internalArgs().is(empty)
+    context.violation().internalArg('a', 1).build().clientArgs().is(empty)
+    Serialization.roundTrip(context.violation().build()).clientArgs().is(empty)
+    Serialization.roundTrip(context.violation().internalArg('a', 1).build()).internalArgs().is(empty)
+  }
+
+  def 'a builder that has had no arguments gives each violation the arguments it has when it builds'() {
+    given:
+    def builder = context.violation()
+    def first = builder.build()
+
+    when:
+    def second = builder.clientArg('a', 1).build()
+    def third = builder.internalArg('b', 2).build()
+
+    then:
+    first.clientArgs().isEmpty()
+    first.internalArgs().isEmpty()
+    second.clientArgs() == [a: 1]
+    second.internalArgs().isEmpty()
+    third.clientArgs() == [a: 1]
+    third.internalArgs() == [b: 2]
+  }
+
+  def 'violations built on many threads at once share the empty map and equal each other'() {
+    given:
+    def threads = 16
+    def start = new CountDownLatch(1)
+    def pool = Executors.newFixedThreadPool(threads)
+    def tasks = (1..threads).collect { {
+        ->
+        start.await()
+        (1..200).collect { context.violation().build() }
+      } as Callable<List<Violation>>
+    }
+
+    when:
+    def futures = tasks.collect { pool.submit(it) }
+    start.countDown()
+    def violations = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
+
+    then:
+    def empty = context.violation().build().clientArgs()
+    violations.every {
+      it.clientArgs().is(empty) && it.internalArgs().is(empty)
+    }
+    violations.every { it == context.violation().build() }
+
+    cleanup:
+    pool.shutdownNow()
+  }
+
+  def 'a violation #what reads as 0.1.0 wrote it, and is written the same way'() {
+    given:
+    def written = ViolationSpec.getResourceAsStream("violation-${what.replace(' ', '-')}-0.1.0.ser").bytes
+
+    expect:
+    Serialization.read(written) == expected
+    Serialization.write(original) == written
+
+    where:
+    what                | original || expected
+    'without arguments' | context.violation().build() || context.violation().build()
+    'with arguments'    | full().build() || context.violation('vehicle.name-taken').clientArg('name', 'Truck 1').target('name').category(Category.CONFLICT).build()
   }
 
   private Violation.Builder full() {
