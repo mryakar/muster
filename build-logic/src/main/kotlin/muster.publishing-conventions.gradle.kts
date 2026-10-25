@@ -78,6 +78,31 @@ pluginManager.withPlugin("java-library") {
             url = "https://github.com/mryakar/muster"
           },
         )
+      // The plugin adds a project_path qualifier, the module's path in this build, to the purls of
+      // the project's own modules; the published artifacts have no such qualifier.
+      val boms = listOf(jsonOutput, xmlOutput)
+      doLast {
+        boms.forEach { bom ->
+          val file = bom.get().asFile
+          if (file.exists()) {
+            val text =
+              file
+                .readText()
+                .replace(
+                  Regex("""(pkg:maven/me\.yakar\.muster/[^"<?]*)\?project_path=[^"&<]*&(amp;)?"""),
+                  "$1?",
+                )
+                .replace(
+                  Regex("""(pkg:maven/me\.yakar\.muster/[^"<?]*)\?project_path=[^"&<]*"""),
+                  "$1",
+                )
+            if ("project_path" in text) {
+              throw GradleException("$file names the path of a module in this build")
+            }
+            file.writeText(text)
+          }
+        }
+      }
     }
   publishing.publications.withType<MavenPublication>().configureEach {
     artifact(sbom.flatMap { it.jsonOutput }) {
