@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiPredicate;
 import me.yakar.muster.Binding;
 import me.yakar.muster.Muster;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -67,10 +68,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   private boolean started;
 
   /**
-   * Whether the holder of {@link #lock} is preparing classes, so that a class it notes on the way
-   * joins its pass. Guarded by {@link #lock}, which the same thread may take again.
+   * Set while this thread creates Muster or the guard for a pass, so that a class it notes
+   * meanwhile joins that pass.
    */
-  private boolean preparing;
+  private final ThreadLocal<Boolean> resolving = new ThreadLocal<>();
 
   /** Whether the order of the transaction advice has been checked. Guarded by {@link #lock}. */
   private boolean orderChecked;
@@ -82,11 +83,13 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   /** Notes a class the pointcut advises; once the application has started, prepares it at once. */
   void note(Class<?> targetClass) {
+    boolean prepare;
     synchronized (lock) {
       noted.add(targetClass);
-      if (started) {
-        prepareNoted();
-      }
+      prepare = started;
+    }
+    if (prepare) {
+      prepareNoted();
     }
   }
 
@@ -94,38 +97,43 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   public void afterSingletonsInstantiated() {
     synchronized (lock) {
       started = true;
-      prepareNoted();
     }
+    prepareNoted();
   }
 
   /**
-   * Prepares the noted classes that are not prepared yet. Creating Muster or a bean it needs may
-   * note more classes on this thread; they join the same pass rather than prepare re-entrantly.
+   * Prepares the noted classes that are not prepared yet. Muster, the guard and its transaction
+   * test are resolved before the lock is taken: creating them may wait for a bean that another
+   * thread creates, and that thread may note a class meanwhile.
    */
   private void prepareNoted() {
-    if (preparing) {
+    if (resolving.get() != null) {
       return;
     }
-    preparing = true;
+    Muster muster;
+    @Nullable TransactionGuard guard;
+    @Nullable BiPredicate<Method, Class<?>> transactional;
+    resolving.set(Boolean.TRUE);
     try {
-      var muster = this.muster.getObject();
-      var guard = transactions.getIfAvailable();
-      for (var pending = unprepared(); !pending.isEmpty(); pending = unprepared()) {
-        for (var targetClass : pending) {
-          prepared.put(targetClass, adviceOf(muster, guard, targetClass));
+      muster = this.muster.getObject();
+      guard = transactions.getIfAvailable();
+      transactional = guard == null ? null : guard.transactional();
+    } finally {
+      resolving.remove();
+    }
+    boolean checkOrder;
+    synchronized (lock) {
+      for (var targetClass : noted) {
+        if (!prepared.containsKey(targetClass)) {
+          prepared.put(targetClass, adviceOf(muster, guard, transactional, targetClass));
         }
       }
-      if (guard != null && !orderChecked && !prepared.isEmpty()) {
-        orderChecked = true;
-        guard.checkOrder(RulesAdvisor.ORDER);
-      }
-    } finally {
-      preparing = false;
+      checkOrder = guard != null && !orderChecked && !prepared.isEmpty();
+      orderChecked |= checkOrder;
     }
-  }
-
-  private List<Class<?>> unprepared() {
-    return noted.stream().filter(targetClass -> !prepared.containsKey(targetClass)).toList();
+    if (checkOrder) {
+      guard.checkOrder(RulesAdvisor.ORDER);
+    }
   }
 
   /**
@@ -133,7 +141,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
    * method that the call runs.
    */
   private static Map<Method, MethodAdvice> adviceOf(
-      Muster muster, @Nullable TransactionGuard guard, Class<?> targetClass) {
+      Muster muster,
+      @Nullable TransactionGuard guard,
+      @Nullable BiPredicate<Method, Class<?>> transactional,
+      Class<?> targetClass) {
     var candidates = new LinkedHashSet<Method>();
     if (!Proxy.isProxyClass(targetClass)) {
       candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
@@ -148,7 +159,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         var specific = AdvisedMethods.specific(method, targetClass);
         var methodAdvice = bySpecific.get(specific);
         if (methodAdvice == null) {
-          methodAdvice = MethodAdvice.of(muster, guard, specific, targetClass);
+          methodAdvice = MethodAdvice.of(muster, guard, transactional, specific, targetClass);
           bySpecific.put(specific, methodAdvice);
         }
         advice.put(method, methodAdvice);
@@ -183,8 +194,8 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   private Map<Method, MethodAdvice> prepareOnCall(Class<?> targetClass, Method method) {
     synchronized (lock) {
       noted.add(targetClass);
-      prepareNoted();
     }
+    prepareNoted();
     var methods = prepared.get(targetClass);
     if (methods == null) {
       throw new IllegalStateException(
@@ -201,7 +212,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
     @SuppressWarnings("unchecked")
     static MethodAdvice of(
-        Muster muster, @Nullable TransactionGuard guard, Method method, Class<?> targetClass) {
+        Muster muster,
+        @Nullable TransactionGuard guard,
+        @Nullable BiPredicate<Method, Class<?>> transactional,
+        Method method,
+        Class<?> targetClass) {
       var label = AdvisedMethods.label(method, targetClass);
       var modifiers = method.getModifiers();
       if (!Modifier.isPublic(modifiers)) {
@@ -243,7 +258,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         }
       }
       var transaction =
-          guard != null && guard.requiresTransaction(method, targetClass) ? guard : null;
+          transactional != null && transactional.test(method, targetClass) ? guard : null;
       return new MethodAdvice(label, builder.build(), transaction);
     }
 

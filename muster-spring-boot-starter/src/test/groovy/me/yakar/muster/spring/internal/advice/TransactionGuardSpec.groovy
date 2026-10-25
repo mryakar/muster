@@ -42,7 +42,7 @@ class TransactionGuardSpec extends Specification {
 
   def 'a method requires a transaction only for propagations that start one: #name'() {
     expect:
-    guard(propagation).requiresTransaction(method, Object) == requires
+    guard(propagation).transactional().test(method, Object) == requires
 
     where:
     name            | propagation || requires
