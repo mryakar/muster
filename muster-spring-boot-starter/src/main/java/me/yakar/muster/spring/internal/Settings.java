@@ -113,9 +113,15 @@ public final class Settings {
     return disabled;
   }
 
-  /** Returns whether Muster may move the transaction advice one step ahead of its own. */
+  /**
+   * Returns whether Muster may move the transaction advice one step ahead of its own.
+   *
+   * @throws IllegalStateException if {@code muster.transaction.reorder-advisor} is set to nothing
+   */
   public static boolean reorderAdvisor(Environment environment) {
-    return Binder.get(environment).bind(REORDER_ADVISOR, Bindable.of(Boolean.class)).orElse(true);
+    var binder = Binder.get(environment);
+    requireValue(binder, REORDER_ADVISOR, "true or false");
+    return binder.bind(REORDER_ADVISOR, Bindable.of(Boolean.class)).orElse(true);
   }
 
   /**
