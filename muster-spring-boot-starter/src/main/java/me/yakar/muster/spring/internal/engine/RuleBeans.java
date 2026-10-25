@@ -32,14 +32,14 @@ import org.springframework.util.ClassUtils;
  * The rule beans of the application, read from the bean definitions without creating the beans, and
  * the factory that gives Muster the beans.
  */
-final class RuleCatalog implements RuleFactory {
+final class RuleBeans implements RuleFactory {
 
   private final ConfigurableListableBeanFactory beanFactory;
 
   /** The names of the rule beans, by their classes, in the order of the definitions. */
   private final Map<Class<?>, String> names;
 
-  private RuleCatalog(ConfigurableListableBeanFactory beanFactory, Map<Class<?>, String> names) {
+  private RuleBeans(ConfigurableListableBeanFactory beanFactory, Map<Class<?>, String> names) {
     this.beanFactory = beanFactory;
     this.names = names;
   }
@@ -50,7 +50,7 @@ final class RuleCatalog implements RuleFactory {
    * @throws IllegalStateException if a rule bean is not a singleton, its type has no {@code @Rule},
    *     or two rule beans have the same class
    */
-  static RuleCatalog read(ConfigurableListableBeanFactory beanFactory) {
+  static RuleBeans read(ConfigurableListableBeanFactory beanFactory) {
     var beans = new LinkedHashMap<Class<?>, String>();
     for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
       if (!beanFactory.isSingleton(name)) {
@@ -84,7 +84,7 @@ final class RuleCatalog implements RuleFactory {
                 + "; Muster creates each rule once, so define it once");
       }
     }
-    return new RuleCatalog(beanFactory, beans);
+    return new RuleBeans(beanFactory, beans);
   }
 
   /** Returns the classes of the rule beans, as the builder of a {@code Muster} takes them. */
