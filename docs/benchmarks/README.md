@@ -18,10 +18,10 @@ checks. A check that passes is held to this budget, against the same rules calle
 |---|---|---|
 | Fixed cost of `RuleChain.check` | about 12 ns | at most 20 ns |
 | Cost that `RuleChain.check` adds with 20 rules | about 106 ns | at most 150 ns |
-| Fixed cost of `muster.check(target)` | about 22 ns | at most 35 ns |
+| Fixed cost of `muster.check(target)` | about 21 ns | at most 35 ns |
 | Cost that `muster.check(target)` adds with 20 rules | about 125 ns | at most 235 ns |
 | Memory a check allocates | 24 bytes per rule, plus up to 40 | at most 24 bytes per rule, plus 48 |
-| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 122 ns and 96 bytes | at most 200 ns and 128 bytes |
+| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 123 ns and 96 bytes | at most 200 ns and 128 bytes |
 
 Most of what a rule adds is the context it receives: each rule gets its own, 24 bytes, since it
 carries the rule's id. For a passing check the memory figures are exact; the JIT does not vary them.
@@ -39,7 +39,7 @@ to Muster is compared with the budget on the same machine.
 The rules do next to nothing, so that the numbers show Muster rather than the rules. Each has a
 `check` of its own, as in an application, so the call to it stays virtual. Each cell is the median
 of the five forks' average time per check, with the range of the forks within 10% of the median,
-and the memory allocated per check.
+and the median of the memory the forks allocate per check.
 
 A check that passes:
 
@@ -59,10 +59,11 @@ evenly, and the last rule is always one of them:
 | Violated rules | `FAIL_FAST` | `COLLECT_ALL` |
 |---|---|---|
 | 1 | 706 ns (704–756), 792 B | 706 ns (689–744), 792 B |
-| 5 | 337 ns (333–342), 408 B | 920 ns (886–1,000), 1,384 B |
+| 5 | 337 ns (333–342), 408 B | 919 ns (886–1,000), 1,384 B |
 
 `FAIL_FAST` stops at the first violated rule, so with five of them it runs only four rules. The
-exception has no stack trace.
+exception has no stack trace. What a failing check allocates depends on how the JIT compiles it:
+one fork of `FAIL_FAST` with one violated rule allocated 904 bytes, the others 792.
 
 `muster.check(target)` from every thread at once, here eight, for a class that is already bound:
 
