@@ -19,7 +19,6 @@ import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
-import me.yakar.muster.spring.Rules
 import me.yakar.muster.spring.fixture.lazy.Plates
 
 /** A rule whose constructor calls an advised service, while Muster is created. */

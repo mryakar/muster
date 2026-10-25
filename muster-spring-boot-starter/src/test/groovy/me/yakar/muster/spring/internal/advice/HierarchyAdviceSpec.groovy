@@ -52,7 +52,7 @@ class HierarchyAdviceSpec extends Specification {
 
   @Configuration(proxyBeanMethods = false)
   @AutoConfigurationPackage(basePackageClasses = NameFree)
-  static class Rules {}
+  static class RulePackage {}
 
   /** A bean that is a proxy based on interfaces itself, as a Spring Data repository is. */
   @Configuration(proxyBeanMethods = false)
@@ -71,7 +71,7 @@ class HierarchyAdviceSpec extends Specification {
 
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
-  .withUserConfiguration(Rules)
+  .withUserConfiguration(RulePackage)
 
   def 'rules apply through #through, proxy classes #proxyClasses'() {
     expect:

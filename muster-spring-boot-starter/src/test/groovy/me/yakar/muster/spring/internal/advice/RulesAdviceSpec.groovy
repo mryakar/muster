@@ -62,7 +62,7 @@ class RulesAdviceSpec extends Specification {
 
   @Configuration(proxyBeanMethods = false)
   @AutoConfigurationPackage(basePackageClasses = NameFree)
-  static class Rules {}
+  static class RulePackage {}
 
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
@@ -213,7 +213,7 @@ class RulesAdviceSpec extends Specification {
     expect:
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
-        .withUserConfiguration(Rules)
+        .withUserConfiguration(RulePackage)
         .withBean(bean)
         .run { context ->
           assert getMostSpecificCause(context.startupFailure).message == message
@@ -234,7 +234,7 @@ class RulesAdviceSpec extends Specification {
     expect:
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
-        .withUserConfiguration(Rules)
+        .withUserConfiguration(RulePackage)
         .withBean(UnregisteredRule)
         .run { context ->
           assert getMostSpecificCause(context.startupFailure) instanceof IllegalArgumentException
