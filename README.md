@@ -7,9 +7,8 @@ transaction, outside your service code.
 
 ## Status
 
-Muster is in early development, and its API will change until 1.0.0. The latest release is 0.1.0,
-with the core only; this page describes 0.2.0, which adds the Spring Boot starter. The
-[roadmap](ROADMAP.md) says what follows.
+Muster is in early development, and its API will change until 1.0.0. The latest release is 0.2.0,
+with the core and the Spring Boot starter. The [roadmap](ROADMAP.md) says what follows.
 
 ## Why
 
