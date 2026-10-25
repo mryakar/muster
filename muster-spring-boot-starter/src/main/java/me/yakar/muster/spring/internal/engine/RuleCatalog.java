@@ -20,24 +20,37 @@ import static java.util.Objects.requireNonNull;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Rule;
+import me.yakar.muster.spi.RuleFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.util.ClassUtils;
 
-/** Reads the rule classes from the bean definitions, without creating the beans. */
-final class RuleCatalog {
+/**
+ * The rule beans of the application, read from the bean definitions without creating the beans, and
+ * the factory that gives Muster the beans.
+ */
+final class RuleCatalog implements RuleFactory {
 
-  private RuleCatalog() {}
+  private final ConfigurableListableBeanFactory beanFactory;
+
+  /** The names of the rule beans, by their classes, in the order of the definitions. */
+  private final Map<Class<?>, String> names;
+
+  private RuleCatalog(ConfigurableListableBeanFactory beanFactory, Map<Class<?>, String> names) {
+    this.beanFactory = beanFactory;
+    this.names = names;
+  }
 
   /**
-   * Returns the names of the rule beans, by their classes.
+   * Reads the rule beans of a bean factory.
    *
    * @throws IllegalStateException if a rule bean is not a singleton, its type has no {@code @Rule},
    *     or two rule beans have the same class
    */
-  static Map<Class<?>, String> ruleBeans(ConfigurableListableBeanFactory beanFactory) {
+  static RuleCatalog read(ConfigurableListableBeanFactory beanFactory) {
     var beans = new LinkedHashMap<Class<?>, String>();
     for (var name : beanFactory.getBeanNamesForType(BusinessRule.class, true, false)) {
       if (!beanFactory.isSingleton(name)) {
@@ -71,23 +84,31 @@ final class RuleCatalog {
                 + "; Muster creates each rule once, so define it once");
       }
     }
-    return beans;
+    return new RuleCatalog(beanFactory, beans);
   }
 
-  /** Returns the classes of the rule beans, as the builder of Muster takes them. */
+  /** Returns the classes of the rule beans, as the builder of a {@code Muster} takes them. */
   @SuppressWarnings("unchecked")
-  static Class<? extends BusinessRule<?>>[] classes(Map<Class<?>, String> ruleBeans) {
-    return ruleBeans.keySet().toArray(Class[]::new);
+  Class<? extends BusinessRule<?>>[] classes() {
+    return names.keySet().toArray(Class[]::new);
+  }
+
+  /** Returns the ids of the rules. */
+  List<String> ids() {
+    return names.keySet().stream()
+        .map(ruleClass -> ruleClass.getAnnotation(Rule.class).id())
+        .toList();
   }
 
   /**
-   * Returns the rule bean of the given name.
+   * Returns the rule bean of the given class.
    *
    * @throws IllegalStateException if the bean is a proxy based on interfaces, which is no instance
    *     of the rule class
    */
-  static BusinessRule<?> instance(
-      ConfigurableListableBeanFactory beanFactory, String name, Class<?> ruleClass) {
+  @Override
+  public BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass) {
+    var name = names.get(ruleClass);
     var bean = beanFactory.getBean(name, BusinessRule.class);
     if (Proxy.isProxyClass(bean.getClass())) {
       throw new IllegalStateException(
