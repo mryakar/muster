@@ -15,7 +15,11 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.fixture.advice.VehicleComponent
 import org.aopalliance.intercept.MethodInvocation
 import org.springframework.beans.factory.ObjectProvider
 import spock.lang.Specification
@@ -61,5 +65,32 @@ class RulesInterceptorSpec extends Specification {
     then:
     def e = thrown(IllegalStateException)
     e.message == 'Muster has not prepared the rules of public java.lang.String java.lang.Object.toString()'
+  }
+
+  def 'noting a class that is prepared takes no lock'() {
+    given:
+    interceptor.note(VehicleComponent)
+    interceptor.afterSingletonsInstantiated()
+    def held = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
+    def holder = Thread.start {
+      synchronized (interceptor.@lock) {
+        held.countDown()
+        release.await()
+      }
+    }
+    assert held.await(1, TimeUnit.MINUTES)
+
+    when:
+    def noted = CompletableFuture.runAsync {
+      interceptor.note(VehicleComponent)
+    }
+
+    then:
+    noted.get(10, TimeUnit.SECONDS) == null
+
+    cleanup:
+    release.countDown()
+    holder.join()
   }
 }
