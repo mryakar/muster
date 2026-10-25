@@ -24,10 +24,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
-import java.util.logging.Handler
 import java.util.logging.Level
-import java.util.logging.LogRecord
-import java.util.logging.Logger
 import me.yakar.muster.rule.Category
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.Violation
@@ -72,6 +69,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.servlet.DispatcherServlet
+import me.yakar.muster.spring.LogCapture
 import spock.lang.Specification
 
 class ProblemDetailsSpec extends Specification {
@@ -545,31 +543,19 @@ class ProblemDetailsSpec extends Specification {
 
   def 'answered violations are logged at DEBUG'() {
     given:
-    def logged = []
-    def log = Logger.getLogger('me.yakar.muster')
-    def level = log.level
-    def handler = new Handler() {
-          void publish(LogRecord record) {
-            logged << "$record.level $record.message".toString()
-          }
-
-          void flush() {}
-
-          void close() {}
-        }
-    log.level = Level.ALL
-    log.addHandler(handler)
+    def logs = new LogCapture()
     def violation = nameTaken()
 
     when:
     runner.run { answer(it, [violation]) }
 
     then:
-    logged.contains("FINE Answering 409 to the business rule violations [$violation]".toString())
+    logs.records.any {
+      it.level == Level.FINE && it.message == "Answering 409 to the business rule violations [$violation]".toString()
+    }
 
     cleanup:
-    log.removeHandler(handler)
-    log.level = level
+    logs.close()
   }
 
   def 'requests answered at once each get the messages of their own locale'() {

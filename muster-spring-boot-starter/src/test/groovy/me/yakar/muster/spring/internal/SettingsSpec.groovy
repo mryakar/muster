@@ -15,9 +15,9 @@
  */
 package me.yakar.muster.spring.internal
 
+import static me.yakar.muster.spring.Outcomes.violated
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
-import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.app.NameUnique
@@ -90,16 +90,6 @@ class SettingsSpec extends Specification {
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Application)
 
-  /** Checks with a Muster or a chain. */
-  static List<String> violated(checker, Vehicle vehicle = BAD) {
-    try {
-      checker.check(vehicle)
-      []
-    } catch (BusinessRuleViolationException e) {
-      e.violations()*.code()
-    }
-  }
-
   static ApplicationContextRunner withEnvironmentVariables(ApplicationContextRunner runner, Map<String, Object> variables) {
     runner.withInitializer {
       it.environment.propertySources.replace(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
@@ -109,15 +99,19 @@ class SettingsSpec extends Specification {
 
   def 'all rules are on and the mode is fail-fast unless configured'() {
     expect:
-    runner.run {
-      assert violated(it.getBean(Muster)) == ['vehicle.name-capitalized']
+    runner.run { context ->
+      assert violated {
+        context.getBean(Muster).check(BAD)
+      } == ['vehicle.name-capitalized']
     }
   }
 
   def 'a property switches a rule off: #property'() {
     expect:
     runner.withPropertyValues(property).run { context ->
-      assert violated(context.getBean(Muster).chain(Vehicle, NameUnique)) == expected
+      assert violated {
+        context.getBean(Muster).chain(Vehicle, NameUnique).check(BAD)
+      } == expected
     }
 
     where:
@@ -130,7 +124,9 @@ class SettingsSpec extends Specification {
   def 'an environment variable switches a rule off: #variable'() {
     expect:
     withEnvironmentVariables(runner, [(variable): 'false']).run { context ->
-      assert violated(context.getBean(Muster).chain(Vehicle, NameUnique)) == []
+      assert violated {
+        context.getBean(Muster).chain(Vehicle, NameUnique).check(BAD)
+      } == []
     }
 
     where:
@@ -145,7 +141,9 @@ class SettingsSpec extends Specification {
     runner.withPropertyValues(
         'muster.rules.vehicle.name-capitalized.enabled=false',
         'muster.rules.vehicle.name-short.enabled=false').run { context ->
-          assert violated(context.getBean(Muster)) == ['vehicle.name-unique']
+          assert violated {
+            context.getBean(Muster).check(BAD)
+          } == ['vehicle.name-unique']
         }
   }
 
@@ -201,7 +199,9 @@ class SettingsSpec extends Specification {
     expect: 'test properties come before environment variables'
     withEnvironmentVariables(runner, [MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED: ''])
     .withPropertyValues('muster.rules.vehicle.name-unique.enabled=false').run { context ->
-      assert violated(context.getBean(Muster).chain(Vehicle, NameUnique)) == []
+      assert violated {
+        context.getBean(Muster).chain(Vehicle, NameUnique).check(BAD)
+      } == []
     }
   }
 
@@ -216,7 +216,7 @@ class SettingsSpec extends Specification {
   def 'muster.mode sets the mode: #value'() {
     expect:
     runner.withPropertyValues("muster.mode=$value").run { context ->
-      assert violated(context.getBean(Muster)) == expected
+      assert violated { context.getBean(Muster).check(BAD) } == expected
     }
 
     where:
