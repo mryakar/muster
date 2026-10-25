@@ -83,6 +83,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   /** Notes a class the pointcut advises; once the application has started, prepares it at once. */
   void note(Class<?> targetClass) {
+    // The pointcut notes a class again for every new proxy, such as of a prototype bean.
+    if (prepared.containsKey(targetClass)) {
+      return;
+    }
     boolean prepare;
     synchronized (lock) {
       noted.add(targetClass);
