@@ -54,9 +54,12 @@ testing {
       dependencies {
         implementation(platform(springBoot))
         implementation("org.springframework.boot:spring-boot-starter-test")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
+        implementation("org.springframework.boot:spring-boot-starter-webmvc")
+        implementation("org.springframework.boot:spring-boot-starter-webmvc-test")
         implementation("org.springframework.security:spring-security-core")
         implementation("org.springframework:spring-tx")
-        implementation("org.springframework.boot:spring-boot-starter-webmvc")
+        implementation("org.spockframework:spock-spring")
       }
     }
     register<JvmTestSuite>("integrationTest") {
