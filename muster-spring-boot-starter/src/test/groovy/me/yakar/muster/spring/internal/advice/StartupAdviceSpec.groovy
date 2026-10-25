@@ -184,8 +184,8 @@ class StartupAdviceSpec extends Specification {
 
     then: 'the failure comes when Muster is created'
     def e = thrown(Exception)
-    MusterAutoConfigurationSpec.rootCause(e).message.endsWith(
-        'is called while Muster is created, before its rules can be prepared; do not call advised methods from the constructors of rules or of the beans they need')
+    MusterAutoConfigurationSpec.rootCause(e).message == (
+        'Plates.known(String) is called while Muster is created, before its rules can be prepared; do not call advised methods from the constructors of rules or of the beans they need')
   }
 
   def 'beans created at once from many threads after the start check their rules'() {
