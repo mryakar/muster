@@ -28,7 +28,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.support.StaticMessageSource
 import spock.lang.Specification
 
-class MessageResolverSpec extends Specification {
+/** The message source of the application as the templates of the messages of violations. */
+class MessageSourceTemplatesSpec extends Specification {
 
   static final Locale TURKISH = Locale.forLanguageTag('tr-TR')
 
