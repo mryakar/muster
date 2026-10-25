@@ -17,7 +17,6 @@ package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,10 +46,11 @@ public sealed interface RuleResult {
    * @return the failed result
    */
   static RuleResult failed(Violation first, Violation... more) {
-    var violations = new ArrayList<Violation>();
-    violations.add(first);
-    violations.addAll(List.of(more));
-    return new Failed(violations);
+    // List.of keeps a single violation without an array, and Failed keeps the list as it is.
+    var violations = new Violation[more.length + 1];
+    violations[0] = first;
+    System.arraycopy(more, 0, violations, 1, more.length);
+    return new Failed(List.of(violations));
   }
 
   /**
