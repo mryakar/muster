@@ -22,26 +22,33 @@ class RuleContextSpec extends Specification {
 
   def amo = { 'amo' } as Principal
 
-  def 'a context knows the rule it belongs to'() {
+  def 'a context #how has the rule id, no caller and the root locale'() {
     expect:
-    RuleContext.forRule('task.ready').ruleId() == 'task.ready'
+    context.ruleId() == 'task.ready'
+    context.caller().empty
+    context.locale() == Locale.ROOT
+
+    where:
+    how                      | context
+    'for a rule id'          | RuleContext.forRule('task.ready')
+    'for a rule class'       | RuleContext.forRule(TaskReady)
+    'built for a rule id'    | RuleContext.builder('task.ready').build()
+    'built for a rule class' | RuleContext.builder(TaskReady).build()
   }
 
-  def 'a context for a rule class takes the id from its @Rule'() {
-    expect:
-    RuleContext.forRule(TaskReady).ruleId() == 'task.ready'
-    RuleContext.forRule(TaskReady).caller().empty
-    RuleContext.forRule(TaskReady).locale() == Locale.ROOT
-  }
-
-  def 'a builder for a rule class takes the id from its @Rule'() {
+  def 'a context built for a #how knows who makes the call and in which locale'() {
     given:
-    def context = RuleContext.builder(TaskReady).caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+    def context = builder.caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
 
     expect:
     context.ruleId() == 'task.ready'
     context.caller().get().is(amo)
     context.locale() == Locale.forLanguageTag('tr-TR')
+
+    where:
+    how          | builder
+    'rule id'    | RuleContext.builder('task.ready')
+    'rule class' | RuleContext.builder(TaskReady)
   }
 
   def 'a context for a rule class that is not a valid rule fails: #problem'() {
@@ -49,13 +56,13 @@ class RuleContextSpec extends Specification {
     RuleContext.forRule(ruleClass)
 
     then:
-    def e = thrown(exception)
+    def e = thrown(IllegalArgumentException)
     e.message == message
 
     where:
-    problem         | ruleClass || exception                | message
-    'no @Rule'      | NoRule || IllegalArgumentException | "${NoRule.typeName} is not annotated with @Rule"
-    'an invalid id' | InvalidId || IllegalArgumentException | "the id 'Task Ready' of ${InvalidId.typeName} is invalid; ${me.yakar.muster.internal.rule.RuleIds.FORMAT}"
+    problem         | ruleClass || message
+    'no @Rule'      | NoRule || "${NoRule.typeName} is not annotated with @Rule"
+    'an invalid id' | InvalidId || "the id 'Task Ready' of ${InvalidId.typeName} is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
   }
 
   def 'a context rejects a null rule class'() {
@@ -68,35 +75,6 @@ class RuleContextSpec extends Specification {
 
     where:
     factory << ['forRule', 'builder']
-  }
-
-  def 'a context for testing a rule has no caller and the root locale'() {
-    given:
-    def context = RuleContext.forRule('task.ready')
-
-    expect:
-    context.caller().empty
-    context.locale() == Locale.ROOT
-  }
-
-  def 'a context knows who makes the call and in which locale'() {
-    given:
-    def context = RuleContext.builder('request.owner-only').caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
-
-    expect:
-    context.ruleId() == 'request.owner-only'
-    context.caller().get().is(amo)
-    context.locale() == Locale.forLanguageTag('tr-TR')
-  }
-
-  def 'a context built without a caller or a locale has the defaults'() {
-    given:
-    def context = RuleContext.builder('task.ready').build()
-
-    expect:
-    context.ruleId() == 'task.ready'
-    context.caller().empty
-    context.locale() == Locale.ROOT
   }
 
   def 'a builder from a context starts with its rule, caller and locale'() {
@@ -147,20 +125,16 @@ class RuleContextSpec extends Specification {
     RuleContext.builder('request.owner-only').caller(amo).build().violation('request.not-owner').build().ruleId() == 'request.owner-only'
   }
 
-  def 'a context rejects a null caller or locale'() {
+  def 'a context rejects a null #name'() {
     when:
-    set(RuleContext.builder('task.ready'))
+    RuleContext.builder('task.ready')."$name"(null)
 
     then:
     def e = thrown(NullPointerException)
-    e.message == message
+    e.message == name
 
     where:
-    set << [
-      { it.caller(null) },
-      { it.locale(null) }
-    ]
-    message << ['caller', 'locale']
+    name << ['caller', 'locale']
   }
 
   def 'a context rejects "#ruleId", which Muster would not register'() {
@@ -172,15 +146,14 @@ class RuleContextSpec extends Specification {
     e.message == "the rule id '$ruleId' is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
 
     where:
-    [factory, ruleId] << [
-      ['forRule', 'builder'],
-      [
-        '',
-        ' ',
-        'Not An Id',
-        'task..ready'
-      ]
-    ].combinations()
+    factory << ['forRule', 'builder']
+    combined:
+    ruleId << [
+      '',
+      ' ',
+      'Not An Id',
+      'task..ready'
+    ]
   }
 
   def 'a context rejects a null rule id'() {
