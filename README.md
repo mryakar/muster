@@ -185,9 +185,9 @@ from one advised method to another checks them again. Other advice runs as Sprin
 them on its own thread, where a violation does not reach the caller.
 
 **Caller and locale.** The caller is read through the `SecurityContextHolderStrategy` bean of the
-application if it has one; an anonymous call has no caller. Without a locale in
-`LocaleContextHolder`, rules see the default locale of the JVM. A raw `Supplier` bean replaces
-neither.
+application if it has one; a call that is anonymous or not authenticated has no caller. Without a
+locale in `LocaleContextHolder`, rules see the default locale of the JVM. A raw `Supplier` bean
+replaces neither.
 
 **Messages.** The message of a violation is the template that its code names; without one, it is
 the code. A `MessageResolver` bean of the application replaces the starter's. Spring Boot's message
@@ -196,14 +196,15 @@ answers a French client in Turkish; `spring.messages.fallback-to-system-locale=f
 `messages.properties` instead. `spring.messages.always-use-message-format=true` stops the
 application, since `MessageFormat` rejects the `{name}` placeholders.
 
-**Problem details.** The JSON library of the application writes the client arguments: make them
-values, such as strings or numbers, not entities. The handler has the order 0, as Spring Boot's own
-problem details do, so a controller advice without an order that handles every `Exception` does
-not turn violations into server errors; an advice ordered before it still can. The handler also
-answers an exception that a violation causes, unless an earlier advice handles that exception. A
-controller advice that names `BusinessRuleViolationException` in an `@ExceptionHandler`, in the
-context of the application or a parent one, replaces the handler for every controller, even if the
-advice applies to some controllers only. A controller's own handler comes first anyway.
+**Problem details.** They carry no `type`, which stands for `about:blank`. The JSON library of the
+application writes the client arguments: make them values, such as strings or numbers, not entities.
+The handler has the order 0, as Spring Boot's own problem details do, so a controller advice without
+an order that handles every `Exception` does not turn violations into server errors; an advice
+ordered before it still can. The handler also answers an exception that a violation causes, unless
+an earlier advice handles that exception. A controller advice that names
+`BusinessRuleViolationException` in an `@ExceptionHandler`, in the context of the application or a
+parent one, replaces the handler for every controller, even if the advice applies to some
+controllers only. A controller's own handler comes first anyway.
 
 ## Usage without Spring
 
