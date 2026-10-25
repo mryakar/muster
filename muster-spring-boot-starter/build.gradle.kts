@@ -46,6 +46,8 @@ dependencies {
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 }
 
+// Specs change JVM-wide state, such as the default locale, Muster's logger and the security
+// context, so they rely on running one at a time, as Spock does unless told otherwise.
 testing {
   suites {
     named<JvmTestSuite>("test") {
