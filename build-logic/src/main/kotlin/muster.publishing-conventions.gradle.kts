@@ -96,8 +96,9 @@ pluginManager.withPlugin("java-library") {
                   Regex("""(pkg:maven/me\.yakar\.muster/[^"<?]*)\?project_path=[^"&<]*"""),
                   "$1",
                 )
-            if ("project_path" in text) {
-              throw GradleException("$file names the path of a module in this build")
+            val purl = Regex("""pkg:[^"<]*[?&](amp;)?project_path=""").find(text)
+            if (purl != null) {
+              throw GradleException("$file names the path of a module in this build: ${purl.value}")
             }
             file.writeText(text)
           }
