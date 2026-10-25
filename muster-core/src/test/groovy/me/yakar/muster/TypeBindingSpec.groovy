@@ -24,7 +24,10 @@ import java.util.concurrent.TimeUnit
 import java.util.logging.Handler
 import java.util.logging.Level
 import java.util.logging.LogRecord
+import me.yakar.muster.EngineSpecification.Identified
+import me.yakar.muster.EngineSpecification.UpdateVehicle
 import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
@@ -32,6 +35,23 @@ import me.yakar.muster.rule.RuleTarget
 
 /** Checking rule targets with rules bound by type. */
 class TypeBindingSpec extends EngineSpecification {
+
+  static record Unbound(String text) implements RuleTarget {}
+
+  @Rule(id = 'vehicle.known')
+  static class VehicleKnown implements BusinessRule<Identified> {
+    RuleResult check(Identified input, RuleContext ctx) {
+      input.id() == 404L ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.a-renamable')
+  @RequiresRule(VehicleKnown)
+  static class VehicleRenamable implements BusinessRule<UpdateVehicle> {
+    RuleResult check(UpdateVehicle input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build())
+    }
+  }
 
   def 'rules bound by type check in the mode of the Muster'() {
     when:

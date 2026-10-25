@@ -16,9 +16,50 @@
 package me.yakar.muster
 
 import java.util.logging.Level
+import me.yakar.muster.EngineSpecification.TaskAssignable
+import me.yakar.muster.EngineSpecification.TaskExists
+import me.yakar.muster.EngineSpecification.TaskLocked
+import me.yakar.muster.EngineSpecification.TaskRule
+import me.yakar.muster.rule.RequiresRule
+import me.yakar.muster.rule.Rule
 
 /** Rules that require other rules: order, skipping, and the rules a chain adds. */
 class RuleDependencySpec extends EngineSpecification {
+
+  // Task numbers of the rules below: 410 fails task.started, which requires task.assignable;
+  // task.closable and task.reopened never fail.
+
+  @Rule(id = 'task.started')
+  @RequiresRule(TaskAssignable)
+  static class TaskStarted extends TaskRule {
+    TaskStarted(List<String> ran) {
+      super(ran, 410L)
+    }
+  }
+
+  @Rule(id = 'task.closable')
+  @RequiresRule([TaskExists, TaskLocked])
+  static class TaskClosable extends TaskRule {
+    TaskClosable(List<String> ran) {
+      super(ran, -1L)
+    }
+  }
+
+  @Rule(id = 'task.reopened')
+  @RequiresRule(TaskExists)
+  static class TaskReopened extends TaskRule {
+    TaskReopened(List<String> ran) {
+      super(ran, -1L)
+    }
+  }
+
+  /** In FAIL_FAST mode a failed rule ends the check, so only COLLECT_ALL shows which rules are skipped. */
+  Muster tasks() {
+    Muster.builder()
+        .rules(new TaskExists(ran), new TaskAssignable(ran), new TaskStarted(ran), new TaskImported(ran), new TaskFromImport(ran))
+        .mode(CheckMode.COLLECT_ALL)
+        .build()
+  }
 
   def 'a rule runs after the rules it requires, whatever their ids'() {
     when:

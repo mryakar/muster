@@ -15,7 +15,6 @@
  */
 package me.yakar.muster
 
-import java.security.Principal
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Handler
 import java.util.logging.Level
@@ -27,7 +26,6 @@ import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.rule.RuleTarget
-import me.yakar.muster.spi.RuleFactory
 import spock.lang.Specification
 
 /** The rules, inputs and log capture that the engine specifications share. */
@@ -46,8 +44,6 @@ abstract class EngineSpecification extends Specification {
   static record CreateVehicle(String code, String name) implements VehicleFields {}
 
   static record UpdateVehicle(Long id, String code, String name) implements VehicleFields, Identified {}
-
-  static record Unbound(String text) implements RuleTarget {}
 
   static final CreateVehicle VALID = new CreateVehicle('TR-1', 'Atlas')
   static final CreateVehicle INVALID = new CreateVehicle('bad', 'taken')
@@ -83,73 +79,16 @@ abstract class EngineSpecification extends Specification {
     }
   }
 
-  @Rule(id = 'import.only')
-  static class ImportOnly implements BusinessRule<Object> {
-    boolean appliesTo(RuleContext ctx) {
-      false
-    }
-
-    RuleResult check(Object input, RuleContext ctx) {
-      RuleResult.failed(ctx.violation().build())
-    }
-  }
-
-  @Rule(id = 'rule.returns-null')
-  static class ReturnsNull implements BusinessRule<Object> {
-    RuleResult check(Object input, RuleContext ctx) {
-      null
-    }
-  }
-
-  @Rule(id = 'rule.broken')
-  static class Broken implements BusinessRule<Object> {
-    static final RuntimeException FAILURE = new IllegalStateException('database down')
-
-    RuleResult check(Object input, RuleContext ctx) {
-      throw FAILURE
-    }
-  }
-
-  @Rule(id = 'vehicle.name-unique')
-  static class NameUniqueAgain implements BusinessRule<VehicleFields> {
-    RuleResult check(VehicleFields input, RuleContext ctx) {
-      RuleResult.passed()
-    }
-  }
-
-  static class Unannotated implements BusinessRule<Object> {
-    RuleResult check(Object input, RuleContext ctx) {
-      RuleResult.passed()
-    }
-  }
-
-  static class ProxiedNameUnique extends NameUnique {}
-
-  /** Throws without wrapping, as a factory in another JVM language may, checked exceptions included. */
-  static class ThrowingFactory implements RuleFactory {
-    final Exception failure
-
-    ThrowingFactory(Exception failure) {
-      this.failure = failure
-    }
-
-    BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass) {
-      throw failure
-    }
-  }
-
   /**
    * A rule about a task that notes when it runs, and fails for one task number, which reads like
-   * an HTTP status:
+   * an HTTP status. The specs add rules of their own.
    *
    * <ul>
    *   <li>404 — {@code task.exists}
    *   <li>409 — {@code task.assignable}, which requires {@code task.exists}
-   *   <li>410 — {@code task.started}, which requires {@code task.assignable}
    *   <li>423 — {@code task.locked}
-   *   <li>500 — {@code task.audited} and {@code task.billed}, both at once
    *   <li>1 — {@code task.from-import}, which requires {@code task.imported}; that rule never applies
-   *   <li>-1 — never: {@code task.closable}, {@code task.reopened}, {@code task.imported}
+   *   <li>-1 — never: {@code task.imported}
    * </ul>
    */
   static abstract class TaskRule implements BusinessRule<Long> {
@@ -182,14 +121,6 @@ abstract class EngineSpecification extends Specification {
     }
   }
 
-  @Rule(id = 'task.started')
-  @RequiresRule(TaskAssignable)
-  static class TaskStarted extends TaskRule {
-    TaskStarted(List<String> ran) {
-      super(ran, 410L)
-    }
-  }
-
   @Rule(id = 'task.imported')
   static class TaskImported extends TaskRule {
     TaskImported(List<String> ran) {
@@ -216,67 +147,6 @@ abstract class EngineSpecification extends Specification {
     }
   }
 
-  @Rule(id = 'task.closable')
-  @RequiresRule([TaskExists, TaskLocked])
-  static class TaskClosable extends TaskRule {
-    TaskClosable(List<String> ran) {
-      super(ran, -1L)
-    }
-  }
-
-  @Rule(id = 'task.reopened')
-  @RequiresRule(TaskExists)
-  static class TaskReopened extends TaskRule {
-    TaskReopened(List<String> ran) {
-      super(ran, -1L)
-    }
-  }
-
-  @Rule(id = 'vehicle.known')
-  static class VehicleKnown implements BusinessRule<Identified> {
-    RuleResult check(Identified input, RuleContext ctx) {
-      input.id() == 404L ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
-    }
-  }
-
-  @Rule(id = 'vehicle.a-renamable')
-  @RequiresRule(VehicleKnown)
-  static class VehicleRenamable implements BusinessRule<UpdateVehicle> {
-    RuleResult check(UpdateVehicle input, RuleContext ctx) {
-      RuleResult.failed(ctx.violation().build())
-    }
-  }
-
-  @Rule(id = 'task.audited')
-  static class TaskAudited extends TaskRule {
-    TaskAudited(List<String> ran) {
-      super(ran, 500L)
-    }
-  }
-
-  @Rule(id = 'task.billed')
-  static class TaskBilled extends TaskRule {
-    TaskBilled(List<String> ran) {
-      super(ran, 500L)
-    }
-  }
-
-  @Rule(id = 'plan.capacity-sufficient')
-  static class CapacitySufficient implements BusinessRule<Long> {
-    RuleResult check(Long input, RuleContext ctx) {
-      RuleResult.failed(ctx.violation('plan.passenger-capacity').build(), ctx.violation('plan.parcel-capacity').build())
-    }
-  }
-
-  @Rule(id = 'vehicle.impostor')
-  static class Impostor implements BusinessRule<Object> {
-    RuleResult check(Object input, RuleContext ctx) {
-      RuleResult.failed(ctx.violation().build(), RuleContext.forRule('vehicle.name-unique').violation().build())
-    }
-  }
-
-  def amo = { 'amo' } as Principal
-
   List<String> ran = new CopyOnWriteArrayList<String>()
   // Threads run rules and log at the same time in the concurrency tests; a plain list would lose
   // entries.
@@ -302,13 +172,5 @@ abstract class EngineSpecification extends Specification {
   def cleanup() {
     log.removeHandler(handler)
     log.level = level
-  }
-
-  /** In FAIL_FAST mode a failed rule ends the check, so only COLLECT_ALL shows which rules are skipped. */
-  Muster tasks() {
-    Muster.builder()
-        .rules(new TaskExists(ran), new TaskAssignable(ran), new TaskStarted(ran), new TaskImported(ran), new TaskFromImport(ran))
-        .mode(CheckMode.COLLECT_ALL)
-        .build()
   }
 }

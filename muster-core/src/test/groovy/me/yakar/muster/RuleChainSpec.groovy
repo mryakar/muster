@@ -18,10 +18,73 @@ package me.yakar.muster
 import static me.yakar.muster.Concurrency.concurrently
 
 import java.security.Principal
+import me.yakar.muster.EngineSpecification.TaskRule
+import me.yakar.muster.rule.BusinessRule
+import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
+import me.yakar.muster.rule.RuleResult
 
 /** Checking an input with a chain: order, skipping, modes, the call context and failures. */
 class RuleChainSpec extends EngineSpecification {
+
+  // Task numbers of the rules below: 500 fails task.audited and task.billed, both at once.
+
+  @Rule(id = 'task.audited')
+  static class TaskAudited extends TaskRule {
+    TaskAudited(List<String> ran) {
+      super(ran, 500L)
+    }
+  }
+
+  @Rule(id = 'task.billed')
+  static class TaskBilled extends TaskRule {
+    TaskBilled(List<String> ran) {
+      super(ran, 500L)
+    }
+  }
+
+  @Rule(id = 'plan.capacity-sufficient')
+  static class CapacitySufficient implements BusinessRule<Long> {
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation('plan.passenger-capacity').build(), ctx.violation('plan.parcel-capacity').build())
+    }
+  }
+
+  @Rule(id = 'vehicle.impostor')
+  static class Impostor implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build(), RuleContext.forRule('vehicle.name-unique').violation().build())
+    }
+  }
+
+  @Rule(id = 'import.only')
+  static class ImportOnly implements BusinessRule<Object> {
+    boolean appliesTo(RuleContext ctx) {
+      false
+    }
+
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build())
+    }
+  }
+
+  @Rule(id = 'rule.returns-null')
+  static class ReturnsNull implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      null
+    }
+  }
+
+  @Rule(id = 'rule.broken')
+  static class Broken implements BusinessRule<Object> {
+    static final RuntimeException FAILURE = new IllegalStateException('database down')
+
+    RuleResult check(Object input, RuleContext ctx) {
+      throw FAILURE
+    }
+  }
+
+  def amo = { 'amo' } as Principal
 
   def 'a disabled rule runs in no chain, even when the chain lists it'() {
     when:
