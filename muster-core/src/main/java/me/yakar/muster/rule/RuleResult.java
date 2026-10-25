@@ -20,12 +20,9 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 
 /**
- * The outcome of checking a rule: it either passed or failed with one or more violations.
- *
- * <p>Rules return a result instead of throwing. Muster collects the results and throws a single
- * {@link me.yakar.muster.BusinessRuleViolationException} when the check ends; in the default {@link
- * me.yakar.muster.CheckMode#FAIL_FAST} mode, the check ends at the first failed rule, and later
- * rules do not run.
+ * The outcome of a rule check: passed, or failed with one or more violations. Rules return a result
+ * instead of throwing; Muster throws one {@link me.yakar.muster.BusinessRuleViolationException}
+ * when the check ends.
  */
 public sealed interface RuleResult {
 
