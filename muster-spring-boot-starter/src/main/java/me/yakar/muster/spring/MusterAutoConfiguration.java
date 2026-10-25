@@ -23,9 +23,9 @@ import me.yakar.muster.Muster;
 import me.yakar.muster.rule.Rule;
 import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.Settings;
+import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -35,13 +35,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Role;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 
 /**
  * Builds {@link Muster} from the business rules of a Spring Boot application.
@@ -122,7 +120,7 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  * <p>Define a {@link Muster} bean of your own to build Muster yourself.
  */
 @AutoConfiguration
-@Import(ProxyCreatorRegistrar.class)
+@Import(AdviceConfiguration.class)
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
@@ -130,20 +128,6 @@ public final class MusterAutoConfiguration {
   @Bean
   static RuleScanner musterRuleScanner() {
     return new RuleScanner();
-  }
-
-  @Bean
-  @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-  static RulesInterceptor musterRulesInterceptor(
-      ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
-    return new RulesInterceptor(muster, transactions);
-  }
-
-  // Infrastructure, so that the proxy creator that transaction management registers applies it.
-  @Bean
-  @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-  static RulesAdvisor musterRulesAdvisor(RulesInterceptor musterRulesInterceptor) {
-    return new RulesAdvisor(musterRulesInterceptor);
   }
 
   @Bean
@@ -199,26 +183,6 @@ public final class MusterAutoConfiguration {
       ConfigurableListableBeanFactory beanFactory, Class<?> suppliedType) {
     return beanFactory.getBeanProvider(
         ResolvableType.forClassWithGenerics(Supplier.class, suppliedType));
-  }
-
-  /** Keeps rules inside the transaction when the application has Spring's transactions. */
-  @Configuration(proxyBeanMethods = false)
-  @ConditionalOnClass(
-      name =
-          "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor")
-  static class TransactionConfiguration {
-
-    @Bean
-    static TransactionOrdering musterTransactionOrdering() {
-      return new TransactionOrdering();
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    static TransactionGuard musterTransactionGuard(
-        ObjectProvider<BeanFactoryTransactionAttributeSourceAdvisor> advisor) {
-      return new TransactionGuard(advisor);
-    }
   }
 
   /** Answers violations with problem details in a Spring MVC application. */

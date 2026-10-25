@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.advice
 
 import java.lang.reflect.Proxy
 import java.util.concurrent.Callable
@@ -25,6 +25,8 @@ import java.util.logging.Level
 import java.util.logging.LogRecord
 import java.util.logging.Logger
 import me.yakar.muster.BusinessRuleViolationException
+import me.yakar.muster.spring.MusterAutoConfiguration
+import me.yakar.muster.spring.MusterAutoConfigurationSpec
 import me.yakar.muster.spring.fixture.advice.FinalMethod
 import me.yakar.muster.spring.fixture.advice.LazyVehicleService
 import me.yakar.muster.spring.fixture.advice.NameFree

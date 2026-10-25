@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.advice
 
 import me.yakar.muster.Muster
 import org.aopalliance.intercept.MethodInvocation

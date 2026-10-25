@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring;
+package me.yakar.muster.spring.internal.advice;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import me.yakar.muster.rule.RuleTarget;
+import me.yakar.muster.spring.Rules;
 import org.jspecify.annotations.Nullable;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.annotation.AnnotatedElementUtils;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.internal.advice
 
 import java.lang.reflect.Method
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
