@@ -61,7 +61,7 @@ final class TransactionOrdering implements BeanFactoryPostProcessor, Environment
               + " rules would run outside them; use @EnableTransactionManagement in proxy mode");
     }
     var advisor = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME;
-    if (!Settings.reorderAdvisor(requireNonNull(environment))
+    if (!Settings.reorderTransactionAdvisor(requireNonNull(environment))
         || !beanFactory.containsBeanDefinition(advisor)
         // An order set on the definition, as with <tx:annotation-driven order="...">, is the
         // application's.

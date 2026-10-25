@@ -21,6 +21,13 @@
       "defaultValue": true
     },
     {
+      "name": "muster.validation.reorder-advisor",
+      "type": "java.lang.Boolean",
+      "description": "Whether to move the method validation advice ahead of Muster's, so that the constraints of a method are checked before its rules and before its transaction, unless the application defines the MethodValidationPostProcessor itself. Off, Spring Boot adds the validation advice last, and the rules run before the constraints.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
+      "defaultValue": true
+    },
+    {
       "name": "muster.problem-details.mixed-status",
       "type": "java.lang.Integer",
       "description": "The status that answers business rule violations of different categories in a Spring MVC application, a client error from 400 to 499. Violations of one category are answered with its status: 403 for forbidden, 404 for not found, 409 for conflict, and 422 for invalid state or no category.",

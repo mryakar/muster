@@ -28,6 +28,7 @@ class ConfigurationMetadataSpec extends Specification {
     metadata.read('$.properties[*].name') == [
       'muster.mode',
       'muster.transaction.reorder-advisor',
+      'muster.validation.reorder-advisor',
       'muster.problem-details.mixed-status',
       'muster.rules'
     ]

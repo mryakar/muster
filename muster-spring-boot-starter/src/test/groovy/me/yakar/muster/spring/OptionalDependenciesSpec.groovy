@@ -23,8 +23,8 @@ import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import spock.lang.Specification
 
 /**
- * The starter's optional dependencies, Spring's transactions, Spring Security and Spring Web, may be
- * absent from an application. Spring introspects a bean's class, so the classes it creates without
+ * The starter's optional dependencies, Spring's transactions, Spring Security, Spring Web and Bean
+ * Validation, may be absent from an application. Spring introspects a bean's class, so the classes it creates without
  * one of them must not name its types in a field, a constructor or a method; the tests run with all
  * of them on the class path, so only the signatures can show it.
  */
@@ -33,6 +33,7 @@ class OptionalDependenciesSpec extends Specification {
   static final String TRANSACTION = 'org.springframework.transaction'
   static final String SECURITY = 'org.springframework.security'
   static final String WEB = 'org.springframework.web'
+  static final String VALIDATION = 'jakarta.validation'
 
   /** The classes that the starter creates, or Spring reads, without any optional dependency. */
   static final List<Class<?>> WITHOUT_ANY = [
@@ -50,6 +51,7 @@ class OptionalDependenciesSpec extends Specification {
     classOf('internal.advice.RulesAdvisor'),
     classOf('internal.advice.AdvisedMethods'),
     classOf('internal.advice.ProxyCreatorRegistrar'),
+    classOf('internal.advice.ValidationOrdering'),
     classOf('internal.advice.TransactionGuard$Resolved')
   ]
 
@@ -58,9 +60,13 @@ class OptionalDependenciesSpec extends Specification {
     names(type).findAll { it.startsWith(dependency) }.empty
 
     where:
-    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB]].combinations() +
-    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB]].combinations() +
-    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY]].combinations()
+    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB, VALIDATION]].combinations() +
+    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB, VALIDATION]].combinations() +
+    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY, VALIDATION]].combinations() +
+    [
+      [classOf('internal.advice.TransactionOrdering'), classOf('internal.advice.TransactionGuard')],
+      [SECURITY, WEB, VALIDATION]
+    ].combinations()
   }
 
   private static Class<?> classOf(String name) {
