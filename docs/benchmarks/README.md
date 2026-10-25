@@ -5,7 +5,7 @@ live in [`muster-benchmarks`](../../muster-benchmarks), which is not published.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 371 ns and muster.check(target) 382 ns, against 264 ns for calling the same rules by hand." src="check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 370 ns and muster.check(target) 388 ns, against 264 ns for calling the same rules by hand." src="check-cost-light.svg">
 </picture>
 
 ## Budget
@@ -17,11 +17,11 @@ checks. A check that passes is held to this budget, against the same rules calle
 | | Measured | Budget |
 |---|---|---|
 | Fixed cost of `RuleChain.check` | about 12 ns | at most 20 ns |
-| Cost that `RuleChain.check` adds with 20 rules | about 107 ns | at most 150 ns |
+| Cost that `RuleChain.check` adds with 20 rules | about 106 ns | at most 150 ns |
 | Fixed cost of `muster.check(target)` | about 22 ns | at most 35 ns |
-| Cost that `muster.check(target)` adds with 20 rules | about 117 ns | at most 235 ns |
+| Cost that `muster.check(target)` adds with 20 rules | about 125 ns | at most 235 ns |
 | Memory a check allocates | 24 bytes per rule, plus up to 40 | at most 24 bytes per rule, plus 48 |
-| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 118 ns and 96 bytes | at most 200 ns and 128 bytes |
+| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 122 ns and 96 bytes | at most 200 ns and 128 bytes |
 
 Most of what a rule adds is the context it receives: each rule gets its own, 24 bytes, since it
 carries the rule's id. For a passing check the memory figures are exact; the JIT does not vary them.
@@ -45,10 +45,10 @@ A check that passes:
 
 | Rules | By hand (baseline) | `RuleChain.check` | `muster.check(target)` |
 |---|---|---|---|
-| 0 | 1.3 ns (1.3–1.3), 0 B | 13.4 ns (12.8–13.9), 16 B | 22.8 ns (22.7–24.1), 16 B |
-| 1 | 11.0 ns (10.9–11.0), 0 B | 11.5 ns (11.4–11.6), 0 B | 23.1 ns (23.1–23.2), 0 B |
-| 5 | 65.3 ns (65.1–65.9), 0 B | 101.7 ns (100.7–107.6), 144 B | 113.8 ns (112.4–118.4), 144 B |
-| 20 | 264.2 ns (262.9–266.1), 0 B | 371.2 ns (367.5–371.7), 520 B | 381.6 ns (380.3–382.1), 520 B |
+| 0 | 1.3 ns (1.3–1.3), 0 B | 12.9 ns (12.8–13.5), 16 B | 22.8 ns (22.7–22.9), 16 B |
+| 1 | 11.0 ns (11.0–11.0), 0 B | 11.6 ns (11.5–11.7), 0 B | 23.1 ns (23.1–23.1), 0 B |
+| 5 | 65.4 ns (65.1–65.7), 0 B | 100.0 ns (100.0–107.6), 144 B | 114.0 ns (112.0–120.7), 144 B |
+| 20 | 263.8 ns (259.9–273.6), 0 B | 369.7 ns (368.1–390.9), 520 B | 388.3 ns (380.8–423.8), 520 B |
 
 With a single rule the JIT inlines the call to it and optimizes the context away, so the check
 allocates nothing.
@@ -58,8 +58,8 @@ evenly, and the last rule is always one of them:
 
 | Violated rules | `FAIL_FAST` | `COLLECT_ALL` |
 |---|---|---|
-| 1 | 821 ns (813–857), 1,224 B | 875 ns (865–898), 1,224 B |
-| 5 | 355 ns (349–357), 600 B | 983 ns (982–1,048), 2,344 B |
+| 1 | 706 ns (704–756), 792 B | 706 ns (689–744), 792 B |
+| 5 | 337 ns (333–342), 408 B | 920 ns (886–1,000), 1,384 B |
 
 `FAIL_FAST` stops at the first violated rule, so with five of them it runs only four rules. The
 exception has no stack trace.
@@ -68,8 +68,8 @@ exception has no stack trace.
 
 | The class is | Time per check |
 |---|---|
-| the first in its bucket of the chain map | 40.1 ns (39.5–43.5) |
-| the second in its bucket | 46.1 ns (42.1–47.0) |
+| the first in its bucket of the chain map | 42.6 ns (39.2–42.6) |
+| the second in its bucket | 43.4 ns (41.2–45.5) |
 
 Neither takes a lock. Which classes share a bucket depends on their identity hashes and changes from
 run to run, so the benchmark measures both positions. The eight threads share four cores, so a check
@@ -80,20 +80,20 @@ against a plain class that calls the same binding by hand before it does its wor
 
 | Rules | By hand (baseline) | Through the starter |
 |---|---|---|
-| 0 | 29.3 ns (29.2–29.7), 16 B | 147.4 ns (144.6–153.9), 112 B |
-| 1 | 29.1 ns (29.1–29.2), 24 B | 149.3 ns (147.6–154.2), 120 B |
-| 20 | 401.3 ns (399.6–411.1), 520 B | 537.1 ns (523.5–547.0), 616 B |
+| 0 | 29.4 ns (29.3–29.8), 16 B | 151.9 ns (142.2–157.8), 112 B |
+| 1 | 29.6 ns (29.0–29.8), 24 B | 151.7 ns (148.2–153.9), 120 B |
+| 20 | 400.6 ns (385.4–409.5), 520 B | 533.9 ns (523.2–554.8), 616 B |
 
 There is no transaction, so that the numbers show Muster.
 
-Now and then a fork settles on slower compiled code than the others, by hand as well as in Muster;
-a loop over twenty rule classes does so most clearly. In this run, five of the 140 forks ended
-more than 10% from the median of their benchmark, and the ranges above leave them out:
-`RuleChain.check` with 5 rules (117.7 ns), `muster.check(target)` with 20 rules (420.5 ns), the
-single-rule baseline of the starter benchmark (34.2 ns), the first bucket of the multi-threaded
-benchmark (45.4 ns), and `muster.check(target, mode)`, which no table here shows, with no rules
-(23.5 ns). The median of five forks keeps such a fork from deciding the
-published number.
+Now and then a fork settles on other compiled code than the others, by hand as well as in Muster,
+and nearly always slower code. In this run, eight of the 140 forks ended more than 10% from the
+median of their benchmark, and the ranges above leave them out: `RuleChain.check` with 5 rules
+(122.1 ns), the baseline of the starter benchmark with 1 rule (33.3 ns) and with 20 rules
+(443.7 ns), two forks of the first bucket of the multi-threaded benchmark (47.1 and 50.3 ns),
+`muster.check(target, mode)`, which no table here shows, with no rules (26.6 ns) and with 5 rules
+(131.2 ns), and, faster than the others, the failing check in `FAIL_FAST` mode with one violated
+rule (625.6 ns). The median of five forks keeps such a fork from deciding the published number.
 
 The raw results are in [`results.json`](results.json), and the medians, ranges and the forks more
 than 10% from the median in [`results.csv`](results.csv). `./gradlew jmhReport` writes both and the
