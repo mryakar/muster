@@ -50,9 +50,7 @@ jobs:
         run: .github/scripts/check-signing-key.sh 4C3AF91B1B7F67BD50D28A406CCE03949E2A4A49 46BA04A6815A97C7
       - run: ./gradlew build publishToMavenLocal
       - name: Use the published artifacts as a consumer would
-        run: |
-          ./gradlew -p consumer-test run -PmusterVersion="$VERSION"
-          ./gradlew -p consumer-test run -PmusterVersion="$VERSION" -PpomOnly
+        run: .github/scripts/consumer-test.sh "$VERSION"
         env:
           VERSION: ${{ steps.version.outputs.version }}
       - id: jars

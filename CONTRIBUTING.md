@@ -105,8 +105,7 @@ Boot application that it calls over HTTP:
 
 ```bash
 ./gradlew publishToMavenLocal
-./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
-./gradlew -p consumer-test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)" -PpomOnly
+.github/scripts/consumer-test.sh
 ```
 
 ## License
