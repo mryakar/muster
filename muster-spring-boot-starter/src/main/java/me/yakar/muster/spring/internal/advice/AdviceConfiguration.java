@@ -48,7 +48,7 @@ public final class AdviceConfiguration {
     return new RulesAdvisor(musterRulesInterceptor);
   }
 
-  /** Keeps rules inside the transaction when the application has Spring's transactions. */
+  /** Keeps rules inside the transaction when the application has Spring's transaction support. */
   @ConditionalOnClass(
       name =
           "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor")

@@ -25,82 +25,20 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
- * Builds {@link Muster} from the business rules of a Spring Boot application.
+ * Auto-configuration that checks business rules in a Spring Boot application.
  *
- * <p>The rules are the beans that implement {@link me.yakar.muster.rule.BusinessRule}. Rule classes
- * with {@link me.yakar.muster.rule.Rule @Rule} in the packages of the application, the packages
- * that {@code @SpringBootApplication} scans for entities as well, become beans without
- * {@code @Component}; a rule elsewhere joins once it is a bean, for example through {@code @Bean}
- * or {@code @Import}. Every rule bean must be a singleton, since Muster creates each rule once and
- * keeps it.
+ * <p>It builds a {@link Muster} bean from the rule beans, registers the rule classes in the
+ * packages of the application as beans, and checks the rules of advised methods; see {@link Rules}.
+ * It reads the caller from Spring Security and the locale from {@link LocaleContextHolder},
+ * resolves messages through a {@link MessageResolver} bean backed by the message source of the
+ * application, and, in a Spring MVC application, answers a {@link
+ * me.yakar.muster.BusinessRuleViolationException} with problem details (RFC 9457).
  *
- * <p>Configuration switches rules off and sets the mode:
- *
- * <ul>
- *   <li>{@code muster.rules.<rule id>.enabled=false} switches a rule off, as {@link
- *       Muster.Builder#disable} does; as an environment variable, {@code
- *       MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED=false} switches {@code vehicle.name-unique} off. A
- *       key under {@code muster.rules} that switches no rule, such as a misspelled id, stops the
- *       application.
- *   <li>{@code muster.mode} is {@code fail-fast}, the default, or {@code collect-all}.
- *   <li>{@code muster.transaction.reorder-advisor=false} keeps Muster from moving the transaction
- *       advice ahead of its own; see {@link Rules}.
- * </ul>
- *
- * <p>Rules learn who makes a call and in which locale:
- *
- * <ul>
- *   <li>The caller is the authentication of Spring Security, if the application has Spring
- *       Security, read through its {@code SecurityContextHolderStrategy} bean if it has one; an
- *       anonymous or not authenticated call has no caller. A bean of type {@code
- *       Supplier<Principal>} replaces it.
- *   <li>The locale is the one {@link LocaleContextHolder} holds, as Spring MVC sets it for a
- *       request, and otherwise the default locale of the JVM. A bean of type {@code
- *       Supplier<Locale>} replaces it.
- * </ul>
- *
- * <p>Messages of violations come from the message source of the application, through a {@link
- * MessageResolver} bean: the message of a violation is the template its code names, such as {@code
- * vehicle.name-taken=The name {name} is taken} in {@code messages.properties}, with its {@code
- * {name}} placeholders filled from the client arguments of the violation; without a template, the
- * message is the code. Inject the bean to resolve messages in an exception handler of your own;
- * define a {@code MessageResolver} bean of your own to resolve them from elsewhere. Spring Boot's
- * message source falls back to the default locale of the JVM when it has no messages for the locale
- * of a request, so a Turkish server answers a French client in Turkish; set {@code
- * spring.messages.fallback-to-system-locale=false} to answer from {@code messages.properties}
- * instead. A message source that formats every message with {@link java.text.MessageFormat}, as
- * {@code spring.messages.always-use-message-format=true} makes it, stops the application, since
- * {@code MessageFormat} rejects the placeholders.
- *
- * <p>In a Spring MVC application, a {@link me.yakar.muster.BusinessRuleViolationException} is
- * answered with problem details (RFC 9457):
- *
- * <ul>
- *   <li>Violations of one category are answered with its status: 403 for {@code FORBIDDEN}, 404 for
- *       {@code NOT_FOUND}, 409 for {@code CONFLICT}, and 422 for {@code INVALID_STATE} and for
- *       violations without a category. Violations of different categories are answered with 422, or
- *       with the client error from 400 to 499 that {@code muster.problem-details.mixed-status}
- *       sets.
- *   <li>The title is the name of the status, if it has one, the instance the path of the request,
- *       and there is no type, which stands for {@code about:blank}.
- *   <li>The {@code violations} property lists the violations, each with its {@code code}, its
- *       {@code message} in the locale that rules see, its {@code target} and {@code category} if it
- *       has them, and its client arguments as {@code args}, written as the JSON library of the
- *       application writes them. Make a client argument a value, such as a string or a number, not
- *       an entity. Neither the rule id, nor internal arguments, nor the severity are in the
- *       response; violations are logged at DEBUG, with all three.
- *   <li>The handler has the order 0, as Spring Boot's own problem details do, so it comes before
- *       controller advice without an order of its own, and a handler of every {@code Exception}
- *       there does not answer violations as errors of the server; an advice ordered before it still
- *       does. It also answers an exception that a violation causes, unless an advice before it
- *       handles that exception. A controller advice that names {@code
- *       BusinessRuleViolationException} in an {@code @ExceptionHandler}, in the context of the
- *       application or in a parent one, replaces the handler, for every controller, even if the
- *       advice applies to some controllers only; inject the {@code MessageResolver} bean there to
- *       resolve the messages. A controller's own handler of the exception comes first anyway.
- * </ul>
- *
- * <p>Define a {@link Muster} bean of your own to build Muster yourself.
+ * <p>A {@code Muster}, {@code MessageResolver}, {@code Supplier<Principal>} or {@code
+ * Supplier<Locale>} bean of the application replaces the starter's; an application with a {@code
+ * Muster} of its own does not start if it sets {@code muster.rules} or {@code muster.mode}. The
+ * {@code muster.*} properties and the details are in the <a
+ * href="https://github.com/mryakar/muster#usage-with-spring-boot">README</a>.
  */
 @AutoConfiguration
 @Import({EngineConfiguration.class, AdviceConfiguration.class, ProblemDetailsConfiguration.class})

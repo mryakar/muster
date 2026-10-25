@@ -37,12 +37,14 @@ import org.springframework.util.ReflectionUtils;
 /**
  * Checks the input of an advised method against its rules, then calls the method.
  *
- * <p>The pointcut notes each class it advises when Spring creates a proxy for a bean. The noted
- * classes are prepared once all singletons exist, so that a rule may depend on an advised service;
- * a class noted later, such as that of a lazy bean, is prepared when its proxy is created, and a
- * class called before the application has started is prepared on that call. A wrong binding fails
- * then. Preparing takes a lock and may create Muster; a class noted while Muster is created joins
- * the same pass. A call only reads what is prepared: two lookups in maps that take no lock.
+ * <p>Lifecycle: the pointcut notes each class it advises when Spring proxies a bean. Noted classes
+ * are prepared once all singletons exist, so a rule may depend on an advised service; a class noted
+ * later, such as a lazy bean's, when it is noted; a class called during startup, on that call. A
+ * wrong binding fails when its class is prepared.
+ *
+ * <p>Concurrency: a pass gets the {@code Muster} before it takes {@link #lock}, so that no bean is
+ * created under the lock; a class noted meanwhile joins the pass. A call reads {@link #prepared}
+ * without a lock: two map lookups.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
@@ -66,7 +68,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   private boolean started;
 
   /**
-   * Set while this thread creates Muster or the guard for a pass, so that a class it notes
+   * Set while this thread gets the {@code Muster} or the guard for a pass, so that a class it notes
    * meanwhile joins that pass.
    */
   private final ThreadLocal<Boolean> resolving = new ThreadLocal<>();
