@@ -23,6 +23,7 @@ import me.yakar.muster.rule.Violation
 import spock.lang.Shared
 import spock.lang.Specification
 
+/** The exception a check throws: its message, its violations and its serialized form. */
 class BusinessRuleViolationExceptionSpec extends Specification {
 
   static final List<Violation> WITHOUT_ARGUMENTS = [
@@ -143,7 +144,7 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     copy.violations()*.clientArgs().every { it.is(empty) }
     copy.violations()*.internalArgs().every { it.is(empty) }
 
-    where:
+    where: 'the released 0.1.0 wrote the file; it pins the serialized form, so it is never written anew'
     how                       | copied
     'reads as 0.1.0 wrote it' | {
       Serialization.read(BusinessRuleViolationExceptionSpec.getResourceAsStream('exception-with-violations-without-arguments-0.1.0.ser').bytes)
