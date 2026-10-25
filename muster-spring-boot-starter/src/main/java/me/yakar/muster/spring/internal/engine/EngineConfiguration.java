@@ -16,11 +16,9 @@
 package me.yakar.muster.spring.internal.engine;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.Supplier;
 import me.yakar.muster.Muster;
-import me.yakar.muster.rule.Rule;
 import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
@@ -58,26 +56,35 @@ public final class EngineConfiguration {
       ConfigurableListableBeanFactory beanFactory,
       Environment environment,
       ObjectProvider<SecurityCaller> securityCaller) {
-    var ruleBeans = RuleCatalog.ruleBeans(beanFactory);
-    var ruleClasses = RuleCatalog.classes(ruleBeans);
-    var ids = Arrays.stream(ruleClasses).map(ruleClass -> ruleClass.getAnnotation(Rule.class).id());
-    Supplier<? extends @Nullable Principal> noCaller = () -> null;
-    return Muster.builder()
-        .rules(
-            ruleClass -> RuleCatalog.instance(beanFactory, ruleBeans.get(ruleClass), ruleClass),
-            ruleClasses)
-        .disable(Settings.disabled(environment, ids.toList()).toArray(String[]::new))
-        .mode(Settings.mode(environment))
-        .caller(
-            EngineConfiguration.<Supplier<? extends @Nullable Principal>>supplier(
-                    beanFactory, Principal.class)
-                .getIfAvailable(
-                    () -> {
-                      var security = securityCaller.getIfAvailable();
-                      return security == null ? noCaller : security::current;
-                    }))
-        .locale(locale(beanFactory))
-        .build();
+    var catalog = RuleCatalog.read(beanFactory);
+    var builder =
+        Muster.builder()
+            .rules(catalog, catalog.classes())
+            .disable(Settings.disabled(environment, catalog.ids()).toArray(String[]::new))
+            .mode(Settings.mode(environment))
+            .locale(locale(beanFactory));
+    var caller = caller(beanFactory, securityCaller);
+    if (caller != null) {
+      builder.caller(caller);
+    }
+    return builder.build();
+  }
+
+  /**
+   * Returns where rules learn the caller of a call: a {@code Supplier<Principal>} bean of the
+   * application, or Spring Security; {@code null} without either.
+   */
+  private static @Nullable Supplier<? extends @Nullable Principal> caller(
+      ConfigurableListableBeanFactory beanFactory, ObjectProvider<SecurityCaller> securityCaller) {
+    Supplier<? extends @Nullable Principal> own =
+        EngineConfiguration.<Supplier<? extends @Nullable Principal>>supplier(
+                beanFactory, Principal.class)
+            .getIfAvailable();
+    if (own != null) {
+      return own;
+    }
+    var security = securityCaller.getIfAvailable();
+    return security == null ? null : security::current;
   }
 
   @Bean
