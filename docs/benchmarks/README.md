@@ -5,7 +5,7 @@ live in [`muster-benchmarks`](../../muster-benchmarks), which is not published.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 370 ns and muster.check(target) 388 ns, against 264 ns for calling the same rules by hand." src="check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 382 ns and muster.check(target) 406 ns, against 276 ns for calling the same rules by hand." src="check-cost-light.svg">
 </picture>
 
 ## Budget
@@ -16,10 +16,10 @@ checks. A check that passes is held to this budget, against the same rules calle
 
 | | Measured | Budget |
 |---|---|---|
-| Fixed cost of `RuleChain.check` | about 12 ns | at most 20 ns |
+| Fixed cost of `RuleChain.check` | about 10 ns | at most 20 ns |
 | Cost that `RuleChain.check` adds with 20 rules | about 106 ns | at most 150 ns |
-| Fixed cost of `muster.check(target)` | about 21 ns | at most 35 ns |
-| Cost that `muster.check(target)` adds with 20 rules | about 125 ns | at most 235 ns |
+| Fixed cost of `muster.check(target)` | about 19 ns | at most 35 ns |
+| Cost that `muster.check(target)` adds with 20 rules | about 130 ns | at most 235 ns |
 | Memory a check allocates | 24 bytes per rule, plus up to 40 | at most 24 bytes per rule, plus 48 |
 | Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 123 ns and 96 bytes | at most 200 ns and 128 bytes |
 
@@ -45,10 +45,10 @@ A check that passes:
 
 | Rules | By hand (baseline) | `RuleChain.check` | `muster.check(target)` |
 |---|---|---|---|
-| 0 | 1.3 ns (1.3–1.3), 0 B | 12.9 ns (12.8–13.5), 16 B | 22.8 ns (22.7–22.9), 16 B |
-| 1 | 11.0 ns (11.0–11.0), 0 B | 11.6 ns (11.5–11.7), 0 B | 23.1 ns (23.1–23.1), 0 B |
-| 5 | 65.4 ns (65.1–65.7), 0 B | 100.0 ns (100.0–107.6), 144 B | 114.0 ns (112.0–120.7), 144 B |
-| 20 | 263.8 ns (259.9–273.6), 0 B | 369.7 ns (368.1–390.9), 520 B | 388.3 ns (380.8–423.8), 520 B |
+| 0 | 1.3 ns (1.3–1.3), 0 B | 11.5 ns (11.4–11.6), 16 B | 19.9 ns (19.9–20.1), 16 B |
+| 1 | 11.2 ns (11.0–11.2), 0 B | 11.9 ns (11.8–11.9), 0 B | 21.3 ns (21.2–21.3), 0 B |
+| 5 | 66.1 ns (65.6–66.9), 0 B | 102.6 ns (101.9–109.7), 144 B | 117.8 ns (114.7–124.8), 144 B |
+| 20 | 275.7 ns (266.5–289.5), 0 B | 381.8 ns (379.4–403.9), 520 B | 405.5 ns (394.5–410.5), 520 B |
 
 With a single rule the JIT inlines the call to it and optimizes the context away, so the check
 allocates nothing.
@@ -58,42 +58,19 @@ evenly, and the last rule is always one of them:
 
 | Violated rules | `FAIL_FAST` | `COLLECT_ALL` |
 |---|---|---|
-| 1 | 706 ns (704–756), 792 B | 706 ns (689–744), 792 B |
-| 5 | 337 ns (333–342), 408 B | 919 ns (886–1,000), 1,384 B |
+| 1 | 21.2 ns (21.0–21.7), 24 B | 144.1 ns (143.3–153.3), 120 B |
+| 5 | 273 ns (263–277), 256 B | 905 ns (874–935), 1,264 B |
 
 `FAIL_FAST` stops at the first violated rule, so with five of them it runs only four rules. The
-exception has no stack trace. What a failing check allocates depends on how the JIT compiles it:
-one fork of `FAIL_FAST` with one violated rule allocated 904 bytes, the others 792.
-
-`muster.check(target)` from every thread at once, here eight, for a class that is already bound:
-
-| The class is | Time per check |
-|---|---|
-| the first in its bucket of the chain map | 42.6 ns (39.2–42.6) |
-| the second in its bucket | 43.4 ns (41.2–45.5) |
-
-Neither takes a lock. Which classes share a bucket depends on their identity hashes and changes from
-run to run, so the benchmark measures both positions. The eight threads share four cores, so a check
-takes about twice as long as from a single thread, which checks a target with one rule in 23.1 ns.
-
-A `@Service` method that takes a rule target, checked through the Spring Boot starter's advice,
-against a plain class that calls the same binding by hand before it does its work:
-
-| Rules | By hand (baseline) | Through the starter |
-|---|---|---|
-| 0 | 29.4 ns (29.3–29.8), 16 B | 151.9 ns (142.2–157.8), 112 B |
-| 1 | 29.6 ns (29.0–29.8), 24 B | 151.7 ns (148.2–153.9), 120 B |
-| 20 | 400.6 ns (385.4–409.5), 520 B | 533.9 ns (523.2–554.8), 616 B |
+exception has no stack trace. In this run every fork of a failing check allocated the same.
 
 There is no transaction, so that the numbers show Muster.
 
 Now and then a fork settles on other compiled code than the others, by hand as well as in Muster,
-and nearly always slower code. In this run, eight of the 140 forks ended more than 10% from the
-median of their benchmark, and the ranges above leave them out: `RuleChain.check` with 5 rules
-(122.1 ns), the baseline of the starter benchmark with 1 rule (33.3 ns) and with 20 rules
-(443.7 ns), two forks of the first bucket of the multi-threaded benchmark (47.1 and 50.3 ns),
-and, faster than the others, the failing check in `FAIL_FAST` mode with one violated rule
-(625.6 ns). The median of five forks keeps such a fork from deciding the published number.
+and nearly always slower code. In this run, three of the 120 forks ended more than 10% from the
+median of their benchmark, and the ranges above leave them out: `RuleChain.check` with no rule
+(12.9 ns), and one fork of each position of the multi-threaded benchmark, the first bucket slower
+(47.8 ns) and the second faster (41.9 ns) than the others. The median of five forks keeps such a fork from deciding the published number.
 
 The raw results are in [`results.json`](results.json), and the medians, ranges and the forks more
 than 10% from the median in [`results.csv`](results.csv). `./gradlew jmhReport` writes both and the
