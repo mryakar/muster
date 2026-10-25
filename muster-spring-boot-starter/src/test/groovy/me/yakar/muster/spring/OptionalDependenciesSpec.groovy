@@ -41,7 +41,7 @@ class OptionalDependenciesSpec extends Specification {
     classOf('internal.advice.AdvisedMethods')                     | 'org.springframework.transaction'
     classOf('internal.advice.ProxyCreatorRegistrar')              | 'org.springframework.transaction'
     EngineConfiguration                                           | 'org.springframework.security'
-    classOf('internal.engine.RuleCatalog')                        | 'org.springframework.security'
+    classOf('internal.engine.RuleBeans')                        | 'org.springframework.security'
     classOf('internal.engine.RuleScanner')                        | 'org.springframework.security'
     classOf('internal.engine.SecurityCaller')                     | 'org.springframework.transaction'
   }

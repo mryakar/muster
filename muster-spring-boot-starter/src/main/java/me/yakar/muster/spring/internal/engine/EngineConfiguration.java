@@ -61,11 +61,11 @@ public final class EngineConfiguration {
       ConfigurableListableBeanFactory beanFactory,
       Environment environment,
       ObjectProvider<SecurityCaller> securityCaller) {
-    var catalog = RuleCatalog.read(beanFactory);
+    var ruleBeans = RuleBeans.read(beanFactory);
     var builder =
         Muster.builder()
-            .rules(catalog, catalog.classes())
-            .disable(Settings.disabled(environment, catalog.ids()).toArray(String[]::new))
+            .rules(ruleBeans, ruleBeans.classes())
+            .disable(Settings.disabled(environment, ruleBeans.ids()).toArray(String[]::new))
             .mode(Settings.mode(environment))
             .locale(locale(beanFactory));
     var caller = caller(beanFactory, securityCaller);
