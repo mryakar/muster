@@ -16,7 +16,6 @@
 package me.yakar.muster.spring.internal.advice;
 
 import java.lang.reflect.Method;
-import java.util.function.BiPredicate;
 import me.yakar.muster.Binding;
 import me.yakar.muster.Muster;
 import org.jspecify.annotations.Nullable;
@@ -33,8 +32,7 @@ record MethodAdvice(String label, Binding<Object> binding, @Nullable Transaction
   @SuppressWarnings("unchecked")
   static MethodAdvice of(
       Muster muster,
-      @Nullable TransactionGuard guard,
-      @Nullable BiPredicate<Method, Class<?>> transactional,
+      TransactionGuard.@Nullable Resolved transactions,
       Method method,
       Class<?> targetClass) {
     var label = AdvisedMethods.label(method, targetClass);
@@ -47,8 +45,7 @@ record MethodAdvice(String label, Binding<Object> binding, @Nullable Transaction
         builder.mode(rules.mode()[0]);
       }
     }
-    var transaction =
-        transactional != null && transactional.test(method, targetClass) ? guard : null;
+    var transaction = transactions == null ? null : transactions.forMethod(method, targetClass);
     return new MethodAdvice(label, builder.build(), transaction);
   }
 

@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiPredicate;
 import me.yakar.muster.Muster;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -129,12 +128,12 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     }
     Muster muster;
     @Nullable TransactionGuard guard;
-    @Nullable BiPredicate<Method, Class<?>> transactional;
+    TransactionGuard.@Nullable Resolved resolved;
     resolving.set(Boolean.TRUE);
     try {
       muster = this.muster.getObject();
       guard = transactions.getIfAvailable();
-      transactional = guard == null ? null : guard.transactional();
+      resolved = guard == null ? null : guard.resolve();
     } finally {
       resolving.remove();
     }
@@ -145,7 +144,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
           for (var targetClass : unprepared) {
-            prepared.put(targetClass, adviceOf(muster, guard, transactional, targetClass));
+            prepared.put(targetClass, adviceOf(muster, resolved, targetClass));
           }
         }
       } finally {
@@ -169,10 +168,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
    * method that the call runs.
    */
   private static Map<Method, MethodAdvice> adviceOf(
-      Muster muster,
-      @Nullable TransactionGuard guard,
-      @Nullable BiPredicate<Method, Class<?>> transactional,
-      Class<?> targetClass) {
+      Muster muster, TransactionGuard.@Nullable Resolved transactions, Class<?> targetClass) {
     var candidates = new LinkedHashSet<Method>();
     if (!Proxy.isProxyClass(targetClass)) {
       candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
@@ -187,7 +183,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
       if (specific != null) {
         var methodAdvice = bySpecific.get(specific);
         if (methodAdvice == null) {
-          methodAdvice = MethodAdvice.of(muster, guard, transactional, specific, targetClass);
+          methodAdvice = MethodAdvice.of(muster, transactions, specific, targetClass);
           bySpecific.put(specific, methodAdvice);
         }
         advice.put(method, methodAdvice);

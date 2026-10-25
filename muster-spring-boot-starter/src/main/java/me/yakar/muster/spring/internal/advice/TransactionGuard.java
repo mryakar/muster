@@ -49,11 +49,10 @@ final class TransactionGuard {
   }
 
   /**
-   * Returns whether a method must run in a transaction that the transaction advice starts, or
-   * {@code null} if the application has no transaction advice. The test keeps the types of Spring's
-   * transactions out of the classes that use it, which load without them.
+   * Returns the guard with the transaction advice of the application, or {@code null} if it has
+   * none.
    */
-  @Nullable BiPredicate<Method, Class<?>> transactional() {
+  @Nullable Resolved resolve() {
     var transactionAdvisor = advisor.getIfUnique();
     if (transactionAdvisor == null) {
       return null;
@@ -62,10 +61,12 @@ final class TransactionGuard {
         requireNonNull(
             ((TransactionInterceptor) transactionAdvisor.getAdvice())
                 .getTransactionAttributeSource());
-    return (method, targetClass) -> {
-      var attribute = attributes.getTransactionAttribute(method, targetClass);
-      return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
-    };
+    return new Resolved(
+        this,
+        (method, targetClass) -> {
+          var attribute = attributes.getTransactionAttribute(method, targetClass);
+          return attribute != null && REQUIRING.contains(attribute.getPropagationBehavior());
+        });
   }
 
   /**
@@ -78,6 +79,19 @@ final class TransactionGuard {
           label
               + " runs in a transaction, but its rules ran with none active; the transaction advice"
               + " must run around Muster's");
+    }
+  }
+
+  /**
+   * The guard, together with whether a method must run in a transaction that the transaction advice
+   * starts. Its signature names no type of Spring's transactions, so the classes that use it load
+   * without them.
+   */
+  record Resolved(TransactionGuard guard, BiPredicate<Method, Class<?>> requiresTransaction) {
+
+    /** Returns the guard if the method must run in a transaction, otherwise {@code null}. */
+    @Nullable TransactionGuard forMethod(Method method, Class<?> targetClass) {
+      return requiresTransaction.test(method, targetClass) ? guard : null;
     }
   }
 
