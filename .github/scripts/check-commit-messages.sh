@@ -18,10 +18,14 @@
 # and that the range contains no merge commits.
 set -euo pipefail
 
-base=$1
-head=$2
+base="${1:?usage: check-commit-messages.sh <base> <head>}"
+head="${2:?usage: check-commit-messages.sh <base> <head>}"
 pattern='^(feat|fix|docs|refactor|chore|test|build|ci|perf)(\([a-z0-9-]+\))?!?: [^ ].*$'
 failed=0
+
+# Read before the loop, so that a range git cannot resolve stops the script.
+commits="$(git log --format='%H%x1f%P%x1f%s' "$base..$head")"
+[[ -n "$commits" ]] || exit 0
 
 while IFS=$'\x1f' read -r sha parents subject; do
   if [[ $parents == *" "* ]]; then
@@ -31,7 +35,7 @@ while IFS=$'\x1f' read -r sha parents subject; do
     echo "::error::$sha does not follow Conventional Commits: $subject"
     failed=1
   fi
-done < <(git log --format='%H%x1f%P%x1f%s' "$base..$head")
+done <<<"$commits"
 
 if ((failed)); then
   echo "Allowed types: feat, fix, docs, refactor, chore, test, build, ci, perf."
