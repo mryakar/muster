@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import me.yakar.muster.Muster;
 import me.yakar.muster.rule.Rule;
 import me.yakar.muster.spi.MessageResolver;
+import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -159,8 +160,8 @@ public final class MusterAutoConfiguration {
         .rules(
             ruleClass -> RuleCatalog.instance(beanFactory, ruleBeans.get(ruleClass), ruleClass),
             ruleClasses)
-        .disable(RuleSwitches.disabled(environment, ids.toList()).toArray(String[]::new))
-        .mode(RuleSwitches.mode(environment))
+        .disable(Settings.disabled(environment, ids.toList()).toArray(String[]::new))
+        .mode(Settings.mode(environment))
         .caller(
             MusterAutoConfiguration.<Supplier<? extends @Nullable Principal>>supplier(
                     beanFactory, Principal.class)
@@ -237,7 +238,7 @@ public final class MusterAutoConfiguration {
         ConfigurableListableBeanFactory beanFactory,
         Environment environment) {
       return new ViolationExceptionHandler(
-          messages, locale(beanFactory), ViolationExceptionHandler.mixedStatus(environment));
+          messages, locale(beanFactory), Settings.mixedStatus(environment));
     }
   }
 

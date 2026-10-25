@@ -22,14 +22,10 @@ import java.util.function.Supplier;
 import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.MessageResolver;
-import org.springframework.boot.context.properties.bind.Bindable;
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -70,9 +66,6 @@ class ViolationExceptionHandler {
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
-  private static final ConfigurationPropertyName MIXED_STATUS =
-      ConfigurationPropertyName.of("muster.problem-details.mixed-status");
-
   private final MessageResolver messages;
   private final Supplier<Locale> locale;
   private final int mixedStatus;
@@ -81,33 +74,6 @@ class ViolationExceptionHandler {
     this.messages = messages;
     this.locale = locale;
     this.mixedStatus = mixedStatus;
-  }
-
-  /**
-   * Returns the status that answers violations of different categories, which {@code
-   * muster.problem-details.mixed-status} sets.
-   *
-   * @throws IllegalStateException if the property is set to nothing, or to a status that is not a
-   *     client error
-   */
-  static int mixedStatus(Environment environment) {
-    var binder = Binder.get(environment);
-    var values = "a status code from 400 to 499";
-    RuleSwitches.requireValue(binder, MIXED_STATUS, values);
-    int status =
-        binder
-            .bind(MIXED_STATUS, Bindable.of(Integer.class))
-            .orElse(HttpStatus.UNPROCESSABLE_CONTENT.value());
-    if (status < 400 || status > 499) {
-      throw new IllegalStateException(
-          MIXED_STATUS
-              + " is "
-              + status
-              + "; set it to "
-              + values
-              + ", since a violation is an error of the client");
-    }
-    return status;
   }
 
   @ExceptionHandler(BusinessRuleViolationException.class)

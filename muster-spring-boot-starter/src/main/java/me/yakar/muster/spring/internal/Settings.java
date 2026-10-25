@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring;
+package me.yakar.muster.spring.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,42 +29,41 @@ import org.springframework.boot.context.properties.source.IterableConfigurationP
 import org.springframework.core.env.Environment;
 
 /**
- * Reads the configuration of Muster: {@code muster.mode}, and {@code muster.rules.<rule
- * id>.enabled} for every rule.
+ * Reads the properties that the starter takes: {@code muster.rules.<rule id>.enabled}, {@code
+ * muster.mode}, {@code muster.transaction.reorder-advisor}, {@code
+ * muster.problem-details.mixed-status} and {@code spring.aop.proxy-target-class}.
  *
  * <p>The keys of the rules are read one rule id at a time rather than bound as a map: a rule id has
  * dots and hyphens, which a map key loses, and so does an environment variable such as {@code
  * MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED}. Since every rule id is known, every key under {@code
  * muster.rules} that switches no rule is a mistake, such as a misspelled id.
  */
-final class RuleSwitches {
+public final class Settings {
 
   private static final ConfigurationPropertyName RULES =
       ConfigurationPropertyName.of("muster.rules");
-
-  private RuleSwitches() {}
-
   private static final ConfigurationPropertyName MODE = ConfigurationPropertyName.of("muster.mode");
+  private static final ConfigurationPropertyName REORDER_ADVISOR =
+      ConfigurationPropertyName.of("muster.transaction.reorder-advisor");
+  private static final ConfigurationPropertyName MIXED_STATUS =
+      ConfigurationPropertyName.of("muster.problem-details.mixed-status");
+  private static final ConfigurationPropertyName PROXY_TARGET_CLASS =
+      ConfigurationPropertyName.of("spring.aop.proxy-target-class");
+
+  /** Unprocessable Content, the status of violations without a category. */
+  private static final int UNPROCESSABLE_CONTENT = 422;
+
+  private Settings() {}
 
   /**
    * Returns the mode the configuration sets.
    *
    * @throws IllegalStateException if {@code muster.mode} is set to an empty value
    */
-  static CheckMode mode(Environment environment) {
+  public static CheckMode mode(Environment environment) {
     var binder = Binder.get(environment);
     requireValue(binder, MODE, "fail-fast or collect-all");
     return binder.bind(MODE, Bindable.of(CheckMode.class)).orElse(CheckMode.FAIL_FAST);
-  }
-
-  /**
-   * Rejects a key that is set to nothing, such as {@code muster.mode=}, which Spring Boot would
-   * read as not set at all.
-   */
-  static void requireValue(Binder binder, ConfigurationPropertyName key, String values) {
-    if (binder.bind(key, Bindable.of(String.class)).map(String::isBlank).orElse(false)) {
-      throw new IllegalStateException(key + " is set to nothing; set it to " + values);
-    }
   }
 
   /**
@@ -73,7 +72,7 @@ final class RuleSwitches {
    * @throws IllegalStateException if {@code muster.rules} or a key under it switches no rule, or a
    *     rule's key is set to nothing
    */
-  static List<String> disabled(Environment environment, Collection<String> ids) {
+  public static List<String> disabled(Environment environment, Collection<String> ids) {
     var binder = Binder.get(environment);
     var keys = new HashMap<ConfigurationPropertyName, String>();
     var disabled = new ArrayList<String>();
@@ -112,5 +111,51 @@ final class RuleSwitches {
               + String.join(", ", new TreeSet<>(ids)));
     }
     return disabled;
+  }
+
+  /** Returns whether Muster may move the transaction advice one step ahead of its own. */
+  public static boolean reorderAdvisor(Environment environment) {
+    return Binder.get(environment).bind(REORDER_ADVISOR, Bindable.of(Boolean.class)).orElse(true);
+  }
+
+  /**
+   * Returns the status that answers violations of different categories.
+   *
+   * @throws IllegalStateException if {@code muster.problem-details.mixed-status} is set to nothing,
+   *     or to a status that is not a client error
+   */
+  public static int mixedStatus(Environment environment) {
+    var binder = Binder.get(environment);
+    var values = "a status code from 400 to 499";
+    requireValue(binder, MIXED_STATUS, values);
+    int status =
+        binder.bind(MIXED_STATUS, Bindable.of(Integer.class)).orElse(UNPROCESSABLE_CONTENT);
+    if (status < 400 || status > 499) {
+      throw new IllegalStateException(
+          MIXED_STATUS
+              + " is "
+              + status
+              + "; set it to "
+              + values
+              + ", since a violation is an error of the client");
+    }
+    return status;
+  }
+
+  /** Returns whether proxies extend the class of their target, as in Spring Boot by default. */
+  public static boolean proxyTargetClass(Environment environment) {
+    return Binder.get(environment)
+        .bind(PROXY_TARGET_CLASS, Bindable.of(Boolean.class))
+        .orElse(true);
+  }
+
+  /**
+   * Rejects a key that is set to nothing, such as {@code muster.mode=}, which Spring Boot would
+   * read as not set at all.
+   */
+  private static void requireValue(Binder binder, ConfigurationPropertyName key, String values) {
+    if (binder.bind(key, Bindable.of(String.class)).map(String::isBlank).orElse(false)) {
+      throw new IllegalStateException(key + " is set to nothing; set it to " + values);
+    }
   }
 }
