@@ -109,7 +109,7 @@ public final class Muster {
     var wrapped = wrap(inputType);
     var listed = new LinkedHashSet<Class<?>>();
     for (var ruleClass : ruleClasses) {
-      catalog.listed(ruleClass, inputType, wrapped);
+      catalog.requireListable(ruleClass, inputType, wrapped);
       requireDistinct(listed, ruleClass, "listed");
     }
     var plan = ChainPlan.listed(catalog, wrapped.getTypeName(), listed);

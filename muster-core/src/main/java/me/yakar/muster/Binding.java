@@ -220,7 +220,7 @@ public final class Binding<I> {
       var catalog = muster.catalog();
       var wrapped = Muster.wrap(inputType);
       for (var ruleClass : listed) {
-        catalog.listed(ruleClass, inputType, wrapped);
+        catalog.requireListable(ruleClass, inputType, wrapped);
       }
       for (var ruleClass : excluded) {
         catalog.registered(ruleClass);
