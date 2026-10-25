@@ -33,7 +33,7 @@ spotless {
     target("src/*/java/**/*.java")
     googleJavaFormat(libs.findVersion("google-java-format").get().requiredVersion)
     licenseHeaderFile(
-      rootProject.file("config/spotless/license-header.txt"),
+      layout.settingsDirectory.file("gradle/spotless/license-header.txt"),
       "(package|import|module|open|@)",
     )
   }
