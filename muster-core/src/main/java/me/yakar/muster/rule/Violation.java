@@ -19,7 +19,10 @@ import static java.util.Objects.requireNonNull;
 import static me.yakar.muster.rule.Checks.requireArgumentName;
 import static me.yakar.muster.rule.Checks.requireKey;
 import static me.yakar.muster.rule.Checks.requireNonBlank;
+import static me.yakar.muster.rule.Checks.requireRuleId;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
@@ -194,21 +197,29 @@ public final class Violation implements Serializable {
   }
 
   /**
-   * Rebuilds the violation so that it is checked again and has no internal arguments.
+   * Rebuilds the violation, so that a deserialized one is checked as a built one is and has no
+   * internal arguments.
    *
    * @return the rebuilt violation
+   * @throws InvalidObjectException if the stream holds what no built violation can
    */
   @Serial
-  private Object readResolve() {
-    var builder = new Builder(ruleId, code);
-    clientArgs.forEach(builder::clientArg);
-    if (target != null) {
-      builder.target(target);
+  private Object readResolve() throws ObjectStreamException {
+    try {
+      var builder = new Builder(requireRuleId(ruleId), code);
+      clientArgs.forEach(builder::clientArg);
+      if (target != null) {
+        builder.target(target);
+      }
+      if (category != null) {
+        builder.category(category);
+      }
+      return builder.build();
+    } catch (RuntimeException e) {
+      var invalid = new InvalidObjectException(e.getMessage());
+      invalid.initCause(e);
+      throw invalid;
     }
-    if (category != null) {
-      builder.category(category);
-    }
-    return builder.build();
   }
 
   /**

@@ -17,6 +17,8 @@ package me.yakar.muster.rule;
 
 import static java.util.Objects.requireNonNull;
 
+import me.yakar.muster.internal.rule.RuleIds;
+
 /** Argument checks shared by the core types. */
 final class Checks {
 
@@ -28,6 +30,15 @@ final class Checks {
       throw new IllegalArgumentException(name + " must not be blank");
     }
     return value;
+  }
+
+  static String requireRuleId(String ruleId) {
+    requireNonNull(ruleId, "ruleId");
+    if (!RuleIds.isValid(ruleId)) {
+      throw new IllegalArgumentException(
+          "the rule id '" + ruleId + "' is invalid; " + RuleIds.FORMAT);
+    }
+    return ruleId;
   }
 
   /**
