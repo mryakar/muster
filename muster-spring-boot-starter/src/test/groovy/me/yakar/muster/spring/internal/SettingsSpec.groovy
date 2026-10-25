@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring.internal
 
+import static me.yakar.muster.spring.EnvironmentVariables.withEnvironmentVariables
 import static me.yakar.muster.spring.Outcomes.violated
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
@@ -31,8 +32,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.env.StandardEnvironment
-import org.springframework.core.env.SystemEnvironmentPropertySource
 import spock.lang.Specification
 
 class SettingsSpec extends Specification {
@@ -70,32 +69,9 @@ class SettingsSpec extends Specification {
     }
   }
 
-  @Configuration(proxyBeanMethods = false)
-  static class OwnMuster {
-    @Bean
-    Muster muster() {
-      Muster.builder().build()
-    }
-  }
-
-  @Configuration(proxyBeanMethods = false)
-  static class OwnMusterOfOtherName {
-    @Bean
-    Muster ownMuster() {
-      Muster.builder().build()
-    }
-  }
-
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
   .withUserConfiguration(Application)
-
-  static ApplicationContextRunner withEnvironmentVariables(ApplicationContextRunner runner, Map<String, Object> variables) {
-    runner.withInitializer {
-      it.environment.propertySources.replace(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
-          new SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, variables))
-    }
-  }
 
   def 'all rules are on and the mode is fail-fast unless configured'() {
     expect:
@@ -242,36 +218,5 @@ class SettingsSpec extends Specification {
           assert cause instanceof IllegalArgumentException
           assert cause.message.contains("'Not Valid'")
         }
-  }
-
-  def 'with a Muster of its own, the application does not start if it configures the one built here: #properties'() {
-    expect:
-    runner.withUserConfiguration(own).withPropertyValues(properties as String[]).run { context ->
-      assert getMostSpecificCause(context.startupFailure).message ==
-      "$keys configure only the Muster that the starter builds, but the application defines a Muster bean of its own; remove these properties, or that bean"
-    }
-
-    where:
-    own                  | properties || keys
-    OwnMuster            | ['muster.mode=collect-all'] || 'muster.mode'
-    OwnMuster            | ['muster.rules=false'] || 'muster.rules'
-    OwnMusterOfOtherName | ['muster.rules.vehicle.name-unique.enabled=false', 'muster.mode=fail-fast'] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
-  }
-
-  def 'with a Muster of its own, the application starts with the properties that the starter itself reads: #properties'() {
-    expect:
-    runner.withUserConfiguration(OwnMuster).withPropertyValues(properties as String[]).run { context ->
-      assert context.startupFailure == null
-      assert context.getBeansOfType(Muster).keySet() == ['muster'] as Set
-    }
-
-    where:
-    properties << [
-      [],
-      [
-        'muster.transaction.reorder-advisor=true',
-        'muster.problem-details.mixed-status=400'
-      ]
-    ]
   }
 }
