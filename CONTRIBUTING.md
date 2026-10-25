@@ -49,7 +49,8 @@ frequency.
 
 `./gradlew jmhReport` copies the results of the last run to `docs/benchmarks`, writes the median of
 each benchmark's forks to `results.csv` there, and draws the chart that the README shows. It refuses
-results that lack a benchmark or have fewer forks than a benchmark declares. A change that affects performance is compared with the budget in
+results that lack a benchmark method or parameter, or that ran with other forks, iterations or
+threads than a benchmark declares. A change that affects performance is compared with the budget in
 [docs/benchmarks](docs/benchmarks/README.md), on the same machine.
 
 ## Dependencies
