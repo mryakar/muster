@@ -22,4 +22,4 @@ import me.yakar.muster.rule.RuleTarget;
  *
  * @param failing a bit for each rule, by its index, that the input violates
  */
-public record Order(long failing) implements RuleTarget {}
+record Order(long failing) implements RuleTarget {}

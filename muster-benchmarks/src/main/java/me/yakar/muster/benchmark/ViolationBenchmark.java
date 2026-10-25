@@ -60,12 +60,12 @@ public class ViolationBenchmark {
   /** Prepares the chain once, and an input that violates evenly spread rules. */
   @Setup
   public void setUp() {
-    var muster = Muster.builder().rules(Rules.ALL.toArray(BusinessRule<?>[]::new)).build();
-    chain = muster.chain(Order.class, Rules.classes(Rules.ALL)).withMode(mode);
     var size = Rules.ALL.size();
     if (violated < 1 || violated > size) {
       throw new IllegalArgumentException("violated must be between 1 and " + size);
     }
+    var muster = Muster.builder().rules(Rules.ALL.toArray(BusinessRule<?>[]::new)).build();
+    chain = muster.chain(Order.class, Rules.classes(Rules.ALL)).withMode(mode);
     // Counted back from the last rule, so that it is always violated.
     var failing = 0L;
     for (var i = 0; i < violated; i++) {

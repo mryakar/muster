@@ -22,6 +22,7 @@ import me.yakar.muster.Muster;
 import me.yakar.muster.RuleChain;
 import me.yakar.muster.benchmark.Rules.IndexedRule;
 import me.yakar.muster.rule.BusinessRule;
+import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -52,8 +53,8 @@ public class CheckBenchmark {
   @Param({"0", "1", "5", "20"})
   public int rules;
 
-  private List<IndexedRule> selected = List.of();
-  private List<RuleContext> contexts = List.of();
+  private List<IndexedRule> selected;
+  private List<RuleContext> contexts;
   private RuleChain<Order> chain;
   private Muster muster;
   private Order order;
@@ -99,6 +100,6 @@ public class CheckBenchmark {
   }
 
   private static String id(IndexedRule rule) {
-    return rule.getClass().getAnnotation(me.yakar.muster.rule.Rule.class).id();
+    return rule.getClass().getAnnotation(Rule.class).id();
   }
 }
