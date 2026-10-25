@@ -18,6 +18,7 @@ package me.yakar.muster
 import java.security.Principal
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Handler
+import java.util.logging.Level
 import java.util.logging.LogRecord
 import java.util.logging.Logger
 import me.yakar.muster.rule.BusinessRule
@@ -280,7 +281,9 @@ abstract class EngineSpecification extends Specification {
   // Threads run rules and log at the same time in the concurrency tests; a plain list would lose
   // entries.
   List<LogRecord> logged = new CopyOnWriteArrayList<LogRecord>()
+  // The logger is shared by the whole JVM, so specs that change it must not run in parallel.
   Logger log = Logger.getLogger('me.yakar.muster')
+  Level level
   Handler handler = new Handler() {
     void publish(LogRecord record) {
       logged << record
@@ -292,11 +295,13 @@ abstract class EngineSpecification extends Specification {
   }
 
   def setup() {
+    level = log.level
     log.addHandler(handler)
   }
 
   def cleanup() {
     log.removeHandler(handler)
+    log.level = level
   }
 
   /** In FAIL_FAST mode a failed rule ends the check, so only COLLECT_ALL shows which rules are skipped. */

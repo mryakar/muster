@@ -101,9 +101,6 @@ class TypeBindingSpec extends EngineSpecification {
     logged*.message == [
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'a check with a mode rejects a null #name'() {
@@ -151,9 +148,6 @@ class TypeBindingSpec extends EngineSpecification {
     logged*.message == [
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'a rule target is checked by every rule whose input type accepts it, and by no other'() {
@@ -173,9 +167,6 @@ class TypeBindingSpec extends EngineSpecification {
     logged*.message == [
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'rules bind to the class of the input at run time'() {
@@ -258,9 +249,6 @@ class TypeBindingSpec extends EngineSpecification {
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]",
       "No rule binds to ${Unbound.name}; check that its rules are registered, enabled and accept it"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'threads that check a class being bound and one already bound each get the rules of its class'() {
@@ -293,9 +281,6 @@ class TypeBindingSpec extends EngineSpecification {
       "No rule binds to ${Unbound.name}; check that its rules are registered, enabled and accept it",
       "Rules bound to ${CreateVehicle.name}: [vehicle.code-format, vehicle.name-unique]"
     ]
-
-    cleanup:
-    log.level = null
   }
 
   def 'checking a bound class takes no lock, even while another class in its bucket is being bound'() {
@@ -339,7 +324,6 @@ class TypeBindingSpec extends EngineSpecification {
     binder?.get(1, TimeUnit.MINUTES)
     log.removeHandler(holder)
     pool.shutdownNow()
-    log.level = null
   }
 
   /** Classes whose hashes fall into the same bucket of a map of sixteen, as ConcurrentHashMap spreads them. */
