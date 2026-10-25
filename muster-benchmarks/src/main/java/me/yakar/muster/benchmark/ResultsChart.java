@@ -324,7 +324,7 @@ public final class ResultsChart {
   private static String csv(List<Run> runs) {
     var csv =
         new StringBuilder(
-            "Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median (ns),"
+            "Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median: fork (ns),"
                 + "Allocated (B)\n");
     for (var run : runs) {
       var params = new ArrayList<String>();
