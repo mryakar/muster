@@ -82,37 +82,25 @@ class HierarchyAdviceSpec extends Specification {
     }
 
     where:
-    through | bean | type | call | proxyClasses || codes
-    'a generic interface' | GenericOperationsImpl | GenericOperations | {
+    through                                | bean                  | type              | call || codes
+    'a generic interface'                  | GenericOperationsImpl | GenericOperations | {
       StaticCalls.deleteGeneric(it, 404L)
-    } | true || ['advice.vehicle-exists']
-    'a generic interface' | GenericOperationsImpl | GenericOperations | {
-      StaticCalls.deleteGeneric(it, 404L)
-    } | false || ['advice.vehicle-exists']
-    'an interface without rules' | PlainOperationsImpl | PlainOperations | {
+    } || ['advice.vehicle-exists']
+    'an interface without rules'           | PlainOperationsImpl   | PlainOperations   | {
       StaticCalls.deletePlain(it, 404L)
-    } | true || ['advice.vehicle-exists']
-    'an interface without rules' | PlainOperationsImpl | PlainOperations | {
-      StaticCalls.deletePlain(it, 404L)
-    } | false || ['advice.vehicle-exists']
-    'a generic interface for rule targets' | TargetService | TargetOperations | {
+    } || ['advice.vehicle-exists']
+    'a generic interface for rule targets' | TargetService         | TargetOperations  | {
       StaticCalls.saveTarget(it, TAKEN)
-    } | true || ['advice.name-free']
-    'a generic interface for rule targets' | TargetService | TargetOperations | {
-      StaticCalls.saveTarget(it, TAKEN)
-    } | false || ['advice.name-free']
-    'a generic base class' | SubSaver | BaseSaver | {
+    } || ['advice.name-free']
+    'a generic base class'                 | SubSaver              | BaseSaver         | {
       StaticCalls.saveBase(it, TAKEN)
-    } | true || ['advice.name-free']
-    'a generic base class' | SubSaver | BaseSaver | {
-      StaticCalls.saveBase(it, TAKEN)
-    } | false || ['advice.name-free']
-    'a method with a narrower return type' | SubFinder | BaseFinder | {
+    } || ['advice.name-free']
+    'a method with a narrower return type' | SubFinder             | BaseFinder        | {
       StaticCalls.findBase(it, 404L)
-    } | true || ['advice.vehicle-exists']
-    'a method with a narrower return type' | SubFinder | BaseFinder | {
-      StaticCalls.findBase(it, 404L)
-    } | false || ['advice.vehicle-exists']
+    } || ['advice.vehicle-exists']
+
+    combined:
+    proxyClasses << [true, false]
   }
 
   def 'rules on the interface of a bean that is an interface proxy itself apply'() {
