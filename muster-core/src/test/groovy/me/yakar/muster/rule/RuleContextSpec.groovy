@@ -22,23 +22,27 @@ class RuleContextSpec extends Specification {
 
   def amo = { 'amo' } as Principal
 
+  // Closures, so that the factories run in the feature, where mutation testing sees them.
   def 'a context #how has the rule id, no caller and the root locale'() {
+    given:
+    def context = create()
+
     expect:
     context.ruleId() == 'task.ready'
     context.caller().empty
     context.locale() == Locale.ROOT
 
     where:
-    how                      | context
-    'for a rule id'          | RuleContext.forRule('task.ready')
-    'for a rule class'       | RuleContext.forRule(TaskReady)
-    'built for a rule id'    | RuleContext.builder('task.ready').build()
-    'built for a rule class' | RuleContext.builder(TaskReady).build()
+    how                      | create
+    'for a rule id'          | { RuleContext.forRule('task.ready') }
+    'for a rule class'       | { RuleContext.forRule(TaskReady) }
+    'built for a rule id'    | { RuleContext.builder('task.ready').build() }
+    'built for a rule class' | { RuleContext.builder(TaskReady).build() }
   }
 
   def 'a context built for a #how knows who makes the call and in which locale'() {
     given:
-    def context = builder.caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
+    def context = builder().caller(amo).locale(Locale.forLanguageTag('tr-TR')).build()
 
     expect:
     context.ruleId() == 'task.ready'
@@ -47,8 +51,8 @@ class RuleContextSpec extends Specification {
 
     where:
     how          | builder
-    'rule id'    | RuleContext.builder('task.ready')
-    'rule class' | RuleContext.builder(TaskReady)
+    'rule id'    | { RuleContext.builder('task.ready') }
+    'rule class' | { RuleContext.builder(TaskReady) }
   }
 
   def 'a context for a rule class that is not a valid rule fails: #problem'() {
