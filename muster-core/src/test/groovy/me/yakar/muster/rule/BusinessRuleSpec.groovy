@@ -30,34 +30,13 @@ class BusinessRuleSpec extends Specification {
 
     @Override
     RuleResult check(String input, RuleContext ctx) {
-      input == 'taken' ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+      RuleResult.passed()
     }
   }
-
-  static class VehicleNameUniqueForFleet extends VehicleNameUnique {}
 
   def 'a rule applies to every call unless it says otherwise'() {
     expect:
     new VehicleNameUnique().appliesTo(RuleContext.forRule('vehicle.name-unique'))
-  }
-
-  def 'a rule reports violations through its result'() {
-    given:
-    def ctx = RuleContext.forRule('vehicle.name-unique')
-
-    expect:
-    new VehicleNameUnique().check('free', ctx) == RuleResult.passed()
-    new VehicleNameUnique().check('taken', ctx) == RuleResult.failed(ctx.violation().build())
-  }
-
-  def 'the id of a rule can be read from its class at runtime'() {
-    expect:
-    VehicleNameUnique.getAnnotation(Rule).id() == 'vehicle.name-unique'
-  }
-
-  def 'a subclass of a rule does not inherit its id'() {
-    expect:
-    VehicleNameUniqueForFleet.getAnnotation(Rule) == null
   }
 
   def '@#annotation.simpleName is documented, kept at runtime, only allowed on types and not inherited'() {

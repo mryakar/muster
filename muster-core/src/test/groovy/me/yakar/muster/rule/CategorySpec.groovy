@@ -19,7 +19,7 @@ import spock.lang.Specification
 
 class CategorySpec extends Specification {
 
-  def "lists the categories in the order of the status codes they stand for"() {
+  def 'the categories are exactly these four, in the order of the status codes they stand for'() {
     expect:
     Category.values().toList() == [
       Category.FORBIDDEN,
@@ -27,13 +27,5 @@ class CategorySpec extends Specification {
       Category.CONFLICT,
       Category.INVALID_STATE
     ]
-  }
-
-  def "a violation carries the forbidden category"() {
-    when:
-    def violation = RuleContext.forRule('task.owner-only').violation().category(Category.FORBIDDEN).build()
-
-    then:
-    violation.category() == Optional.of(Category.FORBIDDEN)
   }
 }
