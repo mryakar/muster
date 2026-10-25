@@ -15,12 +15,9 @@
  */
 package me.yakar.muster.spring.internal.engine
 
+import static me.yakar.muster.spring.Concurrency.concurrently
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import me.yakar.muster.spi.MessageResolver
 import me.yakar.muster.spring.MusterAutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -149,43 +146,20 @@ class MessageResolverSpec extends Specification {
   }
 
   def 'threads resolving at once each get the message of their own locale'() {
-    given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-    MessageResolver messages = null
-    def tasks = (0..<threads).collect { index -> {
-
-        ->
+    expect:
+    // Inside run: the resolver reads the message source of this context, which closes when run
+    // returns.
+    runner.run { context ->
+      def messages = context.getBean(MessageResolver)
+      def wrong = concurrently { index ->
         def turkish = index % 2 == 0
         def name = "vehicle-$index".toString()
         def expected = turkish ? "$name adı kullanımda".toString() : "The name $name isn't free".toString()
-        start.await()
-        def wrong = []
-        200.times {
-          def message = messages.resolve('vehicle.name-taken', [name: name], turkish ? TURKISH : Locale.ENGLISH)
-          if (message != expected) {
-            wrong << message
-          }
-        }
-        wrong
-      } as Callable<List>
+        (1..200).collect {
+          messages.resolve('vehicle.name-taken', [name: name], turkish ? TURKISH : Locale.ENGLISH)
+        }.findAll { it != expected }
+      }.flatten()
+      assert wrong.isEmpty()
     }
-
-    when:
-    List mismatches = null
-    // The message source of the application goes with its context.
-    runner.run {
-      messages = it.getBean(MessageResolver)
-      def futures = tasks.collect { pool.submit(it) }
-      start.countDown()
-      mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
-    }
-
-    then:
-    mismatches.isEmpty()
-
-    cleanup:
-    pool.shutdownNow()
   }
 }
