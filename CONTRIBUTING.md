@@ -14,6 +14,7 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 | `./gradlew pitest` | Mutation testing |
 | `./gradlew check -PtestJavaVersion=25` | Runs the tests on another JDK (the code is still compiled for 21) |
 | `./gradlew :muster-spring-boot-starter:check -PspringBootVersion=latest` | Tests the starter against the newest Spring Boot, `spring-boot-latest` in `gradle/libs.versions.toml`, or against the version given (the build uses the oldest supported, `spring-boot`) |
+| `./gradlew publishToMavenLocal`, then `.github/scripts/run-examples.sh` | Runs the example applications against what the build publishes (see [Releases](#releases)) |
 
 ## Code
 
@@ -64,13 +65,13 @@ and BOM POMs again, which it would otherwise take from its cache without recordi
 ./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks build pitest publishToMavenLocal
 ```
 
-The consumer test has a file of its own, `consumer-test/gradle/verification-metadata.xml`, and its
-Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`. When that
-version changes, update the consumer test's file too:
+The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`, and
+their Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`. When that
+version changes, update the examples' file too:
 
 ```bash
 ./gradlew publishToMavenLocal
-./gradlew -p consumer-test --write-verification-metadata sha256 --refresh-dependencies run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
+./gradlew -p muster-examples --write-verification-metadata sha256 --refresh-dependencies run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
 ```
 
 Gradle drops the comments of a file it rewrites; keep the one on the trusted Muster artifacts.
@@ -99,13 +100,14 @@ contain only related changes. CI checks every commit message in a pull request.
 The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uploads it to Maven
 Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
 
-To check what a build would publish, publish it to the local repository and run the consumer test,
-which uses Muster the way applications do: one without Spring, on the module path, and a Spring
-Boot application that it calls over HTTP:
+To check what a build would publish, publish it to the local repository and run the examples in
+`muster-examples`, which use Muster the way applications do: one without Spring, on the module path,
+and a Spring Boot application that is called over HTTP. The script runs them twice, with Gradle's
+module metadata and with the POMs only:
 
 ```bash
 ./gradlew publishToMavenLocal
-.github/scripts/consumer-test.sh
+.github/scripts/run-examples.sh
 ```
 
 ## License

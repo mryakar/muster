@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package consumer.spring;
+plugins { application }
 
-import org.springframework.stereotype.Service;
+val musterVersion = providers.gradleProperty("musterVersion").get()
 
-/** A service whose rules bind to its command by type, without a call to Muster. */
-@Service
-public class Vehicles {
-
-  /** Creates the service. */
-  public Vehicles() {}
-
-  /**
-   * Creates a vehicle.
-   *
-   * @param command the command
-   */
-  public void create(CreateVehicle command) {}
+dependencies {
+  implementation(platform("me.yakar.muster:muster-bom:$musterVersion"))
+  // The oldest Spring Boot that the starter supports.
+  implementation(platform(libs.spring.boot.dependencies))
+  implementation("me.yakar.muster:muster-spring-boot-starter")
+  implementation("org.springframework.boot:spring-boot-starter-webmvc")
 }
+
+tasks.withType<JavaCompile>().configureEach {
+  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+}
+
+application { mainClass = "example.spring.Application" }

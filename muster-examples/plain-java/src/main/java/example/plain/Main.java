@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package consumer;
+package example.plain;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -92,7 +92,7 @@ public final class Main {
     Locale.setDefault(Locale.forLanguageTag("tr"));
     var messages =
         MessageResolver.ofResourceBundles(
-            locale -> ResourceBundle.getBundle("consumer.messages", locale));
+            locale -> ResourceBundle.getBundle("example.plain.messages", locale));
     expectMessage(
         messages.resolve(violation, Locale.forLanguageTag("tr-TR")), "Atlas adı kullanılıyor");
     expectMessage(messages.resolve(violation, Locale.FRENCH), "The name Atlas is taken");

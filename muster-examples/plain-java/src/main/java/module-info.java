@@ -13,20 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins { application }
-
-val musterVersion = providers.gradleProperty("musterVersion").get()
-
-dependencies {
-  implementation(platform("me.yakar.muster:muster-bom:$musterVersion"))
-  implementation("me.yakar.muster:muster-core")
-}
-
-tasks.withType<JavaCompile>().configureEach {
-  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
-}
-
-application {
-  mainModule = "consumer"
-  mainClass = "consumer.Main"
+/** An application module that uses Muster. */
+module example.plain {
+  requires me.yakar.muster;
 }

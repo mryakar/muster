@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Runs the consumer test against the Muster artifacts in the local Maven repository, once with the
+# Runs the examples against the Muster artifacts in the local Maven repository, once with the
 # Gradle module metadata and once with the POMs only, as Maven reads them. The version defaults to
 # the one in gradle.properties.
 set -euo pipefail
 
 version="${1:-$(sed -n 's/^version=//p' gradle.properties)}"
-./gradlew -p consumer-test run -PmusterVersion="$version"
-./gradlew -p consumer-test run -PmusterVersion="$version" -PpomOnly
+./gradlew -p muster-examples run -PmusterVersion="$version"
+./gradlew -p muster-examples run -PmusterVersion="$version" -PpomOnly
