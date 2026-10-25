@@ -15,10 +15,14 @@
  */
 plugins { id("muster.java-base-conventions") }
 
-description = "JMH benchmarks of what Muster adds to a call. Not published."
+description =
+  "JMH benchmarks of what Muster adds to a call, with and without Spring. Not published."
 
 dependencies {
   implementation(project(":muster-core"))
+  // What the starter adds, with the oldest Spring Boot it supports.
+  implementation(project(":muster-spring-boot-starter"))
+  implementation(platform(libs.spring.boot.dependencies))
   implementation(libs.jmh.core)
   annotationProcessor(libs.jmh.generator.annprocess)
 }
