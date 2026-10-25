@@ -15,10 +15,8 @@
  */
 package me.yakar.muster
 
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.util.logging.Level
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.RequiresRule
@@ -517,30 +515,17 @@ class BindingSpec extends EngineSpecification {
     given:
     log.level = Level.FINE
     def binding = muster(FieldsListed, FieldsBound).binding(VehicleFields).rules(FieldsListed).build()
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(16)
-    def checks = (1..16).collect {
-      pool.submit({
-        ->
-        start.await()
-        binding.check(VALID)
-        true
-      } as Callable<Boolean>)
-    }
 
     when:
-    start.countDown()
-    def done = checks.collect { it.get(1, TimeUnit.MINUTES) }
+    concurrently { binding.check(VALID) }
 
     then:
-    done.every()
     ran.size() == 32
     logged*.message == [
       "Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"
     ]
 
     cleanup:
-    pool.shutdownNow()
     log.level = null
   }
 }
