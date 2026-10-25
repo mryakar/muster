@@ -108,7 +108,10 @@ pitest {
 spotless {
   groovy {
     target("src/*/groovy/**/*.groovy")
-    greclipse().configFile(rootProject.file("config/spotless/greclipse.properties"))
-    licenseHeaderFile(rootProject.file("config/spotless/license-header.txt"), "(package|import)")
+    greclipse().configFile(layout.settingsDirectory.file("gradle/spotless/greclipse.properties"))
+    licenseHeaderFile(
+      layout.settingsDirectory.file("gradle/spotless/license-header.txt"),
+      "(package|import)",
+    )
   }
 }

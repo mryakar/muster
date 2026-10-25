@@ -18,7 +18,7 @@
 plugins { id("com.diffplug.spotless") }
 
 val libs = versionCatalogs.named("libs")
-val licenseHeader = file("config/spotless/license-header.txt")
+val licenseHeader = layout.settingsDirectory.file("gradle/spotless/license-header.txt")
 
 spotless {
   // The consumer test is a build of its own, outside the projects that format their sources.
