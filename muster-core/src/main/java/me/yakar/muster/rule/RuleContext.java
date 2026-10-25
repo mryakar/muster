@@ -144,7 +144,7 @@ public final class RuleContext {
    * @return a builder for the violation
    */
   public Violation.Builder violation() {
-    return new Violation.Builder(ruleId, ruleId);
+    return new Violation.Builder(ruleId);
   }
 
   /**

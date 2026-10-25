@@ -218,6 +218,15 @@ public final class Violation implements Serializable {
     private @Nullable String target;
     private @Nullable Category category;
 
+    /**
+     * Creates a builder whose code is the rule id. The rule context has checked the id, and a valid
+     * rule id is a valid code, so a check that a rule fails does not check it again.
+     */
+    Builder(String ruleId) {
+      this.ruleId = ruleId;
+      this.code = ruleId;
+    }
+
     Builder(String ruleId, String code) {
       this.ruleId = requireNonBlank(ruleId, "ruleId");
       this.code = requireKey(code, "code");
