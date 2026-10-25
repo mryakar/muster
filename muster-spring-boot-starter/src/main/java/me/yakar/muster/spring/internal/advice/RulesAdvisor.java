@@ -35,7 +35,7 @@ final class RulesAdvisor implements PointcutAdvisor, Ordered {
 
   RulesAdvisor(RulesInterceptor interceptor) {
     this.interceptor = interceptor;
-    this.pointcut =
+    pointcut =
         new StaticMethodMatcherPointcut() {
           @Override
           public boolean matches(Method method, Class<?> targetClass) {
