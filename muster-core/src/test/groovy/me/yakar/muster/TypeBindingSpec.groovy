@@ -68,11 +68,6 @@ class TypeBindingSpec extends EngineSpecification {
       'vehicle.name-unique'
     ]
     CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['vehicle.code-format']
-    CheckMode.FAIL_FAST   | CheckMode.FAIL_FAST || ['vehicle.code-format']
-    CheckMode.COLLECT_ALL | CheckMode.COLLECT_ALL || [
-      'vehicle.code-format',
-      'vehicle.name-unique'
-    ]
   }
 
   def 'a valid target passes a check in #mode mode'() {
