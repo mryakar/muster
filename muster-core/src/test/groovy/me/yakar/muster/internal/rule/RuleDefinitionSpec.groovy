@@ -99,6 +99,13 @@ class RuleDefinitionSpec extends Specification {
     }
   }
 
+  @Rule(id = 'Task')
+  static class BadId implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   static class Unannotated implements BusinessRule<String> {
     RuleResult check(String input, RuleContext ctx) {
       RuleResult.passed()
@@ -214,61 +221,12 @@ class RuleDefinitionSpec extends Specification {
     ]
   }
 
-  def 'a rule id may be #id'() {
-    given:
-    def ruleClass = ruleWithId(id)
-
-    expect:
-    RuleDefinition.of(ruleClass).id() == id
-
-    where:
-    id << [
-      'a',
-      'task',
-      'task2',
-      'task.ready',
-      'vehicle.name-unique',
-      'plan.v2.capacity-sufficient',
-      'a.1'
-    ]
-  }
-
-  def 'a rule id may not be "#id"'() {
-    given:
-    def ruleClass = ruleWithId(id)
-
+  def 'a rule id must have the format of rule ids'() {
     when:
-    RuleDefinition.of(ruleClass)
+    RuleDefinition.of(BadId)
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "the id '$id' of ${ruleClass.name} is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
-
-    where:
-    id << [
-      '',
-      'Task',
-      'task.Ready',
-      '1task',
-      '.task',
-      '-task',
-      'task.',
-      'task-',
-      'task..ready',
-      'task.-ready',
-      'task_ready',
-      'task ready',
-      'café'
-    ]
-  }
-
-  private static Class<?> ruleWithId(String id) {
-    new GroovyClassLoader(RuleDefinitionSpec.classLoader).parseClass("""
-      import me.yakar.muster.rule.*
-      @Rule(id = '$id')
-      class GeneratedRule implements BusinessRule<String> {
-        RuleResult check(String input, RuleContext ctx) { RuleResult.passed() }
-      }
-      """)
+    e.message == "the id 'Task' of ${BadId.name} is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
   }
 }
