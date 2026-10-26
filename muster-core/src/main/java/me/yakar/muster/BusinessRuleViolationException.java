@@ -29,9 +29,10 @@ import me.yakar.muster.rule.Violation;
  * default, it holds the violations of the first violated rule; in {@link CheckMode#COLLECT_ALL}
  * mode, those of every violated rule.
  *
- * <p>A violation is an expected outcome, so the exception has no stack trace. Its message lists the
- * violation codes, never argument values. Map {@link #violations()} to a response type of your own
- * rather than returning them as they are.
+ * <p>A violation is an expected outcome, so the exception has no stack trace; it keeps the
+ * exceptions suppressed on it, such as the failure of a resource closed while it propagates. Its
+ * message lists the violation codes, never argument values. Map {@link #violations()} to a response
+ * type of your own rather than returning them as they are.
  */
 public final class BusinessRuleViolationException extends RuntimeException {
 
@@ -48,7 +49,7 @@ public final class BusinessRuleViolationException extends RuntimeException {
    * @throws IllegalArgumentException if {@code violations} is empty
    */
   public BusinessRuleViolationException(List<Violation> violations) {
-    super(null, null, false, false);
+    super(null, null, true, false);
     var copy = List.copyOf(requireNonNull(violations, "violations"));
     if (copy.isEmpty()) {
       throw new IllegalArgumentException("the exception needs at least one violation");

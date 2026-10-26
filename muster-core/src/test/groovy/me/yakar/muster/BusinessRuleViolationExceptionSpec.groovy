@@ -80,18 +80,19 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     thrown(UnsupportedOperationException)
   }
 
-  def 'the exception has no stack trace, cause or suppressed exceptions'() {
+  def 'the exception has no stack trace or cause, and keeps the exceptions suppressed on it'() {
     given:
     def exception = new BusinessRuleViolationException([owner])
+    def suppressed = new IllegalStateException()
 
     when:
     exception.fillInStackTrace()
-    exception.addSuppressed(new IllegalStateException())
+    exception.addSuppressed(suppressed)
 
     then:
     exception.stackTrace.length == 0
     exception.cause == null
-    exception.suppressed.length == 0
+    exception.suppressed.toList() == [suppressed]
   }
 
   def 'the exception needs at least one violation'() {
