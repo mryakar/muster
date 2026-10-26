@@ -25,9 +25,10 @@ import spock.lang.Specification
 
 /**
  * The starter's optional dependencies, Spring's transactions, Spring Security, Spring Web, Bean
- * Validation and Micrometer Observation, may be absent from an application. Spring introspects a bean's class, so the classes it creates without
- * one of them must not name its types in a field, a constructor or a method; the tests run with all
- * of them on the class path, so only the signatures can show it.
+ * Validation, Micrometer Observation and the Spring Boot actuator, may be absent from an
+ * application. Spring introspects a bean's class, so the classes it creates without one of them
+ * must not name its types in a field, a constructor or a method; the tests run with all of them on
+ * the class path, so only the signatures can show it.
  */
 class OptionalDependenciesSpec extends Specification {
 
@@ -36,6 +37,7 @@ class OptionalDependenciesSpec extends Specification {
   static final String WEB = 'org.springframework.web'
   static final String VALIDATION = 'jakarta.validation'
   static final String MICROMETER = 'io.micrometer'
+  static final String ACTUATOR = 'org.springframework.boot.actuate'
 
   /** The classes that the starter creates, or Spring reads, without any optional dependency. */
   static final List<Class<?>> WITHOUT_ANY = [
@@ -51,7 +53,10 @@ class OptionalDependenciesSpec extends Specification {
     AdviceConfiguration,
     classOf('internal.advice.AdviceTable'),
     classOf('internal.advice.RulesInterceptor'),
+    classOf('internal.advice.MethodAdvice$Bound$OfInput'),
+    classOf('internal.advice.MethodAdvice$Bound$OfElements'),
     classOf('internal.advice.MethodAdvice'),
+    classOf('internal.advice.AdvisedMethod'),
     classOf('internal.advice.RulesAdvisor'),
     classOf('internal.advice.AdvisedMethods'),
     classOf('internal.advice.ProxyCreatorRegistrar'),
@@ -64,19 +69,23 @@ class OptionalDependenciesSpec extends Specification {
     names(type).findAll { it.startsWith(dependency) }.empty
 
     where:
-    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB, VALIDATION, MICROMETER]].combinations() +
-    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB, VALIDATION, MICROMETER]].combinations() +
-    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY, VALIDATION, MICROMETER]].combinations() +
+    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB, VALIDATION, MICROMETER, ACTUATOR]].combinations() +
+    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB, VALIDATION, MICROMETER, ACTUATOR]].combinations() +
+    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY, VALIDATION, MICROMETER, ACTUATOR]].combinations() +
     [
       [classOf('internal.advice.TransactionOrdering'), classOf('internal.advice.TransactionGuard')],
-      [SECURITY, WEB, VALIDATION, MICROMETER]
+      [SECURITY, WEB, VALIDATION, MICROMETER, ACTUATOR]
     ].combinations() +
     [
       [
         classOf('internal.observation.ObservationConfiguration'),
         classOf('internal.observation.ObservationListener')
       ],
-      [TRANSACTION, SECURITY, WEB, VALIDATION]
+      [TRANSACTION, SECURITY, WEB, VALIDATION, ACTUATOR]
+    ].combinations() +
+    [
+      [classOf('internal.actuator.ActuatorConfiguration'), classOf('internal.actuator.MusterEndpoint')],
+      [TRANSACTION, SECURITY, WEB, VALIDATION, MICROMETER]
     ].combinations()
   }
 

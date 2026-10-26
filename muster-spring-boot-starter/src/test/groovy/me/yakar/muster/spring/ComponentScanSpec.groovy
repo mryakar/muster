@@ -16,6 +16,7 @@
 package me.yakar.muster.spring
 
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.internal.actuator.ActuatorConfiguration
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration
 import me.yakar.muster.spring.internal.engine.EngineConfiguration
 import me.yakar.muster.spring.internal.engine.MessagesConfiguration
@@ -62,7 +63,8 @@ class ComponentScanSpec extends Specification {
             AdviceConfiguration.name,
             AdviceConfiguration.name + '$TransactionConfiguration',
             ProblemDetailsConfiguration.name,
-            ObservationConfiguration.name
+            ObservationConfiguration.name,
+            ActuatorConfiguration.name
           ] as Set
           assert context.getBeanNamesForType(Muster) as List == ['muster']
         }

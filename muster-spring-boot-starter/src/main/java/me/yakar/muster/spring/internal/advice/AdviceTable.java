@@ -15,7 +15,13 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
+import static java.util.Comparator.comparing;
+
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -51,5 +57,28 @@ public final class AdviceTable {
   /** Adds the advice of the methods of a class, prepared. */
   void put(Class<?> targetClass, Map<Method, MethodAdvice> advice) {
     prepared.put(targetClass, advice);
+  }
+
+  /**
+   * Returns the advised methods of the prepared classes, each once, whatever the methods a proxy
+   * calls it by, in the order of their labels and then of the names of their classes: a copy, taken
+   * now, that a class prepared later does not change.
+   *
+   * @return the methods, unmodifiable
+   */
+  public List<AdvisedMethod> advised() {
+    var seen = Collections.newSetFromMap(new IdentityHashMap<MethodAdvice, Boolean>());
+    var advised = new ArrayList<AdvisedMethod>();
+    for (var methods : prepared.values()) {
+      for (var advice : methods.values()) {
+        if (seen.add(advice)) {
+          advised.add(advice.describe());
+        }
+      }
+    }
+    advised.sort(
+        comparing(AdvisedMethod::label)
+            .thenComparing(AdvisedMethod::targetClass, comparing(Class::getName)));
+    return Collections.unmodifiableList(advised);
   }
 }

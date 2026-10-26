@@ -17,6 +17,7 @@ package me.yakar.muster.spring;
 
 import me.yakar.muster.Muster;
 import me.yakar.muster.spi.MessageResolver;
+import me.yakar.muster.spring.internal.actuator.ActuatorConfiguration;
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
 import me.yakar.muster.spring.internal.engine.EngineConfiguration;
 import me.yakar.muster.spring.internal.engine.MessagesConfiguration;
@@ -54,7 +55,8 @@ import org.springframework.context.i18n.LocaleContextHolder;
   MessagesConfiguration.class,
   AdviceConfiguration.class,
   ProblemDetailsConfiguration.class,
-  ObservationConfiguration.class
+  ObservationConfiguration.class,
+  ActuatorConfiguration.class
 })
 public final class MusterAutoConfiguration {
 
