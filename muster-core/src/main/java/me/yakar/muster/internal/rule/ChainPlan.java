@@ -186,6 +186,25 @@ public final class ChainPlan {
       var requires = definition.requires().stream().mapToInt(positions::get).toArray();
       positions.put(definition.ruleClass(), steps.size());
       var whole = elementClass != null && definition.checksCollectionsOf(elementClass);
+      // A rule that a rule of the whole collection requires may accept neither, as one of Iterable
+      // input does.
+      if (elementClass != null
+          && !whole
+          && !definition.inputType().isAssignableFrom(elementClass)) {
+        throw new IllegalArgumentException(
+            "the chain for "
+                + label
+                + " cannot check rule '"
+                + definition.id()
+                + "', which checks "
+                + definition.inputType().getTypeName()
+                + ": neither "
+                + elementClass.getTypeName()
+                + " nor a list of "
+                + elementClass.getTypeName()
+                + " is one; a rule of the whole collection checks a list, so what it requires"
+                + " checks lists or each element");
+      }
       steps.add(new Step(included.get(definition.ruleClass()), requires, whole));
     }
     return List.copyOf(steps);
