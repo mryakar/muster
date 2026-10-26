@@ -120,8 +120,9 @@ public final class RuleContext {
   }
 
   /**
-   * Returns a builder that starts from this context: the same rule, caller, locale and elements.
-   * Use it to create the context of the same rule for another call.
+   * Returns a builder that starts from this context: the same rule, caller and locale, and the same
+   * positions of inputs or position of an element. Use it to create the context of the same rule
+   * for another call.
    *
    * @return the builder
    */

@@ -66,12 +66,16 @@ public interface BusinessRule<T> {
    * <p>Report the problems of an element as violations created from {@code ctx.element(i)}, with
    * {@code i} the index of the input in {@code inputs}: their target starts with the position of
    * the element, as in {@code [3].name}, and rules that require this one still check the other
-   * elements. A violation created from {@code ctx} itself is about the whole collection, and no
-   * rule that requires this one checks any of it.
+   * elements. Muster reads the position from the target: a violation whose target starts with the
+   * position of an element it passed, as those created from {@code ctx.element(i)} do, is about
+   * that element; any other violation, such as one created from {@code ctx} without such a target,
+   * is about the whole collection, and no rule that requires this one checks any of it.
    *
    * <p>Muster asks {@link #appliesTo} once for the collection. A rule that does not override this
-   * method is checked element by element, by Muster, which logs a warning once; override it and
-   * call {@code BusinessRule.super.checkAll(inputs, ctx)} to keep that and drop the warning.
+   * method is checked element by element by Muster, which stops at the first violated element in
+   * fail-fast mode and logs a warning once. To drop the warning, override this method and return
+   * {@code BusinessRule.super.checkAll(inputs, ctx)}, which checks every element, also in fail-fast
+   * mode.
    *
    * @param inputs the inputs of the call, in the order of the collection; the elements that failed
    *     a rule this rule requires are left out
