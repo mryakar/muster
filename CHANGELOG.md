@@ -10,6 +10,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - The constraints of a `@Validated` method are checked before its rules, and before its transaction: on the proxies it advises, the starter moves the method validation advice, which Spring adds last, ahead of its own. Other advice, such as method security, and beans without rules keep Spring's order. `muster.validation.reorder-advisor=false` leaves the order to Spring, where the rules run before the constraints.
+- `muster.checkAll(collection)`, `RuleChain.checkAll` and `Binding.checkAll` check the elements of a collection in one call. Each rule checks the elements that passed the rules it requires, one violated element rejects the call, and a violation names the position of its element in its target, as in `[3].name`. An empty collection passes; the elements of a collection that is checked by their class must be of one class.
+- `BusinessRule.checkAll` checks the inputs of a collection at once, so that a rule can look them up with one query and find conflicts within the collection. A rule that does not override it is checked element by element, and Muster logs a warning once for it.
+- `RuleContext.element(i)` gives the context of one input of `checkAll`, and `RuleContext.elementIndex()` its position in the collection; `RuleContext.Builder.elements` sets the positions, to test a rule on part of a collection.
 
 ### Fixed
 

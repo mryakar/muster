@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -87,6 +88,31 @@ public final class Binding<I> {
       chain = chains.of(input.getClass());
     }
     chain.run(input, mode);
+  }
+
+  /**
+   * Checks the elements of a collection against the rules of this binding, in its {@linkplain
+   * #mode() mode}. Each rule checks the elements that passed the rules it requires, at once if it
+   * overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}; one violated element rejects the
+   * whole call, and violations name the position of their element in their target, as in {@code
+   * [3].name}. An empty collection passes.
+   *
+   * @param inputs the inputs; unless the input type of this binding is final, all of one class
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if an element is {@code null}
+   * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
+   *     binding's type, which only unchecked code can pass
+   */
+  public void checkAll(Collection<? extends I> inputs) {
+    var elements = RuleChain.elements(inputs, inputType, only == null, "binding");
+    if (elements.isEmpty()) {
+      return;
+    }
+    var chain = only;
+    if (chain == null) {
+      chain = chains.of(elements.getFirst().getClass());
+    }
+    chain.runAll(elements, mode);
   }
 
   /**

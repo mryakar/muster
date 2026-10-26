@@ -229,7 +229,32 @@ RuleChain<CreateVehicle> create =
 create.check(command); // throws BusinessRuleViolationException if a rule is violated
 
 muster.check(command); // every rule whose input type accepts CreateVehicle
+muster.checkAll(commands); // each element of a collection, in one call
 ```
+
+A collection is checked in one call: each rule checks every element that passed the rules it
+requires, one violated element rejects the call, and a violation names the position of its element
+in its target, as in `[3].name`. A rule that looks every input up, as a uniqueness check does,
+overrides `checkAll` to check them all at once, which also finds conflicts within the collection:
+
+```java
+@Override
+public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx) {
+  var taken = vehicles.namesAmong(inputs.stream().map(VehicleFields::name).toList()); // one query
+  var violations = new ArrayList<Violation>();
+  var seen = new HashSet<String>();
+  for (var i = 0; i < inputs.size(); i++) {
+    var name = inputs.get(i).name();
+    if (taken.contains(name) || !seen.add(name)) {
+      violations.add(ctx.element(i).violation().clientArg("name", name).target("name").build());
+    }
+  }
+  return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
+}
+```
+
+A rule that does not override `checkAll` is checked element by element, and Muster warns once that
+it is; one that should be overrides `checkAll` with `return BusinessRule.super.checkAll(inputs, ctx);`.
 
 What the starter does for you is up to you:
 
