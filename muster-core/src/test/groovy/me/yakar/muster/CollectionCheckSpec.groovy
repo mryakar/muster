@@ -690,6 +690,8 @@ class CollectionCheckSpec extends EngineSpecification {
     target || position
     '[3].name' || 3
     '[12]' || 12
+    '[10]' || 10
+    '[9]' || 9
     '[3][0]' || 3
     'name' || -1
     '[]' || -1
