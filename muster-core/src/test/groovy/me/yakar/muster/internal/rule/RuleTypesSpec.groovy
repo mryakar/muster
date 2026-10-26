@@ -211,6 +211,30 @@ class RuleTypesSpec extends Specification {
     }
   }
 
+  static abstract class Mid<X> implements BusinessRule<X> {
+    RuleResult check(X input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static abstract class ListThroughMid<E> extends Mid<List<E>> {}
+
+  static class LongsThroughMid extends ListThroughMid<Long> {}
+
+  static abstract class ArraysThroughMid<E> extends Mid<List<E[]>> {}
+
+  static class LongArraysThroughMid extends ArraysThroughMid<Long> {}
+
+  static interface MidRule<X> extends BusinessRule<X> {}
+
+  static interface ListRule<E> extends MidRule<List<E>> {}
+
+  static class LongsThroughInterfaces implements ListRule<Long> {
+    RuleResult check(List<Long> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   def 'the element type of a rule that checks collections is read from the class declaration: #ruleClass.simpleName'() {
     expect:
     RuleTypes.elementType(ruleClass) == elementType
@@ -230,6 +254,9 @@ class RuleTypesSpec extends Specification {
     OfRawList || Object
     OfRawCollection || Object
     OfFleet || Long
+    LongsThroughMid || Long
+    LongArraysThroughMid || Long[]
+    LongsThroughInterfaces || Long
   }
 
   def 'a rule whose input is not a collection has no element type: #ruleClass.simpleName'() {

@@ -108,7 +108,10 @@ final class RuleTypes {
   private static @Nullable Found typeArgument(
       Type type, Class<?> target, Map<TypeVariable<?>, Type> bindings) {
     Class<?> raw;
-    var ownBindings = new HashMap<TypeVariable<?>, Type>();
+    // Keeps the bindings of the levels below as well: a type argument found higher up may hold a
+    // variable of any of them, as BusinessRule<X> does with X = List<E>. A type variable belongs to
+    // the class that declares it, so the entries of the levels never collide.
+    var ownBindings = new HashMap<TypeVariable<?>, Type>(bindings);
     if (type instanceof ParameterizedType parameterized) {
       raw = (Class<?>) parameterized.getRawType();
       var variables = raw.getTypeParameters();

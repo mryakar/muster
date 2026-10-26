@@ -116,6 +116,55 @@ class CollectionBindingSpec extends EngineSpecification {
     e.violations().collect { it.ruleId() + ' ' + it.target().orElse('-') }
   }
 
+  /** All tasks positive; a rule of the whole collection. */
+  @Rule(id = 'task.positive')
+  static class TasksPositive implements BusinessRule<List<Long>> {
+    RuleResult check(List<Long> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static abstract class AnyRule<X> implements BusinessRule<X> {}
+
+  static abstract class ListRule<E> extends AnyRule<List<E>> {}
+
+  /** Sums the tasks once they are positive; its element type comes through two generic levels. */
+  @Rule(id = 'task.sum')
+  @RequiresRule(TasksPositive)
+  static class TaskSum extends ListRule<Long> {
+    final List<List<Long>> received = new CopyOnWriteArrayList<>()
+
+    RuleResult check(List<Long> input, RuleContext ctx) {
+      received << List.copyOf(input)
+      RuleResult.passed()
+    }
+  }
+
+  def 'a rule whose element type comes through two generic levels checks collections of that type only'() {
+    given:
+    def sum = new TaskSum()
+    def muster = vehicles(new TasksPositive(), sum, new CodeFormat())
+
+    when:
+    muster.checkAll([VALID])
+    muster.collectionBinding(Long).build().check([1L, 2L])
+
+    then:
+    sum.received.empty
+
+    when:
+    muster.collectionBinding(Long).rules(TaskSum).build().check([1L, 2L])
+
+    then:
+    sum.received == [[1L, 2L]]
+
+    when:
+    muster.collectionBinding(CreateVehicle).rules(TaskSum).build()
+
+    then:
+    thrown(IllegalArgumentException)
+  }
+
   def 'listed rules of the elements and of the whole collection run in the order they are listed'() {
     given:
     def binding = vehicles(new CodeFormat(), new BatchLimit()).collectionBinding(CreateVehicle).rules(BatchLimit, CodeFormat).build()
