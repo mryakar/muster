@@ -120,6 +120,18 @@ class CollectionCheckSpec extends EngineSpecification {
   @RequiresRule(FailsWith)
   static class NotifiedAfterFailing extends Notified {}
 
+  /** Asks for the context of an element past the inputs it received. */
+  @Rule(id = 'task.assignable-at-once')
+  static class ReachesTooFar implements BusinessRule<Long> {
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+
+    RuleResult checkAll(List<? extends Long> inputs, RuleContext ctx) {
+      RuleResult.failed(ctx.element(inputs.size()).violation().build())
+    }
+  }
+
   @Rule(id = 'task.assignable-at-once')
   static class ReturnsNullAtOnce implements BusinessRule<Long> {
     RuleResult check(Long input, RuleContext ctx) {
@@ -397,6 +409,15 @@ class CollectionCheckSpec extends EngineSpecification {
     problem                               | rule || exception             | message
     'returns null'                        | new ReturnsNullAtOnce() || NullPointerException  | "rule 'task.assignable-at-once' returned null"
     'reports a violation of another rule' | new ImpostorAtOnce() || IllegalStateException | "rule 'task.assignable-at-once' reported a violation of rule 'task.exists'; build violations from the RuleContext the rule receives"
+  }
+
+  def 'a rule checking at once cannot name an element past the inputs it received'() {
+    when:
+    tasks(new ReachesTooFar()).build().chain(Long, ReachesTooFar).checkAll([1L, 2L])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == 'the index 2 is not that of one of the 2 inputs'
   }
 
   def 'a rule checked one by one that returns null fails the check'() {

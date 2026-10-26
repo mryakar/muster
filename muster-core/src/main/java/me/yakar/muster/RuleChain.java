@@ -229,24 +229,27 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      var all = eligible.length == size;
+      // The positions also tell the context how many inputs there are, so that it rejects an index
+      // past them.
       var violations =
           violations(
               rule,
               rule.instance()
                   .checkAll(
-                      all ? inputs : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
-                      all ? ctx : ctx.toBuilder().elements(eligible).build()));
+                      eligible.length == size
+                          ? inputs
+                          : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
+                      ctx.toBuilder().elements(eligible).build()));
       if (violations == null) {
         for (var position : eligible) {
           passed[i][position] = true;
         }
         continue;
       }
-      markPassed(passed[i], eligible, violations);
       if (mode == CheckMode.FAIL_FAST) {
         throw new BusinessRuleViolationException(violations);
       }
+      markPassed(passed[i], eligible, violations);
       found = add(found, violations);
     }
     if (found != null) {
