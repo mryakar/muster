@@ -85,7 +85,7 @@ public final class CollectionBinding<E> {
    * @param inputs the inputs; unless the element type of this binding is final, all of one class;
    *     rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
-   * @throws NullPointerException if an element is {@code null}
+   * @throws NullPointerException if {@code inputs} or an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
    *     binding's type, which only unchecked code can pass
    */

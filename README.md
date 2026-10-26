@@ -94,9 +94,10 @@ class VehicleNameUnique implements BusinessRule<VehicleFields> {
 ```
 
 A command that implements `RuleTarget` is checked by every rule whose input type accepts it. The
-public methods of a `@Service` that take one check its rules before they run, inside their
-transaction, with no call to Muster. Such a method takes the command as its only parameter: one
-that takes a rule target among other parameters stops the application.
+public methods of a `@Service` that take one, or a collection of them, check its rules before they
+run, inside their transaction, with no call to Muster. Such a method takes the command as its only
+parameter: one that takes a rule target, or a collection of them, among other parameters stops the
+application.
 
 ```java
 interface VehicleFields extends RuleTarget {
@@ -122,8 +123,12 @@ class VehicleService {
 
 A method that takes a collection checks the rules of each element, whose violations name the
 position of the element as in `[3].name`, and the rules of the whole collection, such as a limit on
-its size in a `BusinessRule<List<CreateVehicle>>`. Its element type must be known: a raw `List`,
-`List<?>`, `List<? super E>` or an unbound `List<T>` stops the application.
+its size in a `BusinessRule<List<CreateVehicle>>`. A rule of the whole collection takes a `List`,
+`SequencedCollection` or `Collection` of the elements, not a `Set`, since it gets a copy of the
+collection as a list; one that takes `Collection<?>` or `List<Object>` checks every collection of
+rule targets. The element type of the parameter must be known: a raw `List`, `List<?>`,
+`List<? super E>` or an unbound `List<T>` stops the application. An array is a single input, as in
+0.2.0.
 
 In a Spring MVC application, a violated rule becomes problem details (RFC 9457). The status
 follows the category: 403 for `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 for
@@ -271,8 +276,8 @@ public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx
 }
 ```
 
-A rule whose input type is a list or a collection of the elements, such as
-`BusinessRule<List<CreateVehicle>>`, checks the whole collection: it gets a copy of the collection
+A rule whose input type is a `List`, `SequencedCollection` or `Collection` of the elements, such
+as `BusinessRule<List<CreateVehicle>>`, checks the whole collection: it gets a copy of the collection
 as a list, once every element passed the rules it requires, and its violations name no element.
 
 Muster checks a rule that does not override `checkAll` element by element, stops at the first
