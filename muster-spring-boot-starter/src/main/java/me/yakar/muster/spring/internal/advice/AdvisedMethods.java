@@ -18,12 +18,16 @@ package me.yakar.muster.spring.internal.advice;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.WildcardType;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.spring.Rules;
 import org.jspecify.annotations.Nullable;
 import org.springframework.aop.support.AopUtils;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Service;
 
@@ -61,9 +65,38 @@ final class AdvisedMethods {
             // The class itself, or one of its annotations, is a service; its base class is not
             // enough.
             && AnnotatedElementUtils.isAnnotated(targetClass, Service.class)
-            && Arrays.stream(specific.getParameterTypes())
-                .anyMatch(RuleTarget.class::isAssignableFrom);
+            && IntStream.range(0, specific.getParameterCount())
+                .anyMatch(index -> takesTargets(specific, index, targetClass));
     return service ? specific : null;
+  }
+
+  /** Returns whether a parameter is a rule target, or a collection of rule targets. */
+  private static boolean takesTargets(Method method, int index, Class<?> targetClass) {
+    if (RuleTarget.class.isAssignableFrom(method.getParameterTypes()[index])) {
+      return true;
+    }
+    var elementType = elementType(method, index, targetClass);
+    return elementType != null && RuleTarget.class.isAssignableFrom(elementType);
+  }
+
+  /**
+   * Returns the element type of a parameter that is a collection, as the target class sees it, so
+   * that {@code List<T>} of a generic base class resolves; {@code null} if the parameter is not a
+   * collection or its element type is not known, as with a raw {@code List}, {@code List<?>},
+   * {@code List<? super E>} or an unbound {@code List<T>}. A wildcard with an upper bound, {@code
+   * List<? extends E>}, has elements of that bound.
+   */
+  static @Nullable Class<?> elementType(Method method, int index, Class<?> targetClass) {
+    var type = ResolvableType.forMethodParameter(method, index, targetClass);
+    if (!Collection.class.isAssignableFrom(type.toClass())) {
+      return null;
+    }
+    // Spring resolves List<? super E> to E, although the list may hold any supertype of E.
+    if (type.getGeneric(0).getType() instanceof WildcardType wildcard
+        && wildcard.getLowerBounds().length > 0) {
+      return null;
+    }
+    return type.asCollection().getGeneric(0).resolve();
   }
 
   /**
