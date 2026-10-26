@@ -131,7 +131,25 @@ class RuleDefinitionSpec extends Specification {
 
   def 'a definition holds the class, the id and the input type of a rule'() {
     expect:
-    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String, [])
+    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String, [], null)
+  }
+
+  def 'a definition of a rule that checks collections holds the type of their elements'() {
+    expect:
+    RuleDefinition.of(NamesFree).elementType() == CharSequence
+  }
+
+  def 'a rule checks whole collections of a class if a list is its input and its elements accept the class: #ruleClass.simpleName, #elementClass.simpleName'() {
+    expect:
+    RuleDefinition.of(ruleClass).checksCollectionsOf(elementClass) == checks
+
+    where:
+    ruleClass    | elementClass || checks
+    NamesFree    | String || true
+    NamesFree    | CharSequence || true
+    NamesFree    | Integer || false
+    SetOfNames   | String || false
+    NameUnique   | String || false
   }
 
   def 'a definition lists the rules a rule requires, in its order'() {
@@ -222,5 +240,19 @@ class RuleDefinitionSpec extends Specification {
     then:
     def e = thrown(IllegalArgumentException)
     e.message == "the id 'Task' of ${BadId.name} is invalid; an id starts with a lowercase letter and continues with lowercase letters, digits, and single dots or hyphens between them, as in 'vehicle.name-unique'"
+  }
+
+  @Rule(id = 'vehicle.names-free')
+  static class NamesFree implements BusinessRule<Collection<? extends CharSequence>> {
+    RuleResult check(Collection<? extends CharSequence> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.names-distinct')
+  static class SetOfNames implements BusinessRule<Set<String>> {
+    RuleResult check(Set<String> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
   }
 }

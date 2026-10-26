@@ -26,8 +26,8 @@ class RuleGraphSpec extends Specification {
   static class D {}
   static class E {}
 
-  static RuleDefinition rule(Class<?> ruleClass, String id, List<Class<?>> requires = [], Class<?> inputType = Object) {
-    new RuleDefinition(ruleClass, id, inputType, requires)
+  static RuleDefinition rule(Class<?> ruleClass, String id, List<Class<?>> requires = [], Class<?> inputType = Object, Class<?> elementType = null) {
+    new RuleDefinition(ruleClass, id, inputType, requires, elementType)
   }
 
   static Map<Class<?>, RuleDefinition> byClass(RuleDefinition... rules) {
@@ -176,6 +176,23 @@ class RuleGraphSpec extends Specification {
 
     where:
     inputType << [String, Integer]
+  }
+
+  def 'a required rule that checks collections must accept the elements of the rule that requires it'() {
+    when:
+    validate(byClass(rule(A, 'a', [B], List, Long), rule(B, 'b', [], Collection, Integer)))
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${A.name} requires ${B.name}, which checks collections of java.lang.Integer, not of java.lang.Long"
+  }
+
+  def 'a required rule that checks collections may accept wider elements'() {
+    when:
+    validate(byClass(rule(A, 'a', [B], List, Long), rule(B, 'b', [], Collection, Number), rule(C, 'c', [D], List, Long), rule(D, 'd', [], Object)))
+
+    then:
+    noExceptionThrown()
   }
 
   def 'a required rule may accept a wider input'() {

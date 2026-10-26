@@ -16,6 +16,7 @@
 package me.yakar.muster.internal.rule;
 
 import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,6 +68,20 @@ public final class RuleGraph {
                   + required.inputType().getTypeName()
                   + ", not "
                   + rule.inputType().getTypeName());
+        }
+        var requiredElements = required.elementType();
+        // A rule that checks collections is required by rules that check collections only, whose
+        // element type is then known.
+        if (requiredElements != null
+            && !requiredElements.isAssignableFrom(requireNonNull(rule.elementType()))) {
+          throw new IllegalArgumentException(
+              rule.ruleClass().getTypeName()
+                  + " requires "
+                  + requiredClass.getTypeName()
+                  + ", which checks collections of "
+                  + requiredElements.getTypeName()
+                  + ", not of "
+                  + requireNonNull(rule.elementType()).getTypeName());
         }
       }
     }
