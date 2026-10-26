@@ -131,7 +131,9 @@ public final class Violation implements Serializable {
   }
 
   /**
-   * Returns the field of the input this violation is about, such as {@code name}.
+   * Returns the field of the input this violation is about, such as {@code name}, or, for a
+   * violation about an element of a collection, the field of that element after its position, such
+   * as {@code [3].name}.
    *
    * @return the target, if the violation is about a single field
    */

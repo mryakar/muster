@@ -246,15 +246,23 @@ public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx
   for (var i = 0; i < inputs.size(); i++) {
     var name = inputs.get(i).name();
     if (taken.contains(name) || !seen.add(name)) {
-      violations.add(ctx.element(i).violation().clientArg("name", name).target("name").build());
+      violations.add(
+          ctx.element(i)
+              .violation("vehicle.name-taken")
+              .clientArg("name", name)
+              .target("name")
+              .category(Category.CONFLICT)
+              .build());
     }
   }
   return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
 }
 ```
 
-A rule that does not override `checkAll` is checked element by element, and Muster warns once that
-it is; one that should be overrides `checkAll` with `return BusinessRule.super.checkAll(inputs, ctx);`.
+Muster checks a rule that does not override `checkAll` element by element, stops at the first
+violated element in fail-fast mode, and warns once. A rule meant to be checked that way overrides
+`checkAll` with `return BusinessRule.super.checkAll(inputs, ctx);`, which drops the warning and
+checks every element, also in fail-fast mode.
 
 What the starter does for you is up to you:
 

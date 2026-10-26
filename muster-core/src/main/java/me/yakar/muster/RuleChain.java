@@ -120,8 +120,10 @@ public final class RuleChain<I> {
   /**
    * Checks the elements of a collection against the rules that apply to the call, in the mode of
    * this chain. Each rule checks the elements that passed the rules it requires; one violated
-   * element rejects the whole call. In {@link CheckMode#FAIL_FAST} mode, the check stops at the
-   * first violated rule, and a rule that does not override {@code checkAll} at its first violated
+   * element rejects the whole call. Violations come rule by rule, in the order of the rules, and
+   * within a rule as it reports them; a rule that does not override {@code checkAll} reports them
+   * in the order of the elements. In {@link CheckMode#FAIL_FAST} mode, the check stops at the first
+   * violated rule, and a rule that does not override {@code checkAll} at its first violated
    * element. An empty collection passes without running a rule.
    *
    * @param inputs the inputs; a list is passed on unmodifiable, and another collection as a copy
