@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.lang.System.Logger.Level;
 import java.lang.invoke.MethodType;
 import java.security.Principal;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -164,6 +165,42 @@ public final class Muster {
     requireNonNull(input, "input");
     requireNonNull(mode, "mode");
     targets.of(input.getClass()).run(input, mode);
+  }
+
+  /**
+   * Checks the elements of a collection of rule targets in one call, in the mode of this {@code
+   * Muster}, against the rules that {@link #check(RuleTarget)} would run for their class. Each rule
+   * checks the elements that passed the rules it requires, at once if it overrides {@link
+   * BusinessRule#checkAll}; one violated element rejects the whole call, and violations name the
+   * position of their element in their target, as in {@code [3].name}. An empty collection passes.
+   *
+   * @param inputs the inputs, all of one class
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if an element is {@code null}
+   * @throws IllegalArgumentException if the elements are of different classes
+   */
+  public void checkAll(Collection<? extends RuleTarget> inputs) {
+    runAll(inputs, mode);
+  }
+
+  /**
+   * Checks the elements of a collection as {@link #checkAll(Collection)} does, in the given mode.
+   *
+   * @param inputs the inputs, all of one class
+   * @param mode the mode of this check
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if an element is {@code null}
+   * @throws IllegalArgumentException if the elements are of different classes
+   */
+  public void checkAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
+    runAll(inputs, requireNonNull(mode, "mode"));
+  }
+
+  private void runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
+    var elements = RuleChain.elements(inputs, RuleTarget.class, true, "Muster");
+    if (!elements.isEmpty()) {
+      targets.of(elements.getFirst().getClass()).runAll(elements, mode);
+    }
   }
 
   private ClassChains.Bound bind(Class<?> type) {

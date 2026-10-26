@@ -455,6 +455,111 @@ class CollectionCheckSpec extends EngineSpecification {
     ran.size() == 32
   }
 
+  Muster vehicles() {
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(CheckMode.COLLECT_ALL).build()
+  }
+
+  def 'Muster checks a collection of rule targets with the rules bound to their class'() {
+    when:
+    vehicles().checkAll([VALID, INVALID])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [1]', 'vehicle.name-unique [1]']
+  }
+
+  def 'Muster checks a collection in the mode it is given'() {
+    when:
+    vehicles().checkAll([INVALID], CheckMode.FAIL_FAST)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [0]']
+  }
+
+  def 'Muster passes an empty collection, and one whose elements pass'() {
+    expect:
+    vehicles().checkAll(inputs)
+    vehicles().checkAll(inputs, CheckMode.FAIL_FAST)
+
+    where:
+    inputs << [[], [VALID, new CreateVehicle('TR-2', 'Zeus')]]
+  }
+
+  def 'Muster rejects a collection of #problem'() {
+    when:
+    vehicles().checkAll(inputs)
+
+    then:
+    def e = thrown(exception)
+    e.message == message
+
+    where:
+    problem                       | inputs || exception                | message
+    'elements of different classes' | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || IllegalArgumentException | "the elements of a checked collection must be of one class; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+    'a null element'              | [VALID, null] || NullPointerException     | 'the element at [1] is null'
+    'no collection'               | null || NullPointerException     | 'inputs'
+  }
+
+  def 'Muster rejects a collection without a mode'() {
+    when:
+    vehicles().checkAll([VALID], null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'mode'
+  }
+
+  def 'a binding checks a collection with the rules bound to the class of its elements'() {
+    given:
+    def binding = vehicles().binding(VehicleFields).build()
+
+    when:
+    binding.checkAll([new UpdateVehicle(1L, 'bad', 'Zeus'), new UpdateVehicle(2L, 'TR-2', 'taken')])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [0]', 'vehicle.name-unique [1]']
+  }
+
+  def 'a binding of a type that is not final rejects elements of different classes'() {
+    when:
+    vehicles().binding(VehicleFields).build().checkAll([VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the elements of a checked collection must be of one class; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+  }
+
+  def 'a binding of a final type checks a collection with its own chain'() {
+    given:
+    def binding = vehicles().binding(CreateVehicle).rules(NameUnique).build()
+
+    when:
+    binding.checkAll([VALID, INVALID])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.name-unique [1]', 'vehicle.code-format [1]']
+  }
+
+  def 'a binding of #type.simpleName passes an empty collection, and one whose elements pass'() {
+    expect:
+    vehicles().binding(type).build().checkAll(inputs)
+
+    where:
+    [type, inputs] << [[VehicleFields, CreateVehicle], [[], [VALID]]].combinations()
+  }
+
+  def 'a binding rejects an element of another type, which only unchecked code can pass'() {
+    when:
+    vehicles().binding(CreateVehicle).build().checkAll([VALID, 'two'])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the binding checks ${CreateVehicle.typeName}; the element at [1] is a java.lang.String"
+  }
+
   def 'the position of a violation is read from the front of its target: #target'() {
     expect:
     RuleChain.position(violation(target)) == position

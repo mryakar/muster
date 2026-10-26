@@ -131,15 +131,17 @@ public final class RuleChain<I> {
    *     code can pass
    */
   public void checkAll(Collection<? extends I> inputs) {
-    runAll(elements(inputs, inputType, "chain"), mode);
+    runAll(elements(inputs, inputType, false, "chain"), mode);
   }
 
   /**
    * Returns the inputs of a check of a collection, after checking that every element is of the
-   * given type.
+   * given type and, if asked, of one class: a chain bound to a class checks that class only.
    */
-  static List<?> elements(Collection<?> inputs, Class<?> inputType, String checker) {
+  static List<?> elements(
+      Collection<?> inputs, Class<?> inputType, boolean oneClass, String checker) {
     requireNonNull(inputs, "inputs");
+    Class<?> first = null;
     var position = 0;
     for (var input : inputs) {
       if (input == null) {
@@ -154,6 +156,17 @@ public final class RuleChain<I> {
                 + "; the element at ["
                 + position
                 + "] is a "
+                + input.getClass().getTypeName());
+      }
+      if (first == null) {
+        first = input.getClass();
+      } else if (oneClass && input.getClass() != first) {
+        throw new IllegalArgumentException(
+            "the elements of a checked collection must be of one class; the element at [0] is a "
+                + first.getTypeName()
+                + ", the element at ["
+                + position
+                + "] a "
                 + input.getClass().getTypeName());
       }
       position++;
