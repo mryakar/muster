@@ -244,7 +244,7 @@ public final class RuleChain<I> {
                       eligible.length == size
                           ? inputs
                           : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
-                      ctx.toBuilder().elements(eligible).build()),
+                      ctx.toBuilder().positions(eligible).build()),
               "");
       if (violations == null) {
         for (var position : eligible) {

@@ -53,7 +53,7 @@ public final class RuleContext {
    * The positions, in the checked collection, of the inputs that {@code checkAll} receives, by
    * their index in its list; {@code null} where they are the same.
    */
-  private final int @Nullable [] elements;
+  private final int @Nullable [] positions;
 
   /** The position, in the checked collection, of the element this context is about, or none. */
   private final int element;
@@ -62,12 +62,12 @@ public final class RuleContext {
       String ruleId,
       @Nullable Principal caller,
       Locale locale,
-      int @Nullable [] elements,
+      int @Nullable [] positions,
       int element) {
     this.ruleId = ruleId;
     this.caller = caller;
     this.locale = locale;
-    this.elements = elements;
+    this.positions = positions;
     this.element = element;
   }
 
@@ -185,17 +185,17 @@ public final class RuleContext {
               + "] already; get the contexts of elements from the context that checkAll receives");
     }
     int position;
-    if (elements == null) {
+    if (positions == null) {
       if (index < 0) {
         throw new IllegalArgumentException("the index " + index + " is negative");
       }
       position = index;
     } else {
-      if (index < 0 || index >= elements.length) {
+      if (index < 0 || index >= positions.length) {
         throw new IllegalArgumentException(
-            "the index " + index + " is not that of one of the " + elements.length + " inputs");
+            "the index " + index + " is not that of one of the " + positions.length + " inputs");
       }
-      position = elements[index];
+      position = positions[index];
     }
     return new RuleContext(ruleId, caller, locale, null, position);
   }
@@ -205,7 +205,7 @@ public final class RuleContext {
    *
    * @return the position, or empty if this context is not about an element
    */
-  public OptionalInt elementIndex() {
+  public OptionalInt elementPosition() {
     return element == NONE ? OptionalInt.empty() : OptionalInt.of(element);
   }
 
@@ -260,7 +260,7 @@ public final class RuleContext {
     private final String ruleId;
     private @Nullable Principal caller;
     private Locale locale = Locale.ROOT;
-    private int @Nullable [] elements;
+    private int @Nullable [] positions;
     private int element = NONE;
 
     private Builder(String ruleId) {
@@ -272,7 +272,7 @@ public final class RuleContext {
       ruleId = context.ruleId;
       caller = context.caller;
       locale = context.locale;
-      elements = context.elements;
+      positions = context.positions;
       element = context.element;
     }
 
@@ -310,7 +310,7 @@ public final class RuleContext {
      * @throws IllegalArgumentException if a position is negative, or not greater than the one
      *     before
      */
-    public Builder elements(int... positions) {
+    public Builder positions(int... positions) {
       var copy = requireNonNull(positions, "positions").clone();
       for (var i = 0; i < copy.length; i++) {
         if (copy[i] < 0 || (i > 0 && copy[i] <= copy[i - 1])) {
@@ -318,7 +318,7 @@ public final class RuleContext {
               "the positions must be ascending and not negative: " + Arrays.toString(copy));
         }
       }
-      elements = copy;
+      this.positions = copy;
       element = NONE;
       return this;
     }
@@ -330,7 +330,7 @@ public final class RuleContext {
      * @return the context
      */
     public RuleContext build() {
-      return new RuleContext(ruleId, caller, locale, elements, element);
+      return new RuleContext(ruleId, caller, locale, positions, element);
     }
   }
 }
