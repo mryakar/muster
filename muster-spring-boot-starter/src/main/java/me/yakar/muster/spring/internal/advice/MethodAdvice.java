@@ -16,18 +16,23 @@
 package me.yakar.muster.spring.internal.advice;
 
 import java.lang.reflect.Method;
-import me.yakar.muster.Binding;
+import java.util.Collection;
+import java.util.function.Consumer;
 import me.yakar.muster.Muster;
 import org.jspecify.annotations.Nullable;
 
-/** What Muster does before an advised method runs. */
-record MethodAdvice(String label, Binding<Object> binding, @Nullable TransactionGuard transaction) {
+/**
+ * What Muster does before an advised method runs: check its input, a single one or a collection,
+ * against its rules.
+ */
+record MethodAdvice(
+    String label, Consumer<@Nullable Object> rules, @Nullable TransactionGuard transaction) {
 
   /**
    * Prepares the advice of a method.
    *
    * @throws IllegalStateException if the method cannot be checked, see {@link
-   *     AdvisedMethods#requireCheckable}
+   *     AdvisedMethods#requireCheckable}, or takes a collection whose element type is not known
    */
   @SuppressWarnings("unchecked")
   static MethodAdvice of(
@@ -36,23 +41,43 @@ record MethodAdvice(String label, Binding<Object> binding, @Nullable Transaction
       Method method,
       Class<?> targetClass) {
     var label = AdvisedMethods.label(method, targetClass);
-    var rules = AdvisedMethods.rules(method);
-    AdvisedMethods.requireCheckable(method, rules, label);
-    var builder = muster.binding((Class<Object>) method.getParameterTypes()[0]).name(label);
-    if (rules != null) {
-      builder.rules(rules.value()).exclude(rules.exclude());
-      if (rules.mode().length == 1) {
-        builder.mode(rules.mode()[0]);
+    var annotation = AdvisedMethods.rules(method);
+    AdvisedMethods.requireCheckable(method, annotation, label);
+    var transaction = transactions == null ? null : transactions.forMethod(method, targetClass);
+    var parameterType = method.getParameterTypes()[0];
+    if (!Collection.class.isAssignableFrom(parameterType)) {
+      var builder = muster.binding((Class<Object>) parameterType).name(label);
+      if (annotation != null) {
+        builder.rules(annotation.value()).exclude(annotation.exclude());
+        if (annotation.mode().length == 1) {
+          builder.mode(annotation.mode()[0]);
+        }
+      }
+      var binding = builder.build();
+      return new MethodAdvice(label, binding::check, transaction);
+    }
+    var elementType = AdvisedMethods.elementType(method, 0, targetClass);
+    if (elementType == null) {
+      throw new IllegalStateException(
+          label
+              + " takes a collection whose element type is not known, so Muster cannot tell"
+              + " which rules check its elements; name it, as in List<CreateVehicle>");
+    }
+    var builder = muster.collectionBinding((Class<Object>) elementType).name(label);
+    if (annotation != null) {
+      builder.rules(annotation.value()).exclude(annotation.exclude());
+      if (annotation.mode().length == 1) {
+        builder.mode(annotation.mode()[0]);
       }
     }
-    var transaction = transactions == null ? null : transactions.forMethod(method, targetClass);
-    return new MethodAdvice(label, builder.build(), transaction);
+    var binding = builder.build();
+    return new MethodAdvice(label, input -> binding.check((Collection<Object>) input), transaction);
   }
 
   void check(@Nullable Object input) {
     if (transaction != null) {
       transaction.requireTransaction(label);
     }
-    binding.check(input);
+    rules.accept(input);
   }
 }

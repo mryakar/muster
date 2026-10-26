@@ -33,6 +33,13 @@ import me.yakar.muster.rule.BusinessRule;
  * ones. Public methods of a {@code @Service} bean that take a rule target check those without this
  * annotation.
  *
+ * <p>A parameter that is a collection, such as {@code List<CreateVehicle>}, is checked as a {@link
+ * me.yakar.muster.CollectionBinding} checks it: rules of each element, whose violations name the
+ * position of the element, and rules of the whole collection, such as {@code
+ * BusinessRule<List<CreateVehicle>>}. Its element type must be known: a raw {@code List}, {@code
+ * List<?>}, {@code List<? super E>} or an unbound {@code List<T>} stops the application. A
+ * collection of rule targets counts as a rule target for a {@code @Service}.
+ *
  * <p>The annotation is found as Spring finds {@code @Transactional}: on the method, on a method it
  * overrides or implements, and as a meta-annotation. The method must be public and neither static
  * nor final; wrong use stops the application. A call through {@code this} checks no rules. Other
