@@ -30,6 +30,7 @@ import me.yakar.muster.internal.rule.Step;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
+import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -47,7 +48,8 @@ import org.jspecify.annotations.Nullable;
  * requires another checks the elements that passed it.
  *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
- * gives it its own. Chains are immutable and thread-safe.
+ * gives it its own, and tells the {@link CheckListener listeners} of that {@code Muster} about
+ * every check. Chains are immutable and thread-safe.
  *
  * @param <I> the type of input
  */
@@ -55,23 +57,31 @@ public final class RuleChain<I> {
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
+  /** What a listener is told a check is of: the name of the binding, or of the input type. */
+  private final String name;
+
   private final Class<?> inputType;
   private final List<Step> steps;
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
   private final CheckMode mode;
+  private final @Nullable CheckListener listener;
 
   RuleChain(
+      String name,
       Class<?> inputType,
       List<Step> steps,
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale,
-      CheckMode mode) {
+      CheckMode mode,
+      @Nullable CheckListener listener) {
+    this.name = name;
     this.inputType = inputType;
     this.steps = List.copyOf(steps);
     this.caller = caller;
     this.locale = locale;
     this.mode = mode;
+    this.listener = listener;
   }
 
   /**
@@ -82,7 +92,8 @@ public final class RuleChain<I> {
    * @return the chain with the given mode
    */
   public RuleChain<I> withMode(CheckMode mode) {
-    return new RuleChain<>(inputType, steps, caller, locale, requireNonNull(mode, "mode"));
+    return new RuleChain<>(
+        name, inputType, steps, caller, locale, requireNonNull(mode, "mode"), listener);
   }
 
   /**
@@ -176,13 +187,35 @@ public final class RuleChain<I> {
 
   /**
    * Checks the elements of a collection, which the caller knows to be of the chain's type, in the
-   * given mode. Kept apart from {@link #run}, so that the loop of a single check stays as it is.
+   * given mode, and tells the listener about it. Kept apart from {@link #run}, so that the loop of
+   * a single check stays as it is.
    */
   void runAll(List<?> inputs, CheckMode mode) {
-    var size = inputs.size();
-    if (size == 0) {
+    // An empty collection runs no rule, and a listener is not told of it: a collection checked by
+    // the class of its elements has no chain without an element.
+    if (inputs.isEmpty()) {
       return;
     }
+    var observed =
+        listener == null
+            ? null
+            : ObservedCheck.start(listener, name, inputType, mode, true, inputs.size());
+    try {
+      runEach(inputs, mode, observed);
+    } catch (Throwable e) {
+      if (observed != null) {
+        observed.ended(e);
+      }
+      throw e;
+    }
+    if (observed != null) {
+      observed.passed();
+    }
+  }
+
+  /** Checks the elements of a collection, which is not empty. */
+  private void runEach(List<?> inputs, CheckMode mode, @Nullable ObservedCheck observed) {
+    var size = inputs.size();
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     ArrayList<Violation> found = null;
@@ -190,30 +223,46 @@ public final class RuleChain<I> {
     var passed = new boolean[steps.size()][];
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
+      var rule = step.rule();
+      if (observed != null) {
+        observed.ruleStarted(rule);
+      }
       passed[i] = new boolean[size];
       var eligible = eligible(step.requires(), passed, size);
       // A rule of the whole collection checks it only once every element passed what it requires.
       if (step.whole() ? eligible.length < size : eligible.length == 0) {
+        if (observed != null) {
+          observed.ruleSkipped();
+        }
         continue;
       }
-      var rule = step.rule();
       var context = rule.context().toBuilder().locale(callLocale);
       if (callCaller != null) {
         context.caller(callCaller);
       }
       var ctx = context.build();
       if (!rule.instance().appliesTo(ctx)) {
+        if (observed != null) {
+          observed.ruleSkipped();
+        }
         continue;
       }
       if (step.whole()) {
         var violations = violations(rule, rule.instance().check(inputs, ctx), "");
         if (violations == null) {
           Arrays.fill(passed[i], true);
-        } else if (mode == CheckMode.FAIL_FAST) {
-          throw new BusinessRuleViolationException(violations);
-        } else {
-          found = add(found, violations);
+          if (observed != null) {
+            observed.rulePassed();
+          }
+          continue;
         }
+        if (observed != null) {
+          observed.ruleFailed(violations);
+        }
+        if (mode == CheckMode.FAIL_FAST) {
+          throw new BusinessRuleViolationException(violations);
+        }
+        found = add(found, violations);
         continue;
       }
       if (!rule.checksAll()) {
@@ -226,6 +275,8 @@ public final class RuleChain<I> {
                   + " override checkAll; override it to check them at once, or call"
                   + " BusinessRule.super.checkAll from it to keep checking them one by one");
         }
+        // The violations the rule finds in collect-all mode follow this many in the list.
+        var before = found == null ? 0 : found.size();
         for (var position : eligible) {
           var violations =
               violations(
@@ -235,10 +286,16 @@ public final class RuleChain<I> {
           if (violations == null) {
             passed[i][position] = true;
           } else if (mode == CheckMode.FAIL_FAST) {
+            if (observed != null) {
+              observed.ruleFailed(violations);
+            }
             throw new BusinessRuleViolationException(violations);
           } else {
             found = add(found, violations);
           }
+        }
+        if (observed != null) {
+          endedOneByOne(observed, found, before);
         }
         continue;
       }
@@ -258,7 +315,13 @@ public final class RuleChain<I> {
         for (var position : eligible) {
           passed[i][position] = true;
         }
+        if (observed != null) {
+          observed.rulePassed();
+        }
         continue;
+      }
+      if (observed != null) {
+        observed.ruleFailed(violations);
       }
       if (mode == CheckMode.FAIL_FAST) {
         throw new BusinessRuleViolationException(violations);
@@ -268,6 +331,19 @@ public final class RuleChain<I> {
     }
     if (found != null) {
       throw new BusinessRuleViolationException(found);
+    }
+  }
+
+  /**
+   * Tells the observer how a rule that checked the elements one by one, in collect-all mode, ended:
+   * with the violations found since it started, or none.
+   */
+  private static void endedOneByOne(
+      ObservedCheck observed, @Nullable ArrayList<Violation> found, int before) {
+    if (found == null || found.size() == before) {
+      observed.rulePassed();
+    } else {
+      observed.ruleFailed(List.copyOf(found.subList(before, found.size())));
     }
   }
 
@@ -364,58 +440,89 @@ public final class RuleChain<I> {
     return true;
   }
 
-  /** Checks an input that the caller knows to be of the chain's type, in the given mode. */
+  /**
+   * Checks an input that the caller knows to be of the chain's type, in the given mode, and tells
+   * the listener about it. One loop, so that the JIT compiles the check as a whole; without a
+   * listener it pays one null check, and the loop tests a local that is null.
+   */
   void run(Object input, CheckMode mode) {
-    var callCaller = caller.get();
-    var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
-    // Created on the first failure, so that a passing check allocates no list.
-    ArrayList<Violation> found = null;
-    var passed = new boolean[steps.size()];
-    for (var i = 0; i < steps.size(); i++) {
-      var step = steps.get(i);
-      if (!allPassed(step.requires(), passed)) {
-        continue;
-      }
-      var rule = step.rule();
-      // From the context prepared with the rule, so that the rule id is not checked again.
-      var context = rule.context().toBuilder().locale(callLocale);
-      if (callCaller != null) {
-        context.caller(callCaller);
-      }
-      var ctx = context.build();
-      if (!rule.instance().appliesTo(ctx)) {
-        continue;
-      }
-      var result = rule.instance().check(input, ctx);
-      if (result == null) {
-        throw new NullPointerException("rule '" + rule.id() + "' returned null");
-      }
-      if (result instanceof RuleResult.Failed failed) {
-        var violations = failed.violations();
-        for (var violation : violations) {
-          if (!violation.ruleId().equals(rule.id())) {
-            throw new IllegalStateException(
-                "rule '"
-                    + rule.id()
-                    + "' reported a violation of rule '"
-                    + violation.ruleId()
-                    + "'; build violations from the RuleContext the rule receives");
+    var observed =
+        listener == null ? null : ObservedCheck.start(listener, name, inputType, mode, false, 1);
+    try {
+      var callCaller = caller.get();
+      var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
+      // Created on the first failure, so that a passing check allocates no list.
+      ArrayList<Violation> found = null;
+      var passed = new boolean[steps.size()];
+      for (var i = 0; i < steps.size(); i++) {
+        var step = steps.get(i);
+        var rule = step.rule();
+        if (observed != null) {
+          observed.ruleStarted(rule);
+        }
+        if (!allPassed(step.requires(), passed)) {
+          if (observed != null) {
+            observed.ruleSkipped();
+          }
+          continue;
+        }
+        // From the context prepared with the rule, so that the rule id is not checked again.
+        var context = rule.context().toBuilder().locale(callLocale);
+        if (callCaller != null) {
+          context.caller(callCaller);
+        }
+        var ctx = context.build();
+        if (!rule.instance().appliesTo(ctx)) {
+          if (observed != null) {
+            observed.ruleSkipped();
+          }
+          continue;
+        }
+        var result = rule.instance().check(input, ctx);
+        if (result == null) {
+          throw new NullPointerException("rule '" + rule.id() + "' returned null");
+        }
+        if (result instanceof RuleResult.Failed failed) {
+          var violations = failed.violations();
+          for (var violation : violations) {
+            if (!violation.ruleId().equals(rule.id())) {
+              throw new IllegalStateException(
+                  "rule '"
+                      + rule.id()
+                      + "' reported a violation of rule '"
+                      + violation.ruleId()
+                      + "'; build violations from the RuleContext the rule receives");
+            }
+          }
+          if (observed != null) {
+            observed.ruleFailed(violations);
+          }
+          if (mode == CheckMode.FAIL_FAST) {
+            // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
+            throw new BusinessRuleViolationException(violations);
+          }
+          if (found == null) {
+            found = new ArrayList<>();
+          }
+          found.addAll(violations);
+        } else {
+          passed[i] = true;
+          if (observed != null) {
+            observed.rulePassed();
           }
         }
-        if (mode == CheckMode.FAIL_FAST) {
-          // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
-          throw new BusinessRuleViolationException(violations);
-        }
-        if (found == null) {
-          found = new ArrayList<>();
-        }
-        found.addAll(violations);
-      } else {
-        passed[i] = true;
       }
+      if (found != null) {
+        throw new BusinessRuleViolationException(found);
+      }
+    } catch (Throwable e) {
+      if (observed != null) {
+        observed.ended(e);
+      }
+      throw e;
     }
-    if (found != null) {
-      throw new BusinessRuleViolationException(found);
+    if (observed != null) {
+      observed.passed();
     }
   }
 

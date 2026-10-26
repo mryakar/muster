@@ -104,7 +104,9 @@ public final class ChainPlan {
     var collection = "a collection of " + elementClass.getTypeName();
     var name = selection.name();
     var label =
-        name == null || name.equals(collection) ? collection : name + " (" + collection + ")";
+        name == null || name.equals(elementClass.getTypeName())
+            ? collection
+            : name + " (" + collection + ")";
     var included = catalog.enabled(selection.listed());
     var listedOrder = List.copyOf(included.keySet());
     var notes = new ArrayList<String>();
