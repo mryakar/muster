@@ -19,6 +19,7 @@ import java.security.Principal;
 import java.util.Locale;
 import java.util.function.Supplier;
 import me.yakar.muster.Muster;
+import me.yakar.muster.spi.CheckListener;
 import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
@@ -34,9 +35,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 
 /**
- * Builds the application's {@link Muster} bean from its rule beans. Not annotated with {@code
- * Configuration}, so that component scanning does not find it; Muster's auto-configuration imports
- * it.
+ * Builds the application's {@link Muster} bean from its rule beans, with the {@link CheckListener}
+ * beans of the application in their order. Not annotated with {@code Configuration}, so that
+ * component scanning does not find it; Muster's auto-configuration imports it.
  */
 @Import(EngineConfiguration.SecurityConfiguration.class)
 public final class EngineConfiguration {
@@ -58,7 +59,8 @@ public final class EngineConfiguration {
   Muster muster(
       ConfigurableListableBeanFactory beanFactory,
       Environment environment,
-      ObjectProvider<SecurityCaller> securityCaller) {
+      ObjectProvider<SecurityCaller> securityCaller,
+      ObjectProvider<CheckListener> listeners) {
     var ruleBeans = RuleBeans.read(beanFactory);
     var builder =
         Muster.builder()
@@ -70,6 +72,7 @@ public final class EngineConfiguration {
     if (caller != null) {
       builder.caller(caller);
     }
+    listeners.orderedStream().forEach(builder::listener);
     return builder.build();
   }
 

@@ -20,6 +20,7 @@ import me.yakar.muster.spi.MessageResolver;
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration;
 import me.yakar.muster.spring.internal.engine.EngineConfiguration;
 import me.yakar.muster.spring.internal.engine.MessagesConfiguration;
+import me.yakar.muster.spring.internal.observation.ObservationConfiguration;
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -34,7 +35,10 @@ import org.springframework.context.i18n.LocaleContextHolder;
  * resolves messages through a {@link MessageResolver} bean backed by the message source of the
  * application, and, in a Spring MVC application, answers a {@link
  * me.yakar.muster.BusinessRuleViolationException} with problem details (RFC 9457). A {@code
- * WebMvcTest} gets the message resolver and the problem details, without the rules.
+ * WebMvcTest} gets the message resolver and the problem details, without the rules. When the
+ * application has an {@code ObservationRegistry}, every check and rule is observed with Micrometer
+ * Observation; the {@link me.yakar.muster.spi.CheckListener} beans of the application observe them
+ * too, in their order.
  *
  * <p>A {@code Muster}, {@code MessageResolver}, {@code Supplier<Principal>} or {@code
  * Supplier<Locale>} bean of the application replaces the starter's; an application with a {@code
@@ -42,12 +46,15 @@ import org.springframework.context.i18n.LocaleContextHolder;
  * {@code muster.*} properties and the details are in the <a
  * href="https://github.com/mryakar/muster#usage-with-spring-boot">README</a>.
  */
-@AutoConfiguration
+@AutoConfiguration(
+    afterName =
+        "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration")
 @Import({
   EngineConfiguration.class,
   MessagesConfiguration.class,
   AdviceConfiguration.class,
-  ProblemDetailsConfiguration.class
+  ProblemDetailsConfiguration.class,
+  ObservationConfiguration.class
 })
 public final class MusterAutoConfiguration {
 
