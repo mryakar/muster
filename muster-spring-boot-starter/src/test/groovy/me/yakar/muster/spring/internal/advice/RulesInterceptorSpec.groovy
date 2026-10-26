@@ -45,6 +45,7 @@ class RulesInterceptorSpec extends Specification {
 
   def muster = Muster.builder().build()
   def interceptor = new RulesInterceptor(
+  new AdviceTable(),
   [getObject: { Object[] args ->
       muster
     }, getIfAvailable: { Object[] args ->
@@ -129,7 +130,9 @@ class RulesInterceptorSpec extends Specification {
         advisor
       }] as ObjectProvider)
     def resolved = 0
+    def table = new AdviceTable()
     reentered = new RulesInterceptor(
+        table,
         [getObject: { Object[] args ->
             resolved++
             muster
@@ -145,7 +148,7 @@ class RulesInterceptorSpec extends Specification {
 
     then: 'all are prepared, and Muster is got once, before the lock'
     noted
-    reentered.@prepared.keySet() == [VehicleComponent, OtherComponent, LaterComponent] as Set
+    [VehicleComponent, OtherComponent, LaterComponent].every { table.contains(it) }
     resolved == 1
   }
 }
