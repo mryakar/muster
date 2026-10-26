@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import me.yakar.muster.internal.rule.ChainPlan;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
@@ -69,6 +70,9 @@ public final class CollectionBinding<E> {
       bound.plan().log();
       this.only = bound.chain();
     } else {
+      // Each class is bound on its first check; planning the declared type now fails at once for
+      // listed rules, and what they require, that cannot check its elements.
+      ChainPlan.collection(muster.catalog(), elementType, selection);
       this.only = null;
     }
   }
@@ -222,7 +226,8 @@ public final class CollectionBinding<E> {
      * @return the binding
      * @throws IllegalArgumentException if a listed rule is not registered or neither accepts the
      *     elements nor checks whole collections of them, an excluded rule is not registered or is
-     *     also listed, or a listed rule requires an excluded rule, directly or through other rules
+     *     also listed, a listed rule requires an excluded rule, directly or through other rules, or
+     *     a listed rule requires one that can check neither
      */
     public CollectionBinding<E> build() {
       var catalog = muster.catalog();

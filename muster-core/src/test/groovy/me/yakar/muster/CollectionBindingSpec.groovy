@@ -165,6 +165,49 @@ class CollectionBindingSpec extends EngineSpecification {
     thrown(IllegalArgumentException)
   }
 
+  /** Checks anything that can be iterated: neither a vehicle nor, as a rule of the whole, a list of them. */
+  @Rule(id = 'any.iterable')
+  static class AnyIterable implements BusinessRule<Iterable<?>> {
+    RuleResult check(Iterable<?> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.iterated')
+  @RequiresRule(AnyIterable)
+  static class Iterated implements BusinessRule<List<VehicleFields>> {
+    RuleResult check(List<VehicleFields> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static String cannotCheckIterable(String label) {
+    "the chain for $label cannot check rule 'any.iterable', which checks java.lang.Iterable: neither $CREATE nor a list of $CREATE is one; a rule of the whole collection checks a list, so what it requires checks lists or each element".toString()
+  }
+
+  def 'a rule of the whole collection that requires a rule able to check neither stops a binding when it is built: #type.simpleName'() {
+    when:
+    vehicles(new AnyIterable(), new Iterated()).collectionBinding(type).rules(Iterated).build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == message.replace(CREATE, type.typeName)
+
+    where:
+    type || message
+    CreateVehicle || cannotCheckIterable("a collection of ${CREATE}")
+    VehicleFields || cannotCheckIterable("a collection of ${CREATE}")
+  }
+
+  def 'such a rule bound by type stops the first check of a collection'() {
+    when:
+    vehicles(new AnyIterable(), new Iterated()).checkAll([VALID])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == cannotCheckIterable("a collection of ${CREATE}")
+  }
+
   def 'listed rules of the elements and of the whole collection run in the order they are listed'() {
     given:
     def binding = vehicles(new CodeFormat(), new BatchLimit()).collectionBinding(CreateVehicle).rules(BatchLimit, CodeFormat).build()
