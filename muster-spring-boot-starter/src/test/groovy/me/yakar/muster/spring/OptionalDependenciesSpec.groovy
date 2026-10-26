@@ -24,8 +24,8 @@ import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import spock.lang.Specification
 
 /**
- * The starter's optional dependencies, Spring's transactions, Spring Security, Spring Web and Bean
- * Validation, may be absent from an application. Spring introspects a bean's class, so the classes it creates without
+ * The starter's optional dependencies, Spring's transactions, Spring Security, Spring Web, Bean
+ * Validation and Micrometer Observation, may be absent from an application. Spring introspects a bean's class, so the classes it creates without
  * one of them must not name its types in a field, a constructor or a method; the tests run with all
  * of them on the class path, so only the signatures can show it.
  */
@@ -35,6 +35,7 @@ class OptionalDependenciesSpec extends Specification {
   static final String SECURITY = 'org.springframework.security'
   static final String WEB = 'org.springframework.web'
   static final String VALIDATION = 'jakarta.validation'
+  static final String MICROMETER = 'io.micrometer'
 
   /** The classes that the starter creates, or Spring reads, without any optional dependency. */
   static final List<Class<?>> WITHOUT_ANY = [
@@ -62,12 +63,19 @@ class OptionalDependenciesSpec extends Specification {
     names(type).findAll { it.startsWith(dependency) }.empty
 
     where:
-    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB, VALIDATION]].combinations() +
-    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB, VALIDATION]].combinations() +
-    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY, VALIDATION]].combinations() +
+    [type, dependency] << [WITHOUT_ANY, [TRANSACTION, SECURITY, WEB, VALIDATION, MICROMETER]].combinations() +
+    [[classOf('internal.engine.SecurityCaller')], [TRANSACTION, WEB, VALIDATION, MICROMETER]].combinations() +
+    [[ProblemDetailsConfiguration], [TRANSACTION, SECURITY, VALIDATION, MICROMETER]].combinations() +
     [
       [classOf('internal.advice.TransactionOrdering'), classOf('internal.advice.TransactionGuard')],
-      [SECURITY, WEB, VALIDATION]
+      [SECURITY, WEB, VALIDATION, MICROMETER]
+    ].combinations() +
+    [
+      [
+        classOf('internal.observation.ObservationConfiguration'),
+        classOf('internal.observation.ObservationListener')
+      ],
+      [TRANSACTION, SECURITY, WEB, VALIDATION]
     ].combinations()
   }
 
