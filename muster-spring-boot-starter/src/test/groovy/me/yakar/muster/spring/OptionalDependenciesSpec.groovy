@@ -49,6 +49,7 @@ class OptionalDependenciesSpec extends Specification {
     classOf('internal.engine.MessageSourceTemplates'),
     classOf('internal.engine.OwnMusterCheck'),
     AdviceConfiguration,
+    classOf('internal.advice.AdviceTable'),
     classOf('internal.advice.RulesInterceptor'),
     classOf('internal.advice.MethodAdvice'),
     classOf('internal.advice.RulesAdvisor'),

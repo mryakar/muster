@@ -22,8 +22,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import me.yakar.muster.Muster;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -45,7 +43,7 @@ import org.springframework.util.ReflectionUtils;
  * created under the lock. A class that the same thread notes while it gets the {@code Muster} or
  * prepares a class, such as when preparing creates an advised bean, starts no pass of its own: the
  * running pass prepares it, since the pass repeats until no noted class is left unprepared. A call
- * reads {@link #prepared} without a lock: two map lookups.
+ * reads the {@link AdviceTable table} without a lock: two map lookups.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
@@ -57,13 +55,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   /** The classes the pointcut advises. Guarded by {@link #lock}. */
   private final Set<Class<?>> noted = new LinkedHashSet<>();
 
-  /**
-   * The advice of each method, by the class of the target and then by the method a proxy calls: the
-   * method of the class, a bridge, or a method of an interface or a base class. Written under
-   * {@link #lock}; read without it.
-   */
-  private final ConcurrentMap<Class<?>, Map<Method, MethodAdvice>> prepared =
-      new ConcurrentHashMap<>();
+  private final AdviceTable table;
 
   /** Guarded by {@link #lock}. */
   private boolean started;
@@ -83,7 +75,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   /** Whether the order of the transaction advice has been checked. Guarded by {@link #lock}. */
   private boolean orderChecked;
 
-  RulesInterceptor(ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
+  RulesInterceptor(
+      AdviceTable table,
+      ObjectProvider<Muster> muster,
+      ObjectProvider<TransactionGuard> transactions) {
+    this.table = table;
     this.muster = muster;
     this.transactions = transactions;
   }
@@ -91,7 +87,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   /** Notes a class the pointcut advises; once the application has started, prepares it at once. */
   void note(Class<?> targetClass) {
     // The pointcut notes a class again for every new proxy, such as of a prototype bean.
-    if (prepared.containsKey(targetClass)) {
+    if (table.contains(targetClass)) {
       return;
     }
     boolean prepare;
@@ -144,13 +140,13 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
           for (var targetClass : unprepared) {
-            prepared.put(targetClass, adviceOf(muster, resolved, targetClass));
+            table.put(targetClass, adviceOf(muster, resolved, targetClass));
           }
         }
       } finally {
         preparing = false;
       }
-      checkOrder = guard != null && !orderChecked && !prepared.isEmpty();
+      checkOrder = guard != null && !orderChecked && !table.isEmpty();
       orderChecked |= checkOrder;
     }
     if (checkOrder) {
@@ -160,7 +156,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   /** Returns the noted classes that are not prepared yet. Called under {@link #lock}. */
   private List<Class<?>> unprepared() {
-    return noted.stream().filter(targetClass -> !prepared.containsKey(targetClass)).toList();
+    return noted.stream().filter(targetClass -> !table.contains(targetClass)).toList();
   }
 
   /**
@@ -201,7 +197,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
               + invocation.getMethod().toGenericString()
               + " without a target");
     }
-    var methods = prepared.get(target.getClass());
+    var methods = table.get(target.getClass());
     if (methods == null) {
       methods = prepareOnCall(target.getClass(), invocation.getMethod());
     }
@@ -221,7 +217,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
       noted.add(targetClass);
     }
     prepareNoted();
-    var methods = prepared.get(targetClass);
+    var methods = table.get(targetClass);
     if (methods == null) {
       throw new IllegalStateException(
           AdvisedMethods.label(method, targetClass)

@@ -36,9 +36,17 @@ public final class AdviceConfiguration {
 
   @Bean
   @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+  static AdviceTable musterAdviceTable() {
+    return new AdviceTable();
+  }
+
+  @Bean
+  @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
   static RulesInterceptor musterRulesInterceptor(
-      ObjectProvider<Muster> muster, ObjectProvider<TransactionGuard> transactions) {
-    return new RulesInterceptor(muster, transactions);
+      AdviceTable musterAdviceTable,
+      ObjectProvider<Muster> muster,
+      ObjectProvider<TransactionGuard> transactions) {
+    return new RulesInterceptor(musterAdviceTable, muster, transactions);
   }
 
   // Infrastructure, so that the proxy creator that transaction management registers applies it.
