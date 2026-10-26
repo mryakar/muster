@@ -313,15 +313,19 @@ public final class RuleChain<I> {
    */
   static int position(Violation violation) {
     var target = violation.target().orElse("");
-    var end = target.indexOf(']');
-    if (!target.startsWith("[") || end < 2) {
+    if (!target.startsWith("[")) {
       return -1;
     }
-    try {
-      return Integer.parseInt(target, 1, end, 10);
-    } catch (NumberFormatException e) {
-      return -1;
+    // ASCII digits only, as the context writes them; no sign, and no digits of other scripts.
+    long position = 0;
+    var end = 1;
+    for (; end < target.length() && target.charAt(end) >= '0' && target.charAt(end) <= '9'; end++) {
+      position = position * 10 + target.charAt(end) - '0';
+      if (position > Integer.MAX_VALUE) {
+        return -1;
+      }
     }
+    return end > 1 && end < target.length() && target.charAt(end) == ']' ? (int) position : -1;
   }
 
   /** Returns the positions of the elements that passed every rule a rule requires, in order. */
