@@ -108,7 +108,8 @@ public final class RuleCatalog {
             + elementType.getTypeName()
             + " nor a list of "
             + elementType.getTypeName()
-            + " is");
+            + " is; a rule of the whole collection takes a List, SequencedCollection or Collection"
+            + " of its elements");
   }
 
   /**

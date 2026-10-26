@@ -331,7 +331,7 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "${ruleClass.typeName} checks $checks, which neither $CREATE nor a list of $CREATE is"
+    e.message == "${ruleClass.typeName} checks $checks, which neither $CREATE nor a list of $CREATE is; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements"
 
     where:
     rule                  | ruleClass || checks
