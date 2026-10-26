@@ -120,6 +120,43 @@ class CollectionCheckSpec extends EngineSpecification {
   @RequiresRule(FailsWith)
   static class NotifiedAfterFailing extends Notified {}
 
+  /** Counts how often it is asked whether it applies and how often it checks; requires a task to exist. */
+  @Rule(id = 'task.counted')
+  @RequiresRule(TaskExists)
+  static class Counted implements BusinessRule<Long> {
+    int asked
+    int checkedAll
+
+    boolean appliesTo(RuleContext ctx) {
+      asked++
+      true
+    }
+
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+
+    RuleResult checkAll(List<? extends Long> inputs, RuleContext ctx) {
+      checkedAll++
+      RuleResult.passed()
+    }
+  }
+
+  /** Counts how often it is asked whether it applies; checked one by one. */
+  @Rule(id = 'task.counted-one-by-one')
+  static class CountedOneByOne implements BusinessRule<Long> {
+    int asked
+
+    boolean appliesTo(RuleContext ctx) {
+      asked++
+      true
+    }
+
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   /** Returns null for the input 'b' only. */
   @Rule(id = 'rule.returns-null')
   static class ReturnsNullForB implements BusinessRule<String> {
@@ -385,6 +422,62 @@ class CollectionCheckSpec extends EngineSpecification {
 
     then:
     ran.empty
+  }
+
+  def 'when a rule checking at once passes every element, the rules that require it check them all'() {
+    given:
+    def notified = new Notified()
+    def chain = tasks(new TaskExists(ran), new AssignableAtOnce(), notified).build().chain(Long, TaskExists, AssignableAtOnce, Notified)
+
+    when:
+    chain.checkAll([1L, 2L, 3L])
+
+    then:
+    notified.checked == [1L, 2L, 3L]
+  }
+
+  def 'a rule is asked once whether it applies to a collection: #how'() {
+    when:
+    tasks(rule, new TaskExists(ran)).build().chain(Long, rule.getClass()).checkAll([1L, 2L, 3L])
+
+    then:
+    rule.asked == 1
+
+    where:
+    how            | rule
+    'at once'      | new Counted()
+    'one by one'   | new CountedOneByOne()
+  }
+
+  def 'a rule with no element left to check is not asked whether it applies, and checks nothing'() {
+    given:
+    def counted = new Counted()
+
+    when:
+    tasks(new TaskExists(ran), counted).build().chain(Long, TaskExists, Counted).checkAll([404L, 404L])
+
+    then:
+    thrown(BusinessRuleViolationException)
+    counted.asked == 0
+    counted.checkedAll == 0
+  }
+
+  def 'a rule that checks nothing of a collection is not logged as checked one by one: #how'() {
+    given:
+    def chain = tasks(new TaskExists(ran), new TaskAssignable(ran), new TaskImported(ran), new TaskFromImport(ran)).build()
+        .chain(Long, TaskAssignable, TaskFromImport)
+    logged.clear()
+
+    when:
+    chain.checkAll(inputs)
+
+    then:
+    thrown(BusinessRuleViolationException)
+    logged*.message.findAll { it.endsWith(ONE_BY_ONE) } == ["Rule 'task.exists' " + ONE_BY_ONE]
+
+    where:
+    how                                            | inputs
+    'it does not apply, or no element is left'     | [404L]
   }
 
   def 'a rule checking at once learns the caller and the locale of the call'() {
