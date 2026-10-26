@@ -15,6 +15,7 @@
  */
 package me.yakar.muster
 
+import static me.yakar.muster.Concurrency.concurrently
 import static me.yakar.muster.spi.CheckListener.Outcome.ERROR
 import static me.yakar.muster.spi.CheckListener.Outcome.FAILED
 import static me.yakar.muster.spi.CheckListener.Outcome.PASSED
@@ -541,5 +542,57 @@ class ObservedCheckSpec extends EngineSpecification {
     def e = thrown(IllegalStateException)
     listener.summary() == [['started', 'rule.throwing'], ['ended', 'rule.throwing', ERROR], ['check', ERROR]]
     listener.checkEnd().error().is(e)
+  }
+
+  /** Observes one check: what it is of, and the outcomes it is told. */
+  static class OneCheck implements Observer {
+    final Check check
+    final List<Object> outcomes = []
+
+    OneCheck(Check check) {
+      this.check = check
+    }
+
+    void ruleEnded(RuleEnd end) {
+      outcomes << end.ruleId() + ' ' + end.outcome()
+    }
+
+    void checkEnded(CheckEnd end) {
+      outcomes << 'check ' + end.outcome()
+    }
+  }
+
+  def 'checks on many threads at once each get an observer of their own, told of that check only'() {
+    given:
+    def observers = new CopyOnWriteArrayList<OneCheck>()
+    def muster = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran)).mode(CheckMode.COLLECT_ALL)
+        .listener({ check ->
+          def observer = new OneCheck(check)
+          observers << observer
+          observer
+        })
+        .build()
+    def chain = muster.chain(Long, TaskExists, TaskLocked)
+
+    when:
+    def rejected = concurrently { n ->
+      try {
+        chain.check(n % 2 == 0 ? 1L : 404L)
+        false
+      } catch (BusinessRuleViolationException e) {
+        true
+      }
+    }
+
+    then:
+    rejected == (0..<16).collect { it % 2 == 1 }
+    observers.size() == 16
+    observers.every { it.check == new Check(Long.name, Long, CheckMode.COLLECT_ALL, false, 1) }
+    observers.count {
+      it.outcomes == ['task.exists PASSED', 'task.locked PASSED', 'check PASSED']
+    } == 8
+    observers.count {
+      it.outcomes == ['task.exists FAILED', 'task.locked PASSED', 'check FAILED']
+    } == 8
   }
 }
