@@ -168,6 +168,7 @@ handler, and can inject its `MessageResolver` bean to resolve the messages.
 
 Rules learn who makes the call from Spring Security, when the application has it, and the locale
 from `LocaleContextHolder`; a `Supplier<Principal>` or `Supplier<Locale>` bean replaces either.
+With an `ObservationRegistry`, every check and rule is observed with Micrometer Observation.
 Rules can require other rules with `@RequiresRule`. Configuration changes the rest without a new
 build; a property set to nothing stops the application:
 
@@ -224,6 +225,17 @@ an earlier advice handles that exception. A controller advice that names
 parent one, replaces the handler for every controller, even if the advice applies to some
 controllers only. A controller's own handler comes first anyway. A `@WebMvcTest` gets the handler
 and the message resolver, without the rules.
+
+**Observations.** When the application has an `ObservationRegistry`, each check opens an
+observation `muster.check`, tagged `name` with the name of the binding, such as
+`VehicleService.create(CreateVehicle)`, or of the type checked, and each of its rules a child
+observation `muster.rule`, tagged `rule` with the rule id. Both get an `outcome` tag when they end:
+`passed`, `failed` or `error` for the check, and `skipped` as well for a rule; an error carries the
+exception, and a violation is not an error. Each observation
+is in scope while it runs, so what a rule calls, such as a repository, is observed under it. No tag
+carries a code, a target or an argument. The names and the tags are fixed; an `ObservationPredicate`
+of the registry that leaves `muster.check` out observes nothing of a check. The `CheckListener`
+beans of the application observe the checks too, in their order, before the starter's.
 
 ## Usage without Spring
 
