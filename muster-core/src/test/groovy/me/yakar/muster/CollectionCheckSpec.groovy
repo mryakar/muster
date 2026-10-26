@@ -120,6 +120,14 @@ class CollectionCheckSpec extends EngineSpecification {
   @RequiresRule(FailsWith)
   static class NotifiedAfterFailing extends Notified {}
 
+  /** Returns null for the input 'b' only. */
+  @Rule(id = 'rule.returns-null')
+  static class ReturnsNullForB implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      input == 'b' ? null : RuleResult.passed()
+    }
+  }
+
   /** Asks for the context of an element past the inputs it received. */
   @Rule(id = 'task.assignable-at-once')
   static class ReachesTooFar implements BusinessRule<Long> {
@@ -422,14 +430,14 @@ class CollectionCheckSpec extends EngineSpecification {
 
   def 'a rule checked one by one that returns null fails the check'() {
     given:
-    def chain = tasks(new RuleChainSpec.ReturnsNull()).build().chain(Object, RuleChainSpec.ReturnsNull)
+    def chain = tasks(new ReturnsNullForB()).build().chain(String, ReturnsNullForB)
 
     when:
-    chain.checkAll(['a'])
+    chain.checkAll(['a', 'b'])
 
     then:
     def e = thrown(NullPointerException)
-    e.message == "rule 'rule.returns-null' returned null"
+    e.message == "rule 'rule.returns-null' returned null for the element at [1]"
   }
 
   def 'a collection is checked element by element: #problem'() {

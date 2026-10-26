@@ -218,7 +218,10 @@ public final class RuleChain<I> {
         }
         for (var position : eligible) {
           var violations =
-              violations(rule, rule.instance().check(inputs.get(position), ctx.element(position)));
+              violations(
+                  rule,
+                  rule.instance().check(inputs.get(position), ctx.element(position)),
+                  " for the element at [" + position + "]");
           if (violations == null) {
             passed[i][position] = true;
           } else if (mode == CheckMode.FAIL_FAST) {
@@ -239,7 +242,8 @@ public final class RuleChain<I> {
                       eligible.length == size
                           ? inputs
                           : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
-                      ctx.toBuilder().elements(eligible).build()));
+                      ctx.toBuilder().elements(eligible).build()),
+              "");
       if (violations == null) {
         for (var position : eligible) {
           passed[i][position] = true;
@@ -259,11 +263,12 @@ public final class RuleChain<I> {
 
   /**
    * Returns the violations of a result, or {@code null} if it passed, after checking that they are
-   * the rule's own.
+   * the rule's own. The suffix tells what a null result was returned for.
    */
-  private static @Nullable List<Violation> violations(PreparedRule rule, RuleResult result) {
+  private static @Nullable List<Violation> violations(
+      PreparedRule rule, RuleResult result, String suffix) {
     if (result == null) {
-      throw new NullPointerException("rule '" + rule.id() + "' returned null");
+      throw new NullPointerException("rule '" + rule.id() + "' returned null" + suffix);
     }
     if (!(result instanceof RuleResult.Failed failed)) {
       return null;
