@@ -83,7 +83,7 @@ public final class Violation implements Serializable {
     code = builder.code;
     clientArgs = copy(builder.clientArgs);
     internalArgs = copy(builder.internalArgs);
-    target = builder.target;
+    target = builder.prefixedTarget();
     category = builder.category;
   }
 
@@ -203,7 +203,7 @@ public final class Violation implements Serializable {
   @Serial
   private Object readResolve() throws ObjectStreamException {
     try {
-      var builder = new Builder(requireRuleId(ruleId), code);
+      var builder = new Builder(requireRuleId(ruleId), code, -1);
       clientArgs.forEach(builder::clientArg);
       if (target != null) {
         builder.target(target);
@@ -237,15 +237,20 @@ public final class Violation implements Serializable {
     private @Nullable String target;
     private @Nullable Category category;
 
-    // Both constructors get a rule id that is already checked, and a valid rule id is a valid code.
-    Builder(String ruleId) {
+    /** The position of the element the violation is about, or a negative number for none. */
+    private final int element;
+
+    // The constructors get a rule id that is already checked, and a valid rule id is a valid code.
+    Builder(String ruleId, int element) {
       this.ruleId = ruleId;
       this.code = ruleId;
+      this.element = element;
     }
 
-    Builder(String ruleId, String code) {
+    Builder(String ruleId, String code, int element) {
       this.ruleId = ruleId;
       this.code = requireKey(code, "code");
+      this.element = element;
     }
 
     /**
@@ -297,7 +302,10 @@ public final class Violation implements Serializable {
     }
 
     /**
-     * Sets the field of the input the violation is about.
+     * Sets the field of the input the violation is about. A violation about an element of a
+     * collection, created from {@link RuleContext#element(int)}, gets the position of the element
+     * in front of it: {@code name} becomes {@code [3].name}, and {@code [0]} becomes {@code
+     * [3][0]}. Without a target, its target is the position alone, {@code [3]}.
      *
      * @param target the field, such as {@code name}
      * @return this builder
@@ -327,6 +335,17 @@ public final class Violation implements Serializable {
      */
     public Violation build() {
       return new Violation(this);
+    }
+
+    private @Nullable String prefixedTarget() {
+      if (element < 0) {
+        return target;
+      }
+      var position = "[" + element + "]";
+      if (target == null) {
+        return position;
+      }
+      return target.startsWith("[") ? position + target : position + "." + target;
     }
   }
 }
