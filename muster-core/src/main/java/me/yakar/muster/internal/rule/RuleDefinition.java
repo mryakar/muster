@@ -29,9 +29,15 @@ import org.jspecify.annotations.Nullable;
  * @param id the rule id
  * @param inputType the type of input the rule checks
  * @param requires the rules that must pass first, in the order the rule lists them
+ * @param elementType the type of the elements of the collections the rule checks, or {@code null}
+ *     if its input type is not a collection
  */
 public record RuleDefinition(
-    Class<?> ruleClass, String id, Class<?> inputType, List<Class<?>> requires) {
+    Class<?> ruleClass,
+    String id,
+    Class<?> inputType,
+    List<Class<?>> requires,
+    @Nullable Class<?> elementType) {
 
   /**
    * Reads the definition of a rule class.
@@ -44,7 +50,25 @@ public record RuleDefinition(
    */
   public static RuleDefinition of(Class<?> ruleClass) {
     return new RuleDefinition(
-        ruleClass, idOf(ruleClass), RuleTypes.inputType(ruleClass), requires(ruleClass));
+        ruleClass,
+        idOf(ruleClass),
+        RuleTypes.inputType(ruleClass),
+        requires(ruleClass),
+        RuleTypes.elementType(ruleClass));
+  }
+
+  /**
+   * Returns whether the rule checks whole collections of the given class of elements. Muster passes
+   * such a rule a copy of the collection as a list, so its input type must be one that a list is,
+   * such as {@code List} or {@code Collection}, and its elements must accept the class.
+   *
+   * @param elementClass the class of the elements
+   * @return whether the rule checks such collections
+   */
+  public boolean checksCollectionsOf(Class<?> elementClass) {
+    return elementType != null
+        && inputType.isAssignableFrom(List.class)
+        && elementType.isAssignableFrom(elementClass);
   }
 
   /**

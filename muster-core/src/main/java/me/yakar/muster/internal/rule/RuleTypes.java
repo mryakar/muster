@@ -15,11 +15,15 @@
  */
 package me.yakar.muster.internal.rule;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +45,8 @@ final class RuleTypes {
    * @throws IllegalArgumentException if the class does not name its input type
    */
   static Class<?> inputType(Class<?> ruleClass) {
-    var type = typeArgument(ruleClass, Map.of());
-    var inputType = type == null ? null : rawClass(type);
+    var found = typeArgument(ruleClass, BusinessRule.class, Map.of());
+    var inputType = found == null ? null : rawClass(found.type());
     if (inputType == null) {
       throw new IllegalArgumentException(
           "cannot tell what "
@@ -53,11 +57,56 @@ final class RuleTypes {
   }
 
   /**
-   * Finds the type argument of {@link BusinessRule} in {@code type} and its supertypes.
+   * Returns the type of the elements of the collections a rule class checks: the {@code E} of the
+   * {@link Collection} that the rule's input type is, as in {@code BusinessRule<List<E>>}. A
+   * wildcard or a type variable stands for its upper bound, so {@code List<?>}, a raw {@code List}
+   * and an unbound {@code List<T>} have {@code Object} elements.
+   *
+   * @param ruleClass the rule class, whose input type is known
+   * @return the element type, or {@code null} if the input type is not a collection
+   */
+  static @Nullable Class<?> elementType(Class<?> ruleClass) {
+    var input = requireNonNull(typeArgument(ruleClass, BusinessRule.class, Map.of()));
+    // The input type was read first, so it is known.
+    if (!Collection.class.isAssignableFrom(requireNonNull(rawClass(input.type())))) {
+      return null;
+    }
+    return boundClass(
+        requireNonNull(typeArgument(input.type(), Collection.class, input.bindings())).type());
+  }
+
+  /** Returns the class a type stands for, taking a wildcard or a type variable at its bound. */
+  private static Class<?> boundClass(Type type) {
+    if (type instanceof Class<?> plain) {
+      return plain;
+    }
+    if (type instanceof ParameterizedType parameterized) {
+      return (Class<?>) parameterized.getRawType();
+    }
+    if (type instanceof WildcardType wildcard) {
+      return boundClass(wildcard.getUpperBounds()[0]);
+    }
+    if (type instanceof TypeVariable<?> variable) {
+      return boundClass(variable.getBounds()[0]);
+    }
+    // The only other kind of type that reflection creates.
+    return boundClass(((GenericArrayType) type).getGenericComponentType()).arrayType();
+  }
+
+  /**
+   * A type argument, and what the type variables in it stand for, such as the {@code E} of a base
+   * class in {@code BusinessRule<List<E>>}.
+   */
+  private record Found(Type type, Map<TypeVariable<?>, Type> bindings) {}
+
+  /**
+   * Finds the first type argument of {@code target} in {@code type} and its supertypes. A raw
+   * {@code target} gives its own type variable.
    *
    * @param bindings what the type variables used in {@code type} stand for
    */
-  private static @Nullable Type typeArgument(Type type, Map<TypeVariable<?>, Type> bindings) {
+  private static @Nullable Found typeArgument(
+      Type type, Class<?> target, Map<TypeVariable<?>, Type> bindings) {
     Class<?> raw;
     var ownBindings = new HashMap<TypeVariable<?>, Type>();
     if (type instanceof ParameterizedType parameterized) {
@@ -70,11 +119,12 @@ final class RuleTypes {
     } else {
       raw = (Class<?>) type;
     }
-    if (raw == BusinessRule.class) {
-      return ownBindings.get(raw.getTypeParameters()[0]);
+    if (raw == target) {
+      var variable = raw.getTypeParameters()[0];
+      return new Found(ownBindings.getOrDefault(variable, variable), bindings);
     }
     for (var supertype : supertypes(raw)) {
-      var found = typeArgument(supertype, ownBindings);
+      var found = typeArgument(supertype, target, ownBindings);
       if (found != null) {
         return found;
       }

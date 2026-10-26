@@ -153,6 +153,93 @@ class RuleTypesSpec extends Specification {
     ThroughSuperclassAndInterface || Short
   }
 
+  static abstract class CollectionRule<E> implements BusinessRule<List<E>> {
+    RuleResult check(List<E> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class OfNames extends CollectionRule<String> {}
+
+  static class OfBoundElements<N extends Number> extends CollectionRule<N> {}
+
+  static class OfOpenElements<T> extends CollectionRule<T> {}
+
+  static class OfOpenArrays<T> extends CollectionRule<T[]> {}
+
+  static class OfStringArrays extends CollectionRule<String[]> {}
+
+  static class OfLists extends CollectionRule<List<String>> {}
+
+  static class OfWildcard implements BusinessRule<Collection<? extends Number>> {
+    RuleResult check(Collection<? extends Number> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class OfAnything implements BusinessRule<Set<?>> {
+    RuleResult check(Set<?> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class OfLowerBound implements BusinessRule<List<? super Integer>> {
+    RuleResult check(List<? super Integer> input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @SuppressWarnings('rawtypes')
+  static class OfRawList implements BusinessRule<List> {
+    RuleResult check(List input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @SuppressWarnings('rawtypes')
+  static class OfRawCollection implements BusinessRule<Collection> {
+    RuleResult check(Collection input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class Fleet extends ArrayList<Long> {}
+
+  static class OfFleet implements BusinessRule<Fleet> {
+    RuleResult check(Fleet input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  def 'the element type of a rule that checks collections is read from the class declaration: #ruleClass.simpleName'() {
+    expect:
+    RuleTypes.elementType(ruleClass) == elementType
+
+    where:
+    ruleClass || elementType
+    OfList || String
+    OfNames || String
+    OfBoundElements || Number
+    OfOpenElements || Object
+    OfOpenArrays || Object[]
+    OfStringArrays || String[]
+    OfLists || List
+    OfWildcard || Number
+    OfAnything || Object
+    OfLowerBound || Object
+    OfRawList || Object
+    OfRawCollection || Object
+    OfFleet || Long
+  }
+
+  def 'a rule whose input is not a collection has no element type: #ruleClass.simpleName'() {
+    expect:
+    RuleTypes.elementType(ruleClass) == null
+
+    where:
+    ruleClass << [Direct, ThroughBase, OfArray, OfGenericArray]
+  }
+
   def 'a class that does not name its input type is rejected'() {
     when:
     RuleTypes.inputType(ruleClass)
