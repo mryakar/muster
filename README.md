@@ -114,8 +114,16 @@ class VehicleService {
   @Transactional
   @Rules(value = VehicleNotInUse.class, mode = CheckMode.COLLECT_ALL)
   public void delete(Long id) { … } // the listed rules, on any bean
+
+  @Transactional
+  public void createAll(List<CreateVehicle> commands) { … } // each element, and the whole list
 }
 ```
+
+A method that takes a collection checks the rules of each element, whose violations name the
+position of the element as in `[3].name`, and the rules of the whole collection, such as a limit on
+its size in a `BusinessRule<List<CreateVehicle>>`. Its element type must be known: a raw `List`,
+`List<?>`, `List<? super E>` or an unbound `List<T>` stops the application.
 
 In a Spring MVC application, a violated rule becomes problem details (RFC 9457). The status
 follows the category: 403 for `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 for
@@ -229,7 +237,11 @@ RuleChain<CreateVehicle> create =
 create.check(command); // throws BusinessRuleViolationException if a rule is violated
 
 muster.check(command); // every rule whose input type accepts CreateVehicle
-muster.checkAll(commands); // each element of a collection, in one call
+muster.checkAll(commands); // each element of a collection, and the whole collection, in one call
+
+CollectionBinding<CreateVehicle> createAll =
+    muster.collectionBinding(CreateVehicle.class).rules(BatchLimit.class, VehicleNameUnique.class).build();
+createAll.check(commands); // the listed rules, of the whole collection and of each element
 ```
 
 A collection is checked in one call: each rule checks every element that passed the rules it
@@ -258,6 +270,10 @@ public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx
   return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
 }
 ```
+
+A rule whose input type is a list or a collection of the elements, such as
+`BusinessRule<List<CreateVehicle>>`, checks the whole collection: it gets a copy of the collection
+as a list, once every element passed the rules it requires, and its violations name no element.
 
 Muster checks a rule that does not override `checkAll` element by element, stops at the first
 violated element in fail-fast mode, and warns once. A rule meant to be checked that way overrides
