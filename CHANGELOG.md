@@ -15,6 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `muster.collectionBinding(E.class)` builds a `CollectionBinding`, which checks a collection with rules of each element and rules of the whole collection, listed or bound by type. A rule checks the whole collection when its input type is a `List`, `SequencedCollection` or `Collection` of the elements, such as `BusinessRule<List<CreateVehicle>>`: it gets a copy of the collection as a list, once every element passed the rules it requires.
 - A Spring method that takes a collection, such as `List<CreateVehicle>`, checks the rules of each element and of the whole collection, listed in `@Rules` or bound by type; a public method of a `@Service` that takes a collection of rule targets is checked without `@Rules`.
 - `RuleContext.element(i)` gives the context of one input of `checkAll`, and `RuleContext.elementPosition()` its position in the collection; `RuleContext.Builder.positions` sets the positions, to test a rule on part of a collection.
+- `Muster.Builder.listener(CheckListener)` registers a listener that observes every check: when it starts, with its name, input type, mode and size, when each of its rules starts and ends, with its outcome (passed, failed, skipped or error), how long it took, its violations or the exception it threw, and when the check ends. Each check gets an observer of its own, so a listener keeps no state to tell one check from another; listeners are told in the order they were added. A listener that throws stops the check. Without a listener, a check pays one null check.
 
 ### Changed
 
@@ -24,6 +25,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - A `@WebMvcTest` answers a `BusinessRuleViolationException` with problem details, as the application does: the slice now gets the handler and the message resolver.
+- A `BusinessRuleViolationException` keeps the exceptions suppressed on it, such as the failure of a resource closed while it propagates; it used to drop them.
 
 ## [0.2.0] - 2026-10-25
 

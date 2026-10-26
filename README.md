@@ -286,6 +286,26 @@ violated element in fail-fast mode, and warns once. A rule meant to be checked t
 `checkAll` with `return BusinessRule.super.checkAll(inputs, ctx);`, which drops the warning and
 checks every element, also in fail-fast mode.
 
+A `CheckListener`, registered with `listener`, observes every check: when it starts and ends, and
+when each rule starts and ends, with its outcome and how long it took. Each check gets an observer
+of its own, so the listener keeps no state of its own to tell one check from another:
+
+```java
+Muster muster = Muster.builder()
+    .rules(new VehicleNameUnique(vehicles), new VehiclePlateFormat())
+    .listener(check -> new CheckListener.Observer() {
+      @Override
+      public void ruleEnded(CheckListener.RuleEnd end) {
+        log.debug("{}: {} {} in {} ns", check.name(), end.ruleId(), end.outcome(), end.took().toNanos());
+      }
+    })
+    .build();
+```
+
+A rule ends passed, failed, skipped, when it does not apply or a rule it requires did not pass, or
+with an error, when it threw; the end of a check carries its violations or the exception. A listener
+that throws stops the check. Without a listener, a check pays one null check.
+
 What the starter does for you is up to you:
 
 - **Switching rules off:** read the ids from the environment or your configuration and pass them to
