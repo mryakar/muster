@@ -44,6 +44,8 @@ dependencies {
   compileOnly("org.springframework:spring-web")
   // Annotations that keep problem details whole whatever the JSON settings; Jackson reads them.
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
+  // Optional: checks and rules are observed when the application has an ObservationRegistry.
+  compileOnly("io.micrometer:micrometer-observation")
 }
 
 // Specs change JVM-wide state, such as the default locale, Muster's logger and the security
@@ -59,6 +61,7 @@ testing {
         implementation("org.springframework.boot:spring-boot-starter-webmvc-test")
         implementation("org.springframework.security:spring-security-core")
         implementation("org.springframework:spring-tx")
+        implementation("io.micrometer:micrometer-observation-test")
         implementation("org.spockframework:spock-spring")
       }
     }
