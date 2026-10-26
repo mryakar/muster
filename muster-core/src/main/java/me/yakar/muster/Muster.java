@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.Supplier;
 import me.yakar.muster.internal.rule.ChainPlan;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
@@ -71,6 +72,9 @@ public final class Muster {
   /** The listeners registered with the builder as one, or {@code null} if none was. */
   private final @Nullable CheckListener listener;
 
+  /** The ids of the disabled rules, in the order of the ids. */
+  private final SortedSet<String> disabledRules;
+
   /** The chains for rule targets, by the class of the input. */
   private final ClassChains targets = new ClassChains(this::bind);
 
@@ -88,6 +92,7 @@ public final class Muster {
     this.locale = locale;
     this.mode = mode;
     this.listener = listener;
+    this.disabledRules = catalog.disabledIds();
   }
 
   /**
@@ -222,6 +227,37 @@ public final class Muster {
     runAll(inputs, requireNonNull(mode, "mode"));
   }
 
+  /**
+   * Returns the ids of the rules that are switched off, in the order of the ids.
+   *
+   * @return the ids, unmodifiable
+   */
+  public Set<String> disabledRules() {
+    return disabledRules;
+  }
+
+  /**
+   * Returns the chains that {@link #check(RuleTarget)} bound by type so far, by class in the order
+   * of their names, each with the {@linkplain RuleChain#ruleIds() ids of its rules}. The map is a
+   * copy, taken now, that later checks do not change.
+   *
+   * @return the chains, unmodifiable
+   */
+  public Map<Class<?>, RuleChain<?>> chains() {
+    return targets.resolved();
+  }
+
+  /**
+   * Returns the chains that {@link #checkAll(Collection)} bound by type so far, by class of the
+   * elements in the order of their names, each with the {@linkplain RuleChain#ruleIds() ids of its
+   * rules}. The map is a copy, taken now, that later checks do not change.
+   *
+   * @return the chains, unmodifiable
+   */
+  public Map<Class<?>, RuleChain<?>> collectionChains() {
+    return collections.resolved();
+  }
+
   private void runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
     var elements = RuleChain.elements(inputs, RuleTarget.class, true, "Muster");
     if (!elements.isEmpty()) {
@@ -280,8 +316,13 @@ public final class Muster {
     return catalog;
   }
 
-  /** The mode of this {@code Muster}. */
-  CheckMode mode() {
+  /**
+   * Returns the mode of this {@code Muster}: the mode of a check unless a chain, a binding or the
+   * call has its own.
+   *
+   * @return the mode
+   */
+  public CheckMode mode() {
     return mode;
   }
 

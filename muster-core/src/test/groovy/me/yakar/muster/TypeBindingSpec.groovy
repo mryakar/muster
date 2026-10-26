@@ -333,4 +333,23 @@ class TypeBindingSpec extends EngineSpecification {
     def e = thrown(NullPointerException)
     e.message == 'input'
   }
+
+  def 'Muster tells the chains it bound by type so far, for single targets and for collections apart'() {
+    given:
+    def muster = Muster.builder().rules(new NameUnique(), new CodeFormat(), new VehicleKnown()).build()
+
+    expect:
+    muster.chains().isEmpty()
+    muster.collectionChains().isEmpty()
+
+    when:
+    muster.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
+    muster.checkAll([VALID])
+
+    then:
+    muster.chains().keySet().toList() == [UpdateVehicle]
+    muster.chains()[UpdateVehicle].ruleIds() == ['vehicle.code-format', 'vehicle.known', 'vehicle.name-unique']
+    muster.collectionChains().keySet().toList() == [CreateVehicle]
+    muster.collectionChains()[CreateVehicle].ruleIds() == ['vehicle.code-format', 'vehicle.name-unique']
+  }
 }

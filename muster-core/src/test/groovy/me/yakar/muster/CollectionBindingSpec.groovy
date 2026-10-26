@@ -566,4 +566,22 @@ class CollectionBindingSpec extends EngineSpecification {
     def e = thrown(BusinessRuleViolationException)
     described(e) == ['amount.positive [1]']
   }
+
+  def 'a binding tells the chains of the element classes checked so far, or its one chain for a type bound when it was built'() {
+    given:
+    def targets = vehicles(new BatchLimit(), new CodeFormat()).collectionBinding(VehicleFields).build()
+    def longs = vehicles(new TaskLimit()).collectionBinding(Long).rules(TaskLimit).build()
+
+    expect:
+    targets.chains().isEmpty()
+    longs.chains().keySet().toList() == [Long]
+    longs.chains()[Long].ruleIds() == ['task.limit']
+
+    when:
+    targets.check([VALID])
+
+    then:
+    targets.chains().keySet().toList() == [CreateVehicle]
+    targets.chains()[CreateVehicle].ruleIds() == ['vehicle.batch-limit', 'vehicle.code-format']
+  }
 }

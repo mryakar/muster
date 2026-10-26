@@ -18,10 +18,13 @@ package me.yakar.muster.internal.rule;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -120,6 +123,19 @@ public final class RuleCatalog {
    */
   public boolean isDisabled(Class<?> ruleClass) {
     return disabled.contains(ruleClass);
+  }
+
+  /**
+   * Returns the ids of the disabled rules, in the order of the ids.
+   *
+   * @return the ids, unmodifiable
+   */
+  public SortedSet<String> disabledIds() {
+    var ids = new TreeSet<String>();
+    for (var ruleClass : disabled) {
+      ids.add(registered(ruleClass).id());
+    }
+    return Collections.unmodifiableSortedSet(ids);
   }
 
   /**

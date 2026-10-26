@@ -229,4 +229,25 @@ class MusterSpec extends EngineSpecification {
     'id'         | { it.disable('task.exists', null) }
     'mode'       | { it.mode(null) }
   }
+
+  def 'Muster tells the ids of the disabled rules, in their order, as a set that cannot be changed'() {
+    given:
+    def disabled = Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique', 'vehicle.code-format').build().disabledRules()
+
+    expect:
+    disabled.toList() == ['vehicle.code-format', 'vehicle.name-unique']
+    Muster.builder().rules(new NameUnique()).build().disabledRules().isEmpty()
+
+    when:
+    disabled.clear()
+
+    then:
+    thrown(UnsupportedOperationException)
+  }
+
+  def 'Muster tells its mode, which is fail-fast unless set'() {
+    expect:
+    Muster.builder().build().mode() == CheckMode.FAIL_FAST
+    Muster.builder().mode(CheckMode.COLLECT_ALL).build().mode() == CheckMode.COLLECT_ALL
+  }
 }

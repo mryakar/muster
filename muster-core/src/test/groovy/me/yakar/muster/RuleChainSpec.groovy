@@ -440,4 +440,18 @@ class RuleChainSpec extends EngineSpecification {
     def e = thrown(NullPointerException)
     e.message == 'the locale supplier returned null'
   }
+
+  def 'a chain tells the ids of its rules, in the order they run, as a list that cannot be changed'() {
+    given:
+    def ids = Muster.builder().rules(new NameUnique(), new CodeFormat()).build().chain(CreateVehicle, CodeFormat, NameUnique).ruleIds()
+
+    expect:
+    ids == ['vehicle.code-format', 'vehicle.name-unique']
+
+    when:
+    ids.clear()
+
+    then:
+    thrown(UnsupportedOperationException)
+  }
 }

@@ -537,8 +537,13 @@ public final class RuleChain<I> {
         + "]";
   }
 
-  /** Returns the ids of the rules in the chain, in the order they run. */
-  List<String> ruleIds() {
+  /**
+   * Returns the ids of the rules of this chain, in the order they run: the listed rules, the rules
+   * bound by type for the chain of a binding, and the rules they require, less the disabled ones.
+   *
+   * @return the ids, unmodifiable
+   */
+  public List<String> ruleIds() {
     return steps.stream().map(step -> step.rule().id()).toList();
   }
 
