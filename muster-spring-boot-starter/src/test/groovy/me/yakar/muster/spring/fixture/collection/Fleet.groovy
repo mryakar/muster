@@ -91,6 +91,19 @@ class FleetService {
   void describeAll(List<String> names) {
     calls << names
   }
+
+  @Rules(AmountPositive)
+  void payAll(List<Number> amounts) {
+    calls << amounts
+  }
+}
+
+/** An amount must not be negative, whatever kind of number it is. */
+@Rule(id = 'fleet.amount-positive')
+class AmountPositive implements BusinessRule<Number> {
+  RuleResult check(Number input, RuleContext ctx) {
+    input.doubleValue() < 0 ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+  }
 }
 
 /** At most two ids in one call. */

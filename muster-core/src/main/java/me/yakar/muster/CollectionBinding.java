@@ -38,7 +38,9 @@ import org.jspecify.annotations.Nullable;
  * List<E>} or {@code Collection<E>}, and its elements accept those of the collection; Muster passes
  * it a copy of the collection as a list. Any other rule checks each element, as {@link
  * RuleChain#checkAll} describes. A rule of the whole collection checks it once every element passed
- * the rules it requires; its violations name no element.
+ * the rules it requires; its violations name no element. A rule that such a rule requires, and that
+ * checks each element, such as one of {@code Object} input, checks every element first, and the
+ * rule of the whole collection checks it only if every element passed.
  *
  * <p>The listed rules run first, in the order they are listed; the rules bound by type follow, of
  * both kinds together, each after the rules it requires, in the order of their ids. Collection
@@ -65,7 +67,10 @@ public final class CollectionBinding<E> {
     this.elementType = elementType;
     this.selection = selection;
     this.mode = mode;
-    if (Modifier.isFinal(elementType.getModifiers())) {
+    // Rules bind by type to rule targets only, so for other elements, of whatever classes, the
+    // chain of the declared type is the chain of each class.
+    if (Modifier.isFinal(elementType.getModifiers())
+        || !RuleTarget.class.isAssignableFrom(elementType)) {
       var bound = bind(elementType);
       bound.plan().log();
       this.only = bound.chain();
@@ -82,8 +87,9 @@ public final class CollectionBinding<E> {
    * violation rejects the whole call; a violation about an element names its position in its
    * target, as in {@code [3].name}. An empty collection passes without running a rule.
    *
-   * @param inputs the inputs; unless the element type of this binding is final, all of one class;
-   *     rules see an unmodifiable copy, taken when the check starts
+   * @param inputs the inputs; where the element type of this binding is a rule target that is not
+   *     final, all of one class, since rules bind to that class; rules see an unmodifiable copy,
+   *     taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code inputs} or an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
@@ -220,8 +226,9 @@ public final class CollectionBinding<E> {
     }
 
     /**
-     * Builds the binding. For a final element type, such as a record, it also binds the rules now
-     * and logs them; for other types, each class of elements is bound on its first check.
+     * Builds the binding. For a final element type, such as a record, or one that is not a rule
+     * target, it also binds the rules now and logs them; for other types, each class of elements is
+     * bound on its first check.
      *
      * @return the binding
      * @throws IllegalArgumentException if a listed rule is not registered or neither accepts the
