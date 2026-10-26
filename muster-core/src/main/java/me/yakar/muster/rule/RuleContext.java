@@ -310,7 +310,7 @@ public final class RuleContext {
      *     before
      */
     public Builder elements(int... positions) {
-      var copy = positions.clone();
+      var copy = requireNonNull(positions, "positions").clone();
       for (var i = 0; i < copy.length; i++) {
         if (copy[i] < 0 || (i > 0 && copy[i] <= copy[i - 1])) {
           throw new IllegalArgumentException(

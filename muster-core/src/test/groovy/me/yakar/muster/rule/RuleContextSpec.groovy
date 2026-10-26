@@ -234,6 +234,15 @@ class RuleContextSpec extends Specification {
     positions << [[-1], [0, 0], [2, 1], [0, 3, 2]]
   }
 
+  def 'positions are required'() {
+    when:
+    RuleContext.builder('task.ready').elements(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'positions'
+  }
+
   def 'positions are copied, and setting them makes a context of an element a context of the collection'() {
     given:
     def positions = [5, 6] as int[]

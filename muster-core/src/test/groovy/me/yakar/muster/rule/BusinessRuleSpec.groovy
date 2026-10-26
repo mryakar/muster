@@ -70,13 +70,13 @@ class BusinessRuleSpec extends Specification {
     inputs << [['Atlas', 'Zeus'], []]
   }
 
-  def 'checkAll fails when check returns null, naming the index'() {
+  def 'checkAll fails when check returns null, naming the position of the element'() {
     when:
-    new NameFree().checkAll(['Atlas', ' '], RuleContext.forRule('vehicle.name-free'))
+    new NameFree().checkAll(['Atlas', ' '], RuleContext.builder('vehicle.name-free').elements(3, 8).build())
 
     then:
     def e = thrown(NullPointerException)
-    e.message == "rule 'vehicle.name-free' returned null for the input at index 1"
+    e.message == "rule 'vehicle.name-free' returned null for the element at [8]"
   }
 
   def 'a rule applies to every call unless it says otherwise'() {

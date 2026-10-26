@@ -83,10 +83,15 @@ public interface BusinessRule<T> {
   default RuleResult checkAll(List<? extends T> inputs, RuleContext ctx) {
     var violations = new ArrayList<Violation>();
     for (var i = 0; i < inputs.size(); i++) {
-      var result = check(inputs.get(i), ctx.element(i));
+      var element = ctx.element(i);
+      var result = check(inputs.get(i), element);
       if (result == null) {
         throw new NullPointerException(
-            "rule '" + ctx.ruleId() + "' returned null for the input at index " + i);
+            "rule '"
+                + ctx.ruleId()
+                + "' returned null for the element at ["
+                + element.elementIndex().getAsInt()
+                + "]");
       }
       if (result instanceof RuleResult.Failed failed) {
         violations.addAll(failed.violations());
