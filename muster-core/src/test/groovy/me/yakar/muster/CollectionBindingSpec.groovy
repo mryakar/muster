@@ -15,6 +15,8 @@
  */
 package me.yakar.muster
 
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Level
 import me.yakar.muster.EngineSpecification.VehicleFields
@@ -163,6 +165,17 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     thrown(IllegalArgumentException)
+  }
+
+  /** Counts its checks; a rule of each vehicle. */
+  @Rule(id = 'vehicle.counted')
+  static class CountedVehicle implements BusinessRule<VehicleFields> {
+    final List<Object> checked = new CopyOnWriteArrayList<>()
+
+    RuleResult check(VehicleFields input, RuleContext ctx) {
+      checked << input
+      RuleResult.passed()
+    }
   }
 
   /** Checks anything that can be iterated: neither a vehicle nor, as a rule of the whole, a list of them. */
@@ -470,5 +483,37 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     limit.received == [[VALID]]
+  }
+
+  def 'threads that check a collection of a new class at the same time bind its rules once, and each runs them: #how'() {
+    given:
+    log.level = Level.FINE
+    def counted = new CountedVehicle()
+    def limit = new BatchLimit()
+    def muster = vehicles(counted, limit)
+    def binding = muster.collectionBinding(VehicleFields).build()
+    logged.clear()
+
+    when:
+    concurrently { check(muster, binding) }
+
+    then:
+    counted.checked.size() == 32
+    limit.received.size() == 16
+    logged*.message.findAll {
+      it.startsWith('Rules bound')
+    } == ["Rules bound to $label: [vehicle.batch-limit, vehicle.counted]".toString()]
+    logged.findAll { it.level == Level.WARNING }*.message == [
+      "Rule 'vehicle.counted' checks the elements of a collection one by one, since it does not override checkAll; override it to check them at once, or call BusinessRule.super.checkAll from it to keep checking them one by one"
+    ]
+
+    where:
+    how             | check || label
+    'a binding'     | { Muster m, CollectionBinding b ->
+      b.check([VALID, VALID])
+    } || "a collection of ${FIELDS} (a collection of ${CREATE})"
+    'Muster itself' | { Muster m, CollectionBinding b ->
+      m.checkAll([VALID, VALID])
+    } || "a collection of ${CREATE}"
   }
 }
