@@ -100,15 +100,21 @@ public final class Binding<I> {
    * [3].name}. An empty collection passes. The rules check each element; a {@link
    * CollectionBinding} also checks rules of the whole collection.
    *
-   * @param inputs the inputs; unless the input type of this binding is final, all of one class;
-   *     rules see an unmodifiable copy, taken when the check starts
+   * @param inputs the inputs; where the input type of this binding is a rule target that is not
+   *     final, all of one class; rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
    *     binding's type, which only unchecked code can pass
    */
   public void checkAll(Collection<? extends I> inputs) {
-    var elements = RuleChain.elements(inputs, inputType, only == null, "binding");
+    // Rules bind by type to rule targets only, so other elements may be of different classes.
+    var elements =
+        RuleChain.elements(
+            inputs,
+            inputType,
+            only == null && RuleTarget.class.isAssignableFrom(inputType),
+            "binding");
     if (elements.isEmpty()) {
       return;
     }

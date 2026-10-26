@@ -200,4 +200,14 @@ class CollectionAdviceSpec extends Specification {
           'OrderService.addLines(Long, List) takes 2 parameters; a method with rules takes one, so pass a command object that holds them, such as a record'
         }
   }
+
+  def 'a list of numbers may hold numbers of different classes'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(FleetService)
+      assert violated { service.payAll([1, -2L, 3.5d]) } == ['fleet.amount-positive [1]']
+      service.payAll([1, 2L])
+      assert service.calls == [[1, 2L]]
+    }
+  }
 }

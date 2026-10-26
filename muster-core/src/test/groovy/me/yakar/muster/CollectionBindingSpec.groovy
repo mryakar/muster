@@ -167,6 +167,22 @@ class CollectionBindingSpec extends EngineSpecification {
     thrown(IllegalArgumentException)
   }
 
+  /** An amount must not be negative, whatever kind of number it is. */
+  @Rule(id = 'amount.positive')
+  static class AmountPositive implements BusinessRule<Number> {
+    RuleResult check(Number input, RuleContext ctx) {
+      input.doubleValue() < 0 ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
+  /** At most two amounts in one call. */
+  @Rule(id = 'amount.limit')
+  static class AmountLimit implements BusinessRule<List<Number>> {
+    RuleResult check(List<Number> input, RuleContext ctx) {
+      input.size() > 2 ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
   /** Counts its checks; a rule of each vehicle. */
   @Rule(id = 'vehicle.counted')
   static class CountedVehicle implements BusinessRule<VehicleFields> {
@@ -515,5 +531,39 @@ class CollectionBindingSpec extends EngineSpecification {
     'Muster itself' | { Muster m, CollectionBinding b ->
       m.checkAll([VALID, VALID])
     } || "a collection of ${CREATE}"
+  }
+
+  def 'elements of a type that is not a rule target may be of different classes, checked by one chain bound when the binding is built'() {
+    given:
+    log.level = Level.FINE
+    def binding = vehicles(new AmountPositive(), new AmountLimit()).collectionBinding(Number).rules(AmountLimit, AmountPositive).build()
+
+    expect:
+    logged*.message == ['Rules bound to a collection of java.lang.Number: [amount.limit, amount.positive]']
+
+    when:
+    binding.check([1, 2L])
+
+    then:
+    noExceptionThrown()
+
+    when:
+    binding.check([1, 2L, -3.5d])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['amount.limit -', 'amount.positive [2]']
+  }
+
+  def 'a binding of a type that is not a rule target checks elements of different classes with checkAll'() {
+    given:
+    def binding = vehicles(new AmountPositive()).binding(Number).rules(AmountPositive).build()
+
+    when:
+    binding.checkAll([1, -2L, 3.5d])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['amount.positive [1]']
   }
 }

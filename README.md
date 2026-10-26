@@ -127,8 +127,9 @@ its size in a `BusinessRule<List<CreateVehicle>>`. A rule of the whole collectio
 `SequencedCollection` or `Collection` of the elements, not a `Set`, since it gets a copy of the
 collection as a list; one that takes `Collection<?>` or `List<Object>` checks every collection of
 rule targets. The element type of the parameter must be known: a raw `List`, `List<?>`,
-`List<? super E>` or an unbound `List<T>` stops the application. An array is a single input, as in
-0.2.0.
+`List<? super E>` or an unbound `List<T>` stops the application. Where the element type is a rule
+target that is not final, the elements of one call must be of one class, since rules bind to that
+class; other elements may be of different classes. An array is a single input, as in 0.2.0.
 
 In a Spring MVC application, a violated rule becomes problem details (RFC 9457). The status
 follows the category: 403 for `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 for
