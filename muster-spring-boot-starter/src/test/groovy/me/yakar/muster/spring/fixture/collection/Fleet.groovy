@@ -136,6 +136,34 @@ class WildcardList {
   void deleteAll(List<?> ids) {}
 }
 
+/** A collection class whose second type argument is its element type. */
+class Pairs<A, B> extends ArrayList<B> {}
+
+/** A collection class of vehicles. */
+class Convoy extends ArrayList<AddVehicle> {}
+
+/** A service whose methods take collection classes of their own. */
+@Service
+class ConvoyService {
+  final List<Object> calls = new CopyOnWriteArrayList<>()
+
+  void addConvoy(Convoy convoy) {
+    calls << convoy
+  }
+}
+
+/** Rules on a collection class with a lower bound among its type arguments. */
+class LowerBoundPairs {
+  @Rules(VehicleExists)
+  void deleteAll(Pairs<? super Integer, Long> ids) {}
+}
+
+/** A service method that takes a collection of rule targets among other parameters. */
+@Service
+class OrderService {
+  void addLines(Long order, List<AddVehicle> lines) {}
+}
+
 /** Rules on a list of a lower bound. */
 class LowerBoundList {
   @Rules(VehicleExists)

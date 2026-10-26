@@ -91,10 +91,14 @@ final class AdvisedMethods {
     if (!Collection.class.isAssignableFrom(type.toClass())) {
       return null;
     }
-    // Spring resolves List<? super E> to E, although the list may hold any supertype of E.
-    if (type.getGeneric(0).getType() instanceof WildcardType wildcard
-        && wildcard.getLowerBounds().length > 0) {
-      return null;
+    // Spring resolves List<? super E> to E, although the list may hold any supertype of E. Which
+    // type argument of a collection class feeds its elements is not known here, so any lower bound
+    // makes the element type unknown.
+    for (var generic : type.getGenerics()) {
+      if (generic.getType() instanceof WildcardType wildcard
+          && wildcard.getLowerBounds().length > 0) {
+        return null;
+      }
     }
     return type.asCollection().getGeneric(0).resolve();
   }

@@ -20,9 +20,14 @@ import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.collection.AddVehicle
+import me.yakar.muster.spring.fixture.collection.Convoy
+import me.yakar.muster.spring.fixture.collection.ConvoyService
 import me.yakar.muster.spring.fixture.collection.FleetComponent
+import me.yakar.muster.spring.fixture.collection.FleetFields
 import me.yakar.muster.spring.fixture.collection.FleetService
 import me.yakar.muster.spring.fixture.collection.LowerBoundList
+import me.yakar.muster.spring.fixture.collection.LowerBoundPairs
+import me.yakar.muster.spring.fixture.collection.OrderService
 import me.yakar.muster.spring.fixture.collection.NameFree
 import me.yakar.muster.spring.fixture.collection.OpenList
 import me.yakar.muster.spring.fixture.collection.RawList
@@ -44,7 +49,7 @@ class CollectionAdviceSpec extends Specification {
 
   @Configuration(proxyBeanMethods = false)
   @AutoConfigurationPackage(basePackageClasses = NameFree)
-  @Import([FleetService, FleetComponent, VehicleStore])
+  @Import([FleetService, FleetComponent, VehicleStore, ConvoyService])
   static class Application {}
 
   @Configuration(proxyBeanMethods = false)
@@ -137,11 +142,16 @@ class CollectionAdviceSpec extends Specification {
         .withBean(bean)
         .run { context ->
           assert getMostSpecificCause(context.startupFailure).message ==
-          "${bean.simpleName}.deleteAll(List) takes a collection whose element type is not known, so Muster cannot tell which rules check its elements; name it, as in List<CreateVehicle>"
+          "${bean.simpleName}.deleteAll(${parameter}) takes a collection whose element type is not known, so Muster cannot tell which rules check its elements; name it, as in List<CreateVehicle>"
         }
 
     where:
-    bean << [RawList, WildcardList, LowerBoundList, OpenList]
+    bean            | parameter
+    RawList         | 'List'
+    WildcardList    | 'List'
+    LowerBoundList  | 'List'
+    OpenList        | 'List'
+    LowerBoundPairs | 'Pairs'
   }
 
   def 'a listed rule that checks neither the elements nor the whole collection stops the application'() {
@@ -151,7 +161,43 @@ class CollectionAdviceSpec extends Specification {
         .withUserConfiguration(RulePackage)
         .withBean(WrongRule)
         .run { context ->
-          assert getMostSpecificCause(context.startupFailure).message.startsWith("${NameFree.name} checks")
+          assert getMostSpecificCause(context.startupFailure).message ==
+          "${NameFree.name} checks ${FleetFields.name}, which neither java.lang.Long nor a list of java.lang.Long is"
+        }
+  }
+
+  def 'a collection class of its own gets its element type from its declaration'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(ConvoyService)
+      def convoy = new Convoy()
+      convoy << TAKEN
+      assert violated { service.addConvoy(convoy) } == ['fleet.name-free [0].name']
+    }
+  }
+
+  def 'a collection parameter cannot be null'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(FleetService)
+      try {
+        service.addAll(null)
+        assert false
+      } catch (NullPointerException e) {
+        assert e.message == 'inputs'
+      }
+    }
+  }
+
+  def 'a service method that takes a collection of rule targets among other parameters stops the application'() {
+    expect:
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
+        .withUserConfiguration(RulePackage)
+        .withBean(OrderService)
+        .run { context ->
+          assert getMostSpecificCause(context.startupFailure).message ==
+          'OrderService.addLines(Long, List) takes 2 parameters; a method with rules takes one, so pass a command object that holds them, such as a record'
         }
   }
 }
