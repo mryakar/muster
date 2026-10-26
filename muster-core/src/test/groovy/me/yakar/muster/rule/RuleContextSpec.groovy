@@ -169,8 +169,8 @@ class RuleContextSpec extends Specification {
 
   def 'a context is about no element unless it is the context of one'() {
     expect:
-    RuleContext.forRule('task.ready').elementIndex().empty
-    RuleContext.builder('task.ready').elements(0, 2).build().elementIndex().empty
+    RuleContext.forRule('task.ready').elementPosition().empty
+    RuleContext.builder('task.ready').positions(0, 2).build().elementPosition().empty
   }
 
   def 'the context of an element keeps the rule, the caller and the locale, and knows the position'() {
@@ -181,15 +181,15 @@ class RuleContextSpec extends Specification {
     element.ruleId() == 'task.ready'
     element.caller().get().is(amo)
     element.locale() == Locale.forLanguageTag('tr-TR')
-    element.elementIndex() == OptionalInt.of(4)
+    element.elementPosition() == OptionalInt.of(4)
   }
 
   def 'with positions, the index of an input maps to its position in the checked collection'() {
     given:
-    def batch = RuleContext.builder('task.ready').elements(1, 3, 7).build()
+    def batch = RuleContext.builder('task.ready').positions(1, 3, 7).build()
 
     expect:
-    (0..2).collect { batch.element(it).elementIndex().asInt } == [1, 3, 7]
+    (0..2).collect { batch.element(it).elementPosition().asInt } == [1, 3, 7]
   }
 
   def 'an index that is not that of an input is rejected: #index'() {
@@ -206,10 +206,10 @@ class RuleContextSpec extends Specification {
       RuleContext.forRule('task.ready')
     } || 'the index -1 is negative'
     -1    | {
-      RuleContext.builder('task.ready').elements(1, 3).build()
+      RuleContext.builder('task.ready').positions(1, 3).build()
     } || 'the index -1 is not that of one of the 2 inputs'
     2     | {
-      RuleContext.builder('task.ready').elements(1, 3).build()
+      RuleContext.builder('task.ready').positions(1, 3).build()
     } || 'the index 2 is not that of one of the 2 inputs'
   }
 
@@ -224,7 +224,7 @@ class RuleContextSpec extends Specification {
 
   def 'positions must be ascending and not negative: #positions'() {
     when:
-    RuleContext.builder('task.ready').elements(positions as int[])
+    RuleContext.builder('task.ready').positions(positions as int[])
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -236,7 +236,7 @@ class RuleContextSpec extends Specification {
 
   def 'positions are required'() {
     when:
-    RuleContext.builder('task.ready').elements(null)
+    RuleContext.builder('task.ready').positions(null)
 
     then:
     def e = thrown(NullPointerException)
@@ -246,21 +246,21 @@ class RuleContextSpec extends Specification {
   def 'positions are copied, and setting them makes a context of an element a context of the collection'() {
     given:
     def positions = [5, 6] as int[]
-    def builder = RuleContext.forRule('task.ready').element(9).toBuilder().elements(positions)
+    def builder = RuleContext.forRule('task.ready').element(9).toBuilder().positions(positions)
     positions[0] = 0
 
     when:
     def batch = builder.build()
 
     then:
-    batch.elementIndex().empty
-    batch.element(0).elementIndex() == OptionalInt.of(5)
+    batch.elementPosition().empty
+    batch.element(0).elementPosition() == OptionalInt.of(5)
   }
 
   def 'a builder from a context keeps its positions and its element'() {
     expect:
-    RuleContext.builder('task.ready').elements(2, 4).build().toBuilder().build().element(1).elementIndex() == OptionalInt.of(4)
-    RuleContext.forRule('task.ready').element(3).toBuilder().build().elementIndex() == OptionalInt.of(3)
+    RuleContext.builder('task.ready').positions(2, 4).build().toBuilder().build().element(1).elementPosition() == OptionalInt.of(4)
+    RuleContext.forRule('task.ready').element(3).toBuilder().build().elementPosition() == OptionalInt.of(3)
   }
 
   def 'a context describes itself for logs'() {

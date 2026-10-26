@@ -51,7 +51,7 @@ class BusinessRuleSpec extends Specification {
   def 'checkAll checks each input in the context of its element, unless overridden'() {
     given:
     def rule = new NameFree()
-    def ctx = RuleContext.builder('vehicle.name-free').elements(2, 5, 9).build()
+    def ctx = RuleContext.builder('vehicle.name-free').positions(2, 5, 9).build()
 
     when:
     def result = rule.checkAll(['taken', 'Atlas', 'taken'], ctx)
@@ -59,7 +59,7 @@ class BusinessRuleSpec extends Specification {
     then:
     result instanceof RuleResult.Failed
     (result as RuleResult.Failed).violations()*.target()*.get() == ['[2].name', '[9].name']
-    rule.contexts*.elementIndex()*.asInt == [2, 5, 9]
+    rule.contexts*.elementPosition()*.asInt == [2, 5, 9]
   }
 
   def 'checkAll passes when every input passes, and when there is none'() {
@@ -72,7 +72,7 @@ class BusinessRuleSpec extends Specification {
 
   def 'checkAll fails when check returns null, naming the position of the element'() {
     when:
-    new NameFree().checkAll(['Atlas', ' '], RuleContext.builder('vehicle.name-free').elements(3, 8).build())
+    new NameFree().checkAll(['Atlas', ' '], RuleContext.builder('vehicle.name-free').positions(3, 8).build())
 
     then:
     def e = thrown(NullPointerException)

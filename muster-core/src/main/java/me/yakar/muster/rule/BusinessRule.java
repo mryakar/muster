@@ -94,7 +94,7 @@ public interface BusinessRule<T> {
             "rule '"
                 + ctx.ruleId()
                 + "' returned null for the element at ["
-                + element.elementIndex().getAsInt()
+                + element.elementPosition().getAsInt()
                 + "]");
       }
       if (result instanceof RuleResult.Failed failed) {
