@@ -41,8 +41,8 @@ public final class RuleGraph {
 
   /**
    * Checks that every required rule is registered and accepts the input of the rule that requires
-   * it, that no rules require each other in a cycle, and that no enabled rule requires a disabled
-   * rule, directly or through other rules.
+   * it, and the elements too when both check collections, that no rules require each other in a
+   * cycle, and that no enabled rule requires a disabled rule, directly or through other rules.
    *
    * @param rules the registered rules, by class
    * @param disabled the classes of the disabled rules
