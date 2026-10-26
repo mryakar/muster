@@ -46,6 +46,9 @@ dependencies {
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
   // Optional: checks and rules are observed when the application has an ObservationRegistry.
   compileOnly("io.micrometer:micrometer-observation")
+  // Optional: the actuator endpoint "muster" when the application has the actuator.
+  compileOnly("org.springframework.boot:spring-boot-actuator")
+  compileOnly("org.springframework.boot:spring-boot-actuator-autoconfigure")
 }
 
 // Specs change JVM-wide state, such as the default locale, Muster's logger and the security
@@ -62,6 +65,7 @@ testing {
         implementation("org.springframework.security:spring-security-core")
         implementation("org.springframework:spring-tx")
         implementation("io.micrometer:micrometer-observation-test")
+        implementation("org.springframework.boot:spring-boot-starter-actuator")
         implementation("org.spockframework:spock-spring")
       }
     }
