@@ -171,7 +171,9 @@ public final class RuleContext {
    *
    * @param index the index of the input in the list that {@code checkAll} receives
    * @return the context of that element
-   * @throws IllegalArgumentException if {@code index} is negative, or not the index of an input
+   * @throws IllegalArgumentException if {@code index} is negative or, in a context that knows the
+   *     positions of the inputs, as every context that Muster passes to {@code checkAll} does, not
+   *     the index of an input
    * @throws IllegalStateException if this is already the context of an element
    */
   public RuleContext element(int index) {
