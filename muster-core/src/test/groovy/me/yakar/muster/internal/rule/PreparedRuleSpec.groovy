@@ -31,6 +31,36 @@ class PreparedRuleSpec extends Specification {
     }
   }
 
+  @Rule(id = 'task.ready')
+  static class ChecksAll implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+
+    RuleResult checkAll(List<? extends String> inputs, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'task.ready')
+  static class InheritsChecksAll extends ChecksAll {}
+
+  /** Public methods that look like checkAll, but are not it. */
+  @Rule(id = 'task.ready')
+  static class LooksLikeChecksAll implements BusinessRule<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+
+    RuleResult checkAll(String input) {
+      RuleResult.passed()
+    }
+
+    RuleResult audit(List<String> inputs, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   def definition = RuleDefinition.of(TaskReady)
 
   def 'a prepared rule has a context of its own, with no caller and the root locale'() {
@@ -57,5 +87,39 @@ class PreparedRuleSpec extends Specification {
     'a call with a caller'  | RuleContext.builder('task.ready').caller({
       'amo'
     } as Principal).build()
+  }
+
+  def 'a rule checks a collection itself if its class #how'() {
+    expect:
+    PreparedRule.of(RuleDefinition.of(ruleClass), ruleClass.getConstructor().newInstance()).checksAll() == checksAll
+
+    where:
+    how                                        | ruleClass || checksAll
+    'overrides checkAll'                       | ChecksAll || true
+    'inherits an override'                     | InheritsChecksAll || true
+    'does not override it'                     | TaskReady || false
+    'has methods that only look like checkAll' | LooksLikeChecksAll || false
+  }
+
+  def 'a prepared rule is told once that it checks elements one by one'() {
+    given:
+    def prepared = PreparedRule.of(definition, new TaskReady())
+
+    expect:
+    prepared.firstOneByOne()
+    !prepared.firstOneByOne()
+    !prepared.firstOneByOne()
+  }
+
+  def 'a prepared rule shows its definition, instance and id, and names its rule'() {
+    given:
+    def rule = new TaskReady()
+    def prepared = PreparedRule.of(definition, rule)
+
+    expect:
+    prepared.definition().is(definition)
+    prepared.instance().is(rule)
+    prepared.id() == 'task.ready'
+    prepared.toString() == 'PreparedRule[task.ready]'
   }
 }
