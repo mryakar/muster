@@ -21,5 +21,7 @@ package me.yakar.muster.internal.rule;
  *
  * @param rule the rule
  * @param requires the positions in the chain of the rules it requires, all before its own
+ * @param whole whether the rule checks a checked collection as a whole, rather than each of its
+ *     elements
  */
-public record Step(PreparedRule rule, int[] requires) {}
+public record Step(PreparedRule rule, int[] requires, boolean whole) {}
