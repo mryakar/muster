@@ -34,6 +34,51 @@ class BusinessRuleSpec extends Specification {
     }
   }
 
+  /** Fails a name that is taken; returns null for a blank one. */
+  @Rule(id = 'vehicle.name-free')
+  static class NameFree implements BusinessRule<String> {
+    final List<RuleContext> contexts = []
+
+    RuleResult check(String input, RuleContext ctx) {
+      contexts << ctx
+      if (input.blank) {
+        return null
+      }
+      input == 'taken' ? RuleResult.failed(ctx.violation().target('name').build()) : RuleResult.passed()
+    }
+  }
+
+  def 'checkAll checks each input in the context of its element, unless overridden'() {
+    given:
+    def rule = new NameFree()
+    def ctx = RuleContext.builder('vehicle.name-free').elements(2, 5, 9).build()
+
+    when:
+    def result = rule.checkAll(['taken', 'Atlas', 'taken'], ctx)
+
+    then:
+    result instanceof RuleResult.Failed
+    (result as RuleResult.Failed).violations()*.target()*.get() == ['[2].name', '[9].name']
+    rule.contexts*.elementIndex()*.asInt == [2, 5, 9]
+  }
+
+  def 'checkAll passes when every input passes, and when there is none'() {
+    expect:
+    new NameFree().checkAll(inputs, RuleContext.forRule('vehicle.name-free')) == RuleResult.passed()
+
+    where:
+    inputs << [['Atlas', 'Zeus'], []]
+  }
+
+  def 'checkAll fails when check returns null, naming the index'() {
+    when:
+    new NameFree().checkAll(['Atlas', ' '], RuleContext.forRule('vehicle.name-free'))
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == "rule 'vehicle.name-free' returned null for the input at index 1"
+  }
+
   def 'a rule applies to every call unless it says otherwise'() {
     expect:
     new VehicleNameUnique().appliesTo(RuleContext.forRule('vehicle.name-unique'))

@@ -32,7 +32,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Each rule receives its own context. Rules create their violations through it, so every
  * violation carries the id of the rule that reported it. Contexts are immutable and thread-safe.
  *
- * <p>A rule that checks a collection at once, in {@code BusinessRule.checkAll}, gets the context of
+ * <p>A rule that checks a collection at once, in {@link BusinessRule#checkAll}, gets the context of
  * the collection; {@link #element(int)} gives the context of one of its elements, whose violations
  * name the position of the element in their target.
  *
@@ -161,7 +161,7 @@ public final class RuleContext {
   }
 
   /**
-   * Returns the context of one of the inputs that {@code BusinessRule.checkAll} receives. Its
+   * Returns the context of one of the inputs that {@link BusinessRule#checkAll} receives. Its
    * violations are about that element: their target starts with the position of the element in the
    * checked collection, as in {@code [3].name}.
    *
@@ -296,8 +296,8 @@ public final class RuleContext {
     }
 
     /**
-     * Sets the positions, in the checked collection, of the inputs that {@code
-     * BusinessRule.checkAll} receives, by their index in its list: {@link RuleContext#element(int)
+     * Sets the positions, in the checked collection, of the inputs that {@link
+     * BusinessRule#checkAll} receives, by their index in its list: {@link RuleContext#element(int)
      * element(i)} is then about the element at {@code positions[i]}. Muster sets them when it
      * leaves out elements that failed a rule this rule requires; use it to test such a call. The
      * context built is not about an element.

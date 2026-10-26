@@ -15,6 +15,9 @@
  */
 package me.yakar.muster.rule;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A business rule that a call must satisfy before the service method runs.
  *
@@ -53,6 +56,44 @@ public interface BusinessRule<T> {
    *     null}, or the check fails with a {@link NullPointerException}
    */
   RuleResult check(T input, RuleContext ctx);
+
+  /**
+   * Checks the inputs of a call that takes a collection, all at once. Override it when checking
+   * them one by one costs too much, such as a query per element: one query can look them all up,
+   * and it can also find conflicts within the collection, such as two new vehicles with the same
+   * name.
+   *
+   * <p>Report the problems of an element as violations created from {@code ctx.element(i)}, with
+   * {@code i} the index of the input in {@code inputs}: their target starts with the position of
+   * the element, as in {@code [3].name}, and rules that require this one still check the other
+   * elements. A violation created from {@code ctx} itself is about the whole collection, and no
+   * rule that requires this one checks any of it.
+   *
+   * <p>Muster asks {@link #appliesTo} once for the collection. A rule that does not override this
+   * method is checked element by element, by Muster, which logs a warning once; override it and
+   * call {@code BusinessRule.super.checkAll(inputs, ctx)} to keep that and drop the warning.
+   *
+   * @param inputs the inputs of the call, in the order of the collection; the elements that failed
+   *     a rule this rule requires are left out
+   * @param ctx the context of the call; {@link RuleContext#element(int)} gives the context of each
+   *     input
+   * @return {@link RuleResult#passed()}, or a failed result with the violations; must not be {@code
+   *     null}, or the check fails with a {@link NullPointerException}
+   */
+  default RuleResult checkAll(List<? extends T> inputs, RuleContext ctx) {
+    var violations = new ArrayList<Violation>();
+    for (var i = 0; i < inputs.size(); i++) {
+      var result = check(inputs.get(i), ctx.element(i));
+      if (result == null) {
+        throw new NullPointerException(
+            "rule '" + ctx.ruleId() + "' returned null for the input at index " + i);
+      }
+      if (result instanceof RuleResult.Failed failed) {
+        violations.addAll(failed.violations());
+      }
+    }
+    return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
+  }
 
   /**
    * Returns whether this rule applies to a call. A rule that does not apply is skipped: it is not

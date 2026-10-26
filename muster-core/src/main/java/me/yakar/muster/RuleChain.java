@@ -19,10 +19,15 @@ import static java.util.Objects.requireNonNull;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
+import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
+import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.Violation;
 import org.jspecify.annotations.Nullable;
@@ -37,12 +42,18 @@ import org.jspecify.annotations.Nullable;
  * same on every call, and in {@link CheckMode#FAIL_FAST} mode, which stops at the first violated
  * rule, it decides which violation is reported, so list cheap rules first.
  *
+ * <p>{@link #checkAll} checks the elements of a collection in one call: each rule checks all of
+ * them, at once if it overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}, and a rule that
+ * requires another checks the elements that passed it.
+ *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
  * gives it its own. Chains are immutable and thread-safe.
  *
  * @param <I> the type of input
  */
 public final class RuleChain<I> {
+
+  private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
   private final Class<?> inputType;
   private final List<Step> steps;
@@ -104,6 +115,218 @@ public final class RuleChain<I> {
               + input.getClass().getTypeName());
     }
     run(input, mode);
+  }
+
+  /**
+   * Checks the elements of a collection against the rules that apply to the call, in the mode of
+   * this chain. Each rule checks the elements that passed the rules it requires; one violated
+   * element rejects the whole call. In {@link CheckMode#FAIL_FAST} mode, the check stops at the
+   * first violated rule, and a rule that does not override {@code checkAll} at its first violated
+   * element. An empty collection passes without running a rule.
+   *
+   * @param inputs the inputs; a list is passed on unmodifiable, and another collection as a copy
+   * @throws BusinessRuleViolationException if a rule is violated
+   * @throws NullPointerException if an element is {@code null}
+   * @throws IllegalArgumentException if an element is not of the chain's type, which only unchecked
+   *     code can pass
+   */
+  public void checkAll(Collection<? extends I> inputs) {
+    runAll(elements(inputs, inputType, "chain"), mode);
+  }
+
+  /**
+   * Returns the inputs of a check of a collection, after checking that every element is of the
+   * given type.
+   */
+  static List<?> elements(Collection<?> inputs, Class<?> inputType, String checker) {
+    requireNonNull(inputs, "inputs");
+    var position = 0;
+    for (var input : inputs) {
+      if (input == null) {
+        throw new NullPointerException("the element at [" + position + "] is null");
+      }
+      if (!inputType.isInstance(input)) {
+        throw new IllegalArgumentException(
+            "the "
+                + checker
+                + " checks "
+                + inputType.getTypeName()
+                + "; the element at ["
+                + position
+                + "] is a "
+                + input.getClass().getTypeName());
+      }
+      position++;
+    }
+    return inputs instanceof List<?> list
+        ? Collections.unmodifiableList(list)
+        : List.copyOf(inputs);
+  }
+
+  /**
+   * Checks the elements of a collection, which the caller knows to be of the chain's type, in the
+   * given mode. Kept apart from {@link #run}, so that the loop of a single check stays as it is.
+   */
+  void runAll(List<?> inputs, CheckMode mode) {
+    var size = inputs.size();
+    if (size == 0) {
+      return;
+    }
+    var callCaller = caller.get();
+    var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
+    ArrayList<Violation> found = null;
+    // Whether each element passed each rule; a rule skipped for an element did not pass it.
+    var passed = new boolean[steps.size()][];
+    for (var i = 0; i < steps.size(); i++) {
+      var step = steps.get(i);
+      passed[i] = new boolean[size];
+      var eligible = eligible(step.requires(), passed, size);
+      if (eligible.length == 0) {
+        continue;
+      }
+      var rule = step.rule();
+      var context = rule.context().toBuilder().locale(callLocale);
+      if (callCaller != null) {
+        context.caller(callCaller);
+      }
+      var ctx = context.build();
+      if (!rule.instance().appliesTo(ctx)) {
+        continue;
+      }
+      if (!rule.checksAll()) {
+        if (rule.firstOneByOne()) {
+          LOGGER.log(
+              System.Logger.Level.WARNING,
+              "Rule '"
+                  + rule.id()
+                  + "' checks the elements of a collection one by one, since it does not"
+                  + " override checkAll; override it to check them at once, or call"
+                  + " BusinessRule.super.checkAll from it to keep checking them one by one");
+        }
+        for (var position : eligible) {
+          var violations =
+              violations(rule, rule.instance().check(inputs.get(position), ctx.element(position)));
+          if (violations == null) {
+            passed[i][position] = true;
+          } else if (mode == CheckMode.FAIL_FAST) {
+            throw new BusinessRuleViolationException(violations);
+          } else {
+            found = add(found, violations);
+          }
+        }
+        continue;
+      }
+      var all = eligible.length == size;
+      var violations =
+          violations(
+              rule,
+              rule.instance()
+                  .checkAll(
+                      all ? inputs : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
+                      all ? ctx : ctx.toBuilder().elements(eligible).build()));
+      if (violations == null) {
+        for (var position : eligible) {
+          passed[i][position] = true;
+        }
+        continue;
+      }
+      markPassed(passed[i], eligible, violations);
+      if (mode == CheckMode.FAIL_FAST) {
+        throw new BusinessRuleViolationException(violations);
+      }
+      found = add(found, violations);
+    }
+    if (found != null) {
+      throw new BusinessRuleViolationException(found);
+    }
+  }
+
+  /**
+   * Returns the violations of a result, or {@code null} if it passed, after checking that they are
+   * the rule's own.
+   */
+  private static @Nullable List<Violation> violations(PreparedRule rule, RuleResult result) {
+    if (result == null) {
+      throw new NullPointerException("rule '" + rule.id() + "' returned null");
+    }
+    if (!(result instanceof RuleResult.Failed failed)) {
+      return null;
+    }
+    for (var violation : failed.violations()) {
+      if (!violation.ruleId().equals(rule.id())) {
+        throw new IllegalStateException(
+            "rule '"
+                + rule.id()
+                + "' reported a violation of rule '"
+                + violation.ruleId()
+                + "'; build violations from the RuleContext the rule receives");
+      }
+    }
+    return failed.violations();
+  }
+
+  private static ArrayList<Violation> add(
+      @Nullable ArrayList<Violation> found, List<Violation> violations) {
+    var list = found == null ? new ArrayList<Violation>() : found;
+    list.addAll(violations);
+    return list;
+  }
+
+  /**
+   * Marks the elements that passed a rule that checked them at once: those that no violation names
+   * by its position, unless a violation names none of the checked elements, which makes it about
+   * them all.
+   */
+  private static void markPassed(boolean[] passed, int[] eligible, List<Violation> violations) {
+    var failed = new boolean[passed.length];
+    for (var violation : violations) {
+      var position = position(violation);
+      if (position < 0 || Arrays.binarySearch(eligible, position) < 0) {
+        return;
+      }
+      failed[position] = true;
+    }
+    for (var position : eligible) {
+      passed[position] = !failed[position];
+    }
+  }
+
+  /**
+   * Returns the position of the element a violation is about, as {@link RuleContext#element} puts
+   * it in front of the target, or -1 if the target names none.
+   */
+  static int position(Violation violation) {
+    var target = violation.target().orElse("");
+    var end = target.indexOf(']');
+    if (!target.startsWith("[") || end < 2) {
+      return -1;
+    }
+    try {
+      return Integer.parseInt(target, 1, end, 10);
+    } catch (NumberFormatException e) {
+      return -1;
+    }
+  }
+
+  /** Returns the positions of the elements that passed every rule a rule requires, in order. */
+  private static int[] eligible(int[] required, boolean[][] passed, int size) {
+    var eligible = new int[size];
+    var count = 0;
+    for (var position = 0; position < size; position++) {
+      if (allPassed(required, passed, position)) {
+        eligible[count++] = position;
+      }
+    }
+    return count == size ? eligible : Arrays.copyOf(eligible, count);
+  }
+
+  private static boolean allPassed(int[] required, boolean[][] passed, int position) {
+    for (var index : required) {
+      if (!passed[index][position]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Checks an input that the caller knows to be of the chain's type, in the given mode. */
