@@ -376,7 +376,7 @@ class CollectionBindingSpec extends EngineSpecification {
     then:
     def e = thrown(BusinessRuleViolationException)
     described(e) == ['vehicle.code-format [1]']
-    logged*.message.contains("The chain for a collection of ${FIELDS} (a collection of ${CREATE}) leaves out rules that require excluded rules: 'vehicle.names-distinct' requires 'vehicle.batch-limit'".toString())
+    logged*.message.contains("The chain for ${FIELDS} (a collection of ${CREATE}) leaves out rules that require excluded rules: 'vehicle.names-distinct' requires 'vehicle.batch-limit'".toString())
   }
 
   def 'a disabled rule of the whole collection does not bind'() {
@@ -399,18 +399,18 @@ class CollectionBindingSpec extends EngineSpecification {
 
     where:
     name || label
-    "a collection of ${CREATE}".toString() || "a collection of ${CREATE}"
+    CREATE || "a collection of ${CREATE}"
     'VehicleService.createAll' || "VehicleService.createAll (a collection of ${CREATE})"
   }
 
-  def 'a binding without a name is named after the collection, in logs and in its description'() {
+  def 'a binding without a name is named after its element type, in logs and in its description'() {
     given:
     log.level = Level.FINE
     def binding = vehicles(new CodeFormat(), new BatchLimit()).collectionBinding(CreateVehicle).rules(BatchLimit, CodeFormat).exclude().build()
 
     expect:
     logged*.message == ["Rules bound to a collection of ${CREATE}: [vehicle.batch-limit, vehicle.code-format]".toString()]
-    binding.toString() == "CollectionBinding[name=a collection of ${CREATE}, elements=${CREATE}, mode=COLLECT_ALL, rules=[vehicle.batch-limit, vehicle.code-format], excluded=[]]"
+    binding.toString() == "CollectionBinding[name=${CREATE}, elements=${CREATE}, mode=COLLECT_ALL, rules=[vehicle.batch-limit, vehicle.code-format], excluded=[]]"
   }
 
   def 'a binding describes its excluded rules and its own mode'() {
@@ -527,7 +527,7 @@ class CollectionBindingSpec extends EngineSpecification {
     how             | check || label
     'a binding'     | { Muster m, CollectionBinding b ->
       b.check([VALID, VALID])
-    } || "a collection of ${FIELDS} (a collection of ${CREATE})"
+    } || "${FIELDS} (a collection of ${CREATE})"
     'Muster itself' | { Muster m, CollectionBinding b ->
       m.checkAll([VALID, VALID])
     } || "a collection of ${CREATE}"

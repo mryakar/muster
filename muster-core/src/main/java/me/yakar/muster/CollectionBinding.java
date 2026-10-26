@@ -250,7 +250,7 @@ public final class CollectionBinding<E> {
           new Selection(
               List.copyOf(listed),
               Set.copyOf(excluded),
-              name == null ? "a collection of " + wrapped.getTypeName() : name),
+              name == null ? wrapped.getTypeName() : name),
           mode == null ? muster.mode() : mode);
     }
   }

@@ -20,9 +20,11 @@ import static java.util.Objects.requireNonNull;
 import java.lang.System.Logger.Level;
 import java.lang.invoke.MethodType;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +37,7 @@ import me.yakar.muster.internal.rule.RuleDefinition;
 import me.yakar.muster.internal.rule.RuleGraph;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
+import me.yakar.muster.spi.CheckListener;
 import me.yakar.muster.spi.RuleFactory;
 import org.jspecify.annotations.Nullable;
 
@@ -65,6 +68,9 @@ public final class Muster {
   private final Supplier<Locale> locale;
   private final CheckMode mode;
 
+  /** The listeners registered with the builder as one, or {@code null} if none was. */
+  private final @Nullable CheckListener listener;
+
   /** The chains for rule targets, by the class of the input. */
   private final ClassChains targets = new ClassChains(this::bind);
 
@@ -75,11 +81,13 @@ public final class Muster {
       RuleCatalog catalog,
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale,
-      CheckMode mode) {
+      CheckMode mode,
+      @Nullable CheckListener listener) {
     this.catalog = catalog;
     this.caller = caller;
     this.locale = locale;
     this.mode = mode;
+    this.listener = listener;
   }
 
   /**
@@ -118,7 +126,8 @@ public final class Muster {
     }
     var plan = ChainPlan.listed(catalog, wrapped.getTypeName(), listed);
     plan.log();
-    return new RuleChain<>(wrapped, plan.steps(), caller, locale, mode);
+    return new RuleChain<>(
+        wrapped.getTypeName(), wrapped, plan.steps(), caller, locale, mode, listener);
   }
 
   /**
@@ -237,7 +246,15 @@ public final class Muster {
       Class<?> elementClass, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.collection(catalog, elementClass, selection);
     return new ClassChains.Bound(
-        new RuleChain<>(elementClass, plan.steps(), caller, locale, chainMode), plan);
+        new RuleChain<>(
+            name(selection, elementClass),
+            elementClass,
+            plan.steps(),
+            caller,
+            locale,
+            chainMode,
+            listener),
+        plan);
   }
 
   /**
@@ -247,7 +264,15 @@ public final class Muster {
   ClassChains.Bound bind(Class<?> type, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.bound(catalog, type, selection);
     return new ClassChains.Bound(
-        new RuleChain<>(type, plan.steps(), caller, locale, chainMode), plan);
+        new RuleChain<>(
+            name(selection, type), type, plan.steps(), caller, locale, chainMode, listener),
+        plan);
+  }
+
+  /** The name a listener is given for a check: the binding's, or else the name of the type. */
+  private static String name(Selection selection, Class<?> type) {
+    var name = selection.name();
+    return name == null ? type.getTypeName() : name;
   }
 
   /** The rules registered with this {@code Muster}. */
@@ -284,6 +309,7 @@ public final class Muster {
     private Supplier<? extends @Nullable Principal> caller = () -> null;
     private Supplier<Locale> locale = Locale::getDefault;
     private CheckMode mode = CheckMode.FAIL_FAST;
+    private final List<CheckListener> listeners = new ArrayList<>();
 
     private Builder() {}
 
@@ -425,6 +451,19 @@ public final class Muster {
     }
 
     /**
+     * Adds a listener, which observes every check of the {@code Muster}: when a check starts and
+     * ends, and when each of its rules starts and ends. Listeners are told in the order they are
+     * added. Without a listener, a check pays one null check.
+     *
+     * @param listener the listener; it must be thread-safe
+     * @return this builder
+     */
+    public Builder listener(CheckListener listener) {
+      listeners.add(requireNonNull(listener, "listener"));
+      return this;
+    }
+
+    /**
      * Builds the {@code Muster}, creating the rules registered with a factory.
      *
      * @return the {@code Muster}
@@ -456,7 +495,12 @@ public final class Muster {
       for (var id : disabled) {
         LOGGER.log(Level.WARNING, "Rule '" + id + "' is disabled");
       }
-      return new Muster(new RuleCatalog(rules, disabledClasses), caller, locale, mode);
+      return new Muster(
+          new RuleCatalog(rules, disabledClasses),
+          caller,
+          locale,
+          mode,
+          CheckListeners.of(listeners));
     }
 
     /** A registered rule class and where its instance comes from. */
