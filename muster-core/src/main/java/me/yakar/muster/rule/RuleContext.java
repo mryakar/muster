@@ -18,8 +18,10 @@ package me.yakar.muster.rule;
 import static java.util.Objects.requireNonNull;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalInt;
 import me.yakar.muster.internal.rule.RuleDefinition;
 import org.jspecify.annotations.Nullable;
 
@@ -30,20 +32,43 @@ import org.jspecify.annotations.Nullable;
  * <p>Each rule receives its own context. Rules create their violations through it, so every
  * violation carries the id of the rule that reported it. Contexts are immutable and thread-safe.
  *
+ * <p>A rule that checks a collection at once, in {@code BusinessRule.checkAll}, gets the context of
+ * the collection; {@link #element(int)} gives the context of one of its elements, whose violations
+ * name the position of the element in their target.
+ *
  * <p>The context holds what differs from call to call. What stays the same, such as a {@link
  * java.time.Clock} or a repository, is a dependency of the rule: take it in the constructor, and a
  * test can pass a fixed clock.
  */
 public final class RuleContext {
 
+  /** No element: the context is not about one element of a collection. */
+  private static final int NONE = -1;
+
   private final String ruleId;
   private final @Nullable Principal caller;
   private final Locale locale;
 
-  private RuleContext(String ruleId, @Nullable Principal caller, Locale locale) {
+  /**
+   * The positions, in the checked collection, of the inputs that {@code checkAll} receives, by
+   * their index in its list; {@code null} where they are the same.
+   */
+  private final int @Nullable [] elements;
+
+  /** The position, in the checked collection, of the element this context is about, or none. */
+  private final int element;
+
+  private RuleContext(
+      String ruleId,
+      @Nullable Principal caller,
+      Locale locale,
+      int @Nullable [] elements,
+      int element) {
     this.ruleId = ruleId;
     this.caller = caller;
     this.locale = locale;
+    this.elements = elements;
+    this.element = element;
   }
 
   /**
@@ -95,8 +120,8 @@ public final class RuleContext {
   }
 
   /**
-   * Returns a builder that starts from this context: the same rule, caller and locale. Use it to
-   * create the context of the same rule for another call.
+   * Returns a builder that starts from this context: the same rule, caller, locale and elements.
+   * Use it to create the context of the same rule for another call.
    *
    * @return the builder
    */
@@ -136,12 +161,58 @@ public final class RuleContext {
   }
 
   /**
+   * Returns the context of one of the inputs that {@code BusinessRule.checkAll} receives. Its
+   * violations are about that element: their target starts with the position of the element in the
+   * checked collection, as in {@code [3].name}.
+   *
+   * <p>The index is that of the input in the list that {@code checkAll} receives. When Muster
+   * leaves out elements that failed a rule this rule requires, the list is shorter than the
+   * collection, and the position in the target is still the element's in the collection.
+   *
+   * @param index the index of the input in the list that {@code checkAll} receives
+   * @return the context of that element
+   * @throws IllegalArgumentException if {@code index} is negative, or not the index of an input
+   * @throws IllegalStateException if this is already the context of an element
+   */
+  public RuleContext element(int index) {
+    if (element != NONE) {
+      throw new IllegalStateException(
+          "this is the context of the element at ["
+              + element
+              + "] already; get the contexts of elements from the context that checkAll receives");
+    }
+    int position;
+    if (elements == null) {
+      if (index < 0) {
+        throw new IllegalArgumentException("the index " + index + " is negative");
+      }
+      position = index;
+    } else {
+      if (index < 0 || index >= elements.length) {
+        throw new IllegalArgumentException(
+            "the index " + index + " is not that of one of the " + elements.length + " inputs");
+      }
+      position = elements[index];
+    }
+    return new RuleContext(ruleId, caller, locale, null, position);
+  }
+
+  /**
+   * Returns the position, in the checked collection, of the element this context is about.
+   *
+   * @return the position, or empty if this context is not about an element
+   */
+  public OptionalInt elementIndex() {
+    return element == NONE ? OptionalInt.empty() : OptionalInt.of(element);
+  }
+
+  /**
    * Starts a violation whose code is the rule id.
    *
    * @return a builder for the violation
    */
   public Violation.Builder violation() {
-    return new Violation.Builder(ruleId);
+    return new Violation.Builder(ruleId, element);
   }
 
   /**
@@ -154,12 +225,12 @@ public final class RuleContext {
    *     format characters, or unpaired surrogates
    */
   public Violation.Builder violation(String code) {
-    return new Violation.Builder(ruleId, code);
+    return new Violation.Builder(ruleId, code, element);
   }
 
   /**
    * Describes this context for developers and logs: the rule id, the caller's name if there is a
-   * caller, and the locale.
+   * caller, the locale, and the position of the element if the context is about one.
    *
    * @return the description
    */
@@ -169,7 +240,11 @@ public final class RuleContext {
     if (caller != null) {
       text.append(", caller=").append(caller.getName());
     }
-    return text.append(", locale=").append(locale.toLanguageTag()).append(']').toString();
+    text.append(", locale=").append(locale.toLanguageTag());
+    if (element != NONE) {
+      text.append(", element=").append(element);
+    }
+    return text.append(']').toString();
   }
 
   /**
@@ -182,6 +257,8 @@ public final class RuleContext {
     private final String ruleId;
     private @Nullable Principal caller;
     private Locale locale = Locale.ROOT;
+    private int @Nullable [] elements;
+    private int element = NONE;
 
     private Builder(String ruleId) {
       this.ruleId = Checks.requireRuleId(ruleId);
@@ -192,6 +269,8 @@ public final class RuleContext {
       ruleId = context.ruleId;
       caller = context.caller;
       locale = context.locale;
+      elements = context.elements;
+      element = context.element;
     }
 
     /**
@@ -217,13 +296,38 @@ public final class RuleContext {
     }
 
     /**
+     * Sets the positions, in the checked collection, of the inputs that {@code
+     * BusinessRule.checkAll} receives, by their index in its list: {@link RuleContext#element(int)
+     * element(i)} is then about the element at {@code positions[i]}. Muster sets them when it
+     * leaves out elements that failed a rule this rule requires; use it to test such a call. The
+     * context built is not about an element.
+     *
+     * @param positions the positions, in ascending order
+     * @return this builder
+     * @throws IllegalArgumentException if a position is negative, or not greater than the one
+     *     before
+     */
+    public Builder elements(int... positions) {
+      var copy = positions.clone();
+      for (var i = 0; i < copy.length; i++) {
+        if (copy[i] < 0 || (i > 0 && copy[i] <= copy[i - 1])) {
+          throw new IllegalArgumentException(
+              "the positions must be ascending and not negative: " + Arrays.toString(copy));
+        }
+      }
+      elements = copy;
+      element = NONE;
+      return this;
+    }
+
+    /**
      * Builds the context. The builder can be used again; later changes do not affect contexts
      * already built.
      *
      * @return the context
      */
     public RuleContext build() {
-      return new RuleContext(ruleId, caller, locale);
+      return new RuleContext(ruleId, caller, locale, elements, element);
     }
   }
 }

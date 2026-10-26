@@ -211,6 +211,37 @@ class ViolationSpec extends Specification {
     violation.category() == Optional.of(Category.CONFLICT)
   }
 
+  def 'a violation about an element names its position in the target: #target'() {
+    given:
+    def builder = RuleContext.forRule('vehicle.name-unique').element(3).violation()
+    if (target != null) {
+      builder.target(target)
+    }
+
+    expect:
+    builder.build().target() == Optional.of(prefixed)
+
+    where:
+    target || prefixed
+    'name' || '[3].name'
+    '[0]' || '[3][0]'
+    null || '[3]'
+  }
+
+  def 'a violation with its own code, about an element, names the position as well'() {
+    expect:
+    RuleContext.forRule('vehicle.name-unique').element(2).violation('vehicle.name-taken').target('name').build().target() ==
+        Optional.of('[2].name')
+  }
+
+  def 'a violation about an element keeps its prefixed target through Java serialization'() {
+    given:
+    def violation = RuleContext.forRule('vehicle.name-unique').element(3).violation().target('name').build()
+
+    expect:
+    Serialization.roundTrip(violation).target() == Optional.of('[3].name')
+  }
+
   def 'target and category are checked: #method(#value)'() {
     when:
     context.violation()."$method"(value)
