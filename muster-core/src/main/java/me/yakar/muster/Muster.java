@@ -224,14 +224,15 @@ public final class Muster {
     return bind(type, Selection.NONE, mode);
   }
 
-  /**
-   * Binds a class to the rules a selection lists and, for a rule target, to the rules that bind to
-   * it by type. The caller logs the plan.
-   */
   private ClassChains.Bound bindCollection(Class<?> elementClass) {
     return bindCollection(elementClass, Selection.NONE, mode);
   }
 
+  /**
+   * Binds collections of a class to the rules a selection lists and, for rule targets, to the rules
+   * of each element and of the whole collection that bind to the class by type. The caller logs the
+   * plan.
+   */
   ClassChains.Bound bindCollection(
       Class<?> elementClass, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.collection(catalog, elementClass, selection);
@@ -239,6 +240,10 @@ public final class Muster {
         new RuleChain<>(elementClass, plan.steps(), caller, locale, chainMode), plan);
   }
 
+  /**
+   * Binds a class to the rules a selection lists and, for a rule target, to the rules that bind to
+   * it by type. The caller logs the plan.
+   */
   ClassChains.Bound bind(Class<?> type, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.bound(catalog, type, selection);
     return new ClassChains.Bound(
