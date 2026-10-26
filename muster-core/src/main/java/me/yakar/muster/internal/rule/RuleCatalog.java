@@ -83,6 +83,35 @@ public final class RuleCatalog {
   }
 
   /**
+   * Checks that a rule can be listed for a collection: it accepts its elements, or it checks whole
+   * collections of them.
+   *
+   * @param ruleClass the rule class
+   * @param elementType the element type, as the caller declared it
+   * @param wrapped the element type, with primitives wrapped
+   * @throws IllegalArgumentException if the rule is not registered or checks neither
+   */
+  public void requireListableInCollection(
+      Class<?> ruleClass, Class<?> elementType, Class<?> wrapped) {
+    var definition = registered(ruleClass).definition();
+    if (definition.inputType().isAssignableFrom(wrapped)
+        || definition.checksCollectionsOf(wrapped)) {
+      return;
+    }
+    var elements = definition.elementType();
+    throw new IllegalArgumentException(
+        ruleClass.getTypeName()
+            + " checks "
+            + definition.inputType().getTypeName()
+            + (elements == null ? "" : " of " + elements.getTypeName())
+            + ", which neither "
+            + elementType.getTypeName()
+            + " nor a list of "
+            + elementType.getTypeName()
+            + " is");
+  }
+
+  /**
    * Returns whether a rule is switched off.
    *
    * @param ruleClass the rule class
@@ -132,6 +161,21 @@ public final class RuleCatalog {
    * @param excluded the classes of the excluded rules
    * @return the first excluded rule found, or {@code null}
    */
+  /**
+   * Returns the enabled rules that check whole collections of the given class of elements.
+   *
+   * @param elementClass the class of the elements
+   * @return the rules
+   */
+  public List<PreparedRule> checkingCollectionsOf(Class<?> elementClass) {
+    return rules.values().stream()
+        .filter(
+            rule ->
+                !disabled.contains(rule.definition().ruleClass())
+                    && rule.definition().checksCollectionsOf(elementClass))
+        .toList();
+  }
+
   public @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
     if (excluded.isEmpty()) {
       return null;

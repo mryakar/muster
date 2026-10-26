@@ -68,6 +68,9 @@ public final class Muster {
   /** The chains for rule targets, by the class of the input. */
   private final ClassChains targets = new ClassChains(this::bind);
 
+  /** The chains for collections of each class of targets, which also check whole collections. */
+  private final ClassChains collections = new ClassChains(this::bindCollection);
+
   private Muster(
       RuleCatalog catalog,
       Supplier<? extends @Nullable Principal> caller,
@@ -140,6 +143,18 @@ public final class Muster {
   }
 
   /**
+   * Starts a {@link CollectionBinding}: the rules that check collections of the given element type,
+   * rules of each element and rules of the whole collection.
+   *
+   * @param elementType the type of the elements
+   * @param <E> the type of the elements
+   * @return a builder for the binding
+   */
+  public <E> CollectionBinding.Builder<E> collectionBinding(Class<E> elementType) {
+    return new CollectionBinding.Builder<>(this, requireNonNull(elementType, "elementType"));
+  }
+
+  /**
    * Checks a rule target against every enabled rule whose input type accepts its class, in the mode
    * of this {@code Muster}. Rules run in the order of their ids, each after the rules it requires.
    *
@@ -168,11 +183,12 @@ public final class Muster {
   }
 
   /**
-   * Checks the elements of a collection of rule targets in one call, in the mode of this {@code
-   * Muster}, against the rules that {@link #check(RuleTarget)} would run for their class. Each rule
-   * checks the elements that passed the rules it requires, at once if it overrides {@link
-   * BusinessRule#checkAll}; one violated element rejects the whole call, and violations name the
-   * position of their element in their target, as in {@code [3].name}. An empty collection passes.
+   * Checks a collection of rule targets in one call, in the mode of this {@code Muster}, against
+   * the rules that {@link #check(RuleTarget)} would run for the class of its elements, and the
+   * rules that check whole collections of that class, as {@link CollectionBinding} describes. Each
+   * rule of the elements checks those that passed the rules it requires, at once if it overrides
+   * {@link BusinessRule#checkAll}; one violation rejects the whole call, and a violation about an
+   * element names its position in its target, as in {@code [3].name}. An empty collection passes.
    *
    * @param inputs the inputs, all of one class; rules see an unmodifiable copy, taken when the
    *     check starts
@@ -200,7 +216,7 @@ public final class Muster {
   private void runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
     var elements = RuleChain.elements(inputs, RuleTarget.class, true, "Muster");
     if (!elements.isEmpty()) {
-      targets.of(elements.getFirst().getClass()).runAll(elements, mode);
+      collections.of(elements.getFirst().getClass()).runAll(elements, mode);
     }
   }
 
@@ -212,6 +228,17 @@ public final class Muster {
    * Binds a class to the rules a selection lists and, for a rule target, to the rules that bind to
    * it by type. The caller logs the plan.
    */
+  private ClassChains.Bound bindCollection(Class<?> elementClass) {
+    return bindCollection(elementClass, Selection.NONE, mode);
+  }
+
+  ClassChains.Bound bindCollection(
+      Class<?> elementClass, Selection selection, CheckMode chainMode) {
+    var plan = ChainPlan.collection(catalog, elementClass, selection);
+    return new ClassChains.Bound(
+        new RuleChain<>(elementClass, plan.steps(), caller, locale, chainMode), plan);
+  }
+
   ClassChains.Bound bind(Class<?> type, Selection selection, CheckMode chainMode) {
     var plan = ChainPlan.bound(catalog, type, selection);
     return new ClassChains.Bound(

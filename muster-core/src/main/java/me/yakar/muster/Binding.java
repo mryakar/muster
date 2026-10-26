@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
+import me.yakar.muster.internal.rule.RuleCatalog;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
 import org.jspecify.annotations.Nullable;
@@ -95,7 +97,8 @@ public final class Binding<I> {
    * #mode() mode}. Each rule checks the elements that passed the rules it requires, at once if it
    * overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}; one violated element rejects the
    * whole call, and violations name the position of their element in their target, as in {@code
-   * [3].name}. An empty collection passes.
+   * [3].name}. An empty collection passes. The rules check each element; a {@link
+   * CollectionBinding} also checks rules of the whole collection.
    *
    * @param inputs the inputs; unless the input type of this binding is final, all of one class;
    *     rules see an unmodifiable copy, taken when the check starts
@@ -246,37 +249,11 @@ public final class Binding<I> {
     public Binding<I> build() {
       var catalog = muster.catalog();
       var wrapped = Muster.wrap(inputType);
-      for (var ruleClass : listed) {
-        catalog.requireListable(ruleClass, inputType, wrapped);
-      }
-      for (var ruleClass : excluded) {
-        catalog.registered(ruleClass);
-        if (listed.contains(ruleClass)) {
-          throw new IllegalArgumentException(
-              ruleClass.getTypeName() + " is both listed and excluded");
-        }
-      }
-      var problems = new ArrayList<String>();
-      for (var ruleClass : listed) {
-        if (catalog.isDisabled(ruleClass)) {
-          continue;
-        }
-        var required = catalog.excludedRequirement(ruleClass, excluded);
-        if (required != null) {
-          problems.add(
-              "'"
-                  + catalog.registered(ruleClass).id()
-                  + "' requires '"
-                  + catalog.registered(required).id()
-                  + "'");
-        }
-      }
-      if (!problems.isEmpty()) {
-        throw new IllegalArgumentException(
-            "listed rules require excluded rules, directly or through other rules: "
-                + String.join("; ", problems)
-                + "; list other rules, or stop excluding what they require");
-      }
+      requireSelectable(
+          catalog,
+          listed,
+          excluded,
+          ruleClass -> catalog.requireListable(ruleClass, inputType, wrapped));
       return new Binding<>(
           muster,
           wrapped,
@@ -285,6 +262,47 @@ public final class Binding<I> {
               Set.copyOf(excluded),
               name == null ? wrapped.getTypeName() : name),
           mode == null ? muster.mode() : mode);
+    }
+  }
+
+  /**
+   * Checks the listed and excluded rules of a binding: each listed rule passes the given check,
+   * each excluded one is registered and not listed, and no enabled listed rule requires an excluded
+   * one.
+   */
+  static void requireSelectable(
+      RuleCatalog catalog,
+      Set<Class<?>> listed,
+      Set<Class<?>> excluded,
+      Consumer<Class<?>> requireListable) {
+    listed.forEach(requireListable);
+    for (var ruleClass : excluded) {
+      catalog.registered(ruleClass);
+      if (listed.contains(ruleClass)) {
+        throw new IllegalArgumentException(
+            ruleClass.getTypeName() + " is both listed and excluded");
+      }
+    }
+    var problems = new ArrayList<String>();
+    for (var ruleClass : listed) {
+      if (catalog.isDisabled(ruleClass)) {
+        continue;
+      }
+      var required = catalog.excludedRequirement(ruleClass, excluded);
+      if (required != null) {
+        problems.add(
+            "'"
+                + catalog.registered(ruleClass).id()
+                + "' requires '"
+                + catalog.registered(required).id()
+                + "'");
+      }
+    }
+    if (!problems.isEmpty()) {
+      throw new IllegalArgumentException(
+          "listed rules require excluded rules, directly or through other rules: "
+              + String.join("; ", problems)
+              + "; list other rules, or stop excluding what they require");
     }
   }
 }

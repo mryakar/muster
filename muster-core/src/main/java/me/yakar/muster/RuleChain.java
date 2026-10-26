@@ -192,7 +192,8 @@ public final class RuleChain<I> {
       var step = steps.get(i);
       passed[i] = new boolean[size];
       var eligible = eligible(step.requires(), passed, size);
-      if (eligible.length == 0) {
+      // A rule of the whole collection checks it only once every element passed what it requires.
+      if (step.whole() ? eligible.length < size : eligible.length == 0) {
         continue;
       }
       var rule = step.rule();
@@ -202,6 +203,17 @@ public final class RuleChain<I> {
       }
       var ctx = context.build();
       if (!rule.instance().appliesTo(ctx)) {
+        continue;
+      }
+      if (step.whole()) {
+        var violations = violations(rule, rule.instance().check(inputs, ctx), "");
+        if (violations == null) {
+          Arrays.fill(passed[i], true);
+        } else if (mode == CheckMode.FAIL_FAST) {
+          throw new BusinessRuleViolationException(violations);
+        } else {
+          found = add(found, violations);
+        }
         continue;
       }
       if (!rule.checksAll()) {

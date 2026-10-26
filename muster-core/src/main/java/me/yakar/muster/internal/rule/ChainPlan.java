@@ -59,7 +59,7 @@ public final class ChainPlan {
   public static ChainPlan listed(RuleCatalog catalog, String label, Collection<Class<?>> listed) {
     var included = catalog.enabled(listed);
     var notes = new ArrayList<String>();
-    var steps = compose(catalog, label, included, List.copyOf(included.keySet()), notes);
+    var steps = compose(catalog, label, included, List.copyOf(included.keySet()), notes, null);
     return new ChainPlan(label, steps, notes, false);
   }
 
@@ -82,30 +82,73 @@ public final class ChainPlan {
     var listedOrder = List.copyOf(included.keySet());
     var notes = new ArrayList<String>();
     if (RuleTarget.class.isAssignableFrom(type)) {
-      var excluded = selection.excluded();
-      var leftOut = new ArrayList<String>();
-      for (var rule : catalog.accepting(type)) {
-        var ruleClass = rule.definition().ruleClass();
-        if (excluded.contains(ruleClass) || included.containsKey(ruleClass)) {
-          continue;
-        }
-        var blocking = catalog.excludedRequirement(ruleClass, excluded);
-        if (blocking == null) {
-          included.put(ruleClass, rule);
-        } else {
-          leftOut.add("'" + rule.id() + "' requires '" + catalog.registered(blocking).id() + "'");
-        }
+      addBound(catalog, catalog.accepting(type), selection, included, label, notes);
+    }
+    var steps = compose(catalog, label, included, listedOrder, notes, null);
+    return new ChainPlan(label, steps, notes, true);
+  }
+
+  /**
+   * Plans the chain that checks collections of a class: the listed rules and, for a {@link
+   * RuleTarget}, the rules bound by type, both those that check each element and those that check
+   * the whole collection, less the excluded ones. A rule that checks whole collections of the class
+   * checks the collection; any other rule checks each element.
+   *
+   * @param catalog the registered rules
+   * @param elementClass the class of the elements
+   * @param selection the listed and excluded rules, and the name of the binding
+   * @return the plan
+   */
+  public static ChainPlan collection(
+      RuleCatalog catalog, Class<?> elementClass, Selection selection) {
+    var collection = "a collection of " + elementClass.getTypeName();
+    var name = selection.name();
+    var label =
+        name == null || name.equals(collection) ? collection : name + " (" + collection + ")";
+    var included = catalog.enabled(selection.listed());
+    var listedOrder = List.copyOf(included.keySet());
+    var notes = new ArrayList<String>();
+    if (RuleTarget.class.isAssignableFrom(elementClass)) {
+      var candidates = new ArrayList<>(catalog.accepting(elementClass));
+      candidates.addAll(catalog.checkingCollectionsOf(elementClass));
+      addBound(catalog, candidates, selection, included, label, notes);
+    }
+    var steps = compose(catalog, label, included, listedOrder, notes, elementClass);
+    return new ChainPlan(label, steps, notes, true);
+  }
+
+  /**
+   * Adds the rules bound by type that are neither excluded nor listed, and notes those left out
+   * because they require an excluded rule.
+   */
+  private static void addBound(
+      RuleCatalog catalog,
+      List<PreparedRule> candidates,
+      Selection selection,
+      Map<Class<?>, PreparedRule> included,
+      String label,
+      List<String> notes) {
+    var excluded = selection.excluded();
+    var leftOut = new ArrayList<String>();
+    for (var rule : candidates) {
+      var ruleClass = rule.definition().ruleClass();
+      if (excluded.contains(ruleClass) || included.containsKey(ruleClass)) {
+        continue;
       }
-      if (!leftOut.isEmpty()) {
-        notes.add(
-            "The chain for "
-                + label
-                + " leaves out rules that require excluded rules: "
-                + leftOut.stream().sorted().collect(joining("; ")));
+      var blocking = catalog.excludedRequirement(ruleClass, excluded);
+      if (blocking == null) {
+        included.put(ruleClass, rule);
+      } else {
+        leftOut.add("'" + rule.id() + "' requires '" + catalog.registered(blocking).id() + "'");
       }
     }
-    var steps = compose(catalog, label, included, listedOrder, notes);
-    return new ChainPlan(label, steps, notes, true);
+    if (!leftOut.isEmpty()) {
+      notes.add(
+          "The chain for "
+              + label
+              + " leaves out rules that require excluded rules: "
+              + leftOut.stream().sorted().collect(joining("; ")));
+    }
   }
 
   /** Adds the rules that the included ones require and orders them all, noting each one it adds. */
@@ -114,7 +157,8 @@ public final class ChainPlan {
       String label,
       Map<Class<?>, PreparedRule> included,
       List<Class<?>> listed,
-      List<String> notes) {
+      List<String> notes,
+      @Nullable Class<?> elementClass) {
     var pending = new ArrayDeque<>(included.values());
     while (!pending.isEmpty()) {
       var rule = pending.removeFirst();
@@ -141,7 +185,8 @@ public final class ChainPlan {
     for (var definition : ordered) {
       var requires = definition.requires().stream().mapToInt(positions::get).toArray();
       positions.put(definition.ruleClass(), steps.size());
-      steps.add(new Step(included.get(definition.ruleClass()), requires));
+      var whole = elementClass != null && definition.checksCollectionsOf(elementClass);
+      steps.add(new Step(included.get(definition.ruleClass()), requires, whole));
     }
     return List.copyOf(steps);
   }
