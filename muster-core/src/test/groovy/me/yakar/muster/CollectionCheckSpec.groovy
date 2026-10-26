@@ -157,6 +157,23 @@ class CollectionCheckSpec extends EngineSpecification {
     }
   }
 
+  /** Clears the list of the caller while it checks the first element, and notes what it checks. */
+  @Rule(id = 'task.clears-list')
+  static class ClearsCallersList implements BusinessRule<Long> {
+    final List<Long> callers
+    final List<Long> checked = []
+
+    ClearsCallersList(List<Long> callers) {
+      this.callers = callers
+    }
+
+    RuleResult check(Long input, RuleContext ctx) {
+      callers.clear()
+      checked << input
+      RuleResult.passed()
+    }
+  }
+
   /** Returns null for the input 'b' only. */
   @Rule(id = 'rule.returns-null')
   static class ReturnsNullForB implements BusinessRule<String> {
@@ -329,6 +346,32 @@ class CollectionCheckSpec extends EngineSpecification {
 
     then:
     thrown(UnsupportedOperationException)
+  }
+
+  def 'a rule sees a copy of the collection, taken when the check starts'() {
+    given:
+    def callers = new ArrayList<Long>([1L, 2L, 3L])
+    def rule = new ClearsCallersList(callers)
+
+    when:
+    tasks(rule).build().chain(Long, ClearsCallersList).checkAll(callers)
+
+    then:
+    callers.empty
+    rule.checked == [1L, 2L, 3L]
+  }
+
+  def 'a rule checking at once receives a copy, not the list of the caller'() {
+    given:
+    def rule = new NamesFree()
+    def vehicles = [VALID]
+
+    when:
+    tasks(rule).build().chain(CreateVehicle, NamesFree).checkAll(vehicles)
+
+    then:
+    rule.received == [vehicles]
+    !rule.received[0].is(vehicles)
   }
 
   def 'a collection that is not a list reaches checkAll as a list, in its order'() {

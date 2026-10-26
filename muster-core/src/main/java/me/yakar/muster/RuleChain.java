@@ -126,7 +126,7 @@ public final class RuleChain<I> {
    * violated rule, and a rule that does not override {@code checkAll} at its first violated
    * element. An empty collection passes without running a rule.
    *
-   * @param inputs the inputs; a list is passed on unmodifiable, and another collection as a copy
+   * @param inputs the inputs; rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if an element is not of the chain's type, which only unchecked
@@ -138,14 +138,15 @@ public final class RuleChain<I> {
 
   /**
    * Returns the inputs of a check of a collection, after checking that every element is of the
-   * given type and, if asked, of one class: a chain bound to a class checks that class only.
+   * given type and, if asked, of one class: a chain bound to a class checks that class only. The
+   * inputs are copied once, before they are checked, so that a change to the collection during the
+   * check reaches no rule, and every rule reads an element in constant time.
    */
   static List<?> elements(
       Collection<?> inputs, Class<?> inputType, boolean oneClass, String checker) {
-    requireNonNull(inputs, "inputs");
-    Class<?> first = null;
-    var position = 0;
-    for (var input : inputs) {
+    var copy = requireNonNull(inputs, "inputs").toArray();
+    for (var position = 0; position < copy.length; position++) {
+      var input = copy[position];
       if (input == null) {
         throw new NullPointerException("the element at [" + position + "] is null");
       }
@@ -160,22 +161,17 @@ public final class RuleChain<I> {
                 + "] is a "
                 + input.getClass().getTypeName());
       }
-      if (first == null) {
-        first = input.getClass();
-      } else if (oneClass && input.getClass() != first) {
+      if (oneClass && input.getClass() != copy[0].getClass()) {
         throw new IllegalArgumentException(
             "the elements of a checked collection must be of one class; the element at [0] is a "
-                + first.getTypeName()
+                + copy[0].getClass().getTypeName()
                 + ", the element at ["
                 + position
                 + "] a "
                 + input.getClass().getTypeName());
       }
-      position++;
     }
-    return inputs instanceof List<?> list
-        ? Collections.unmodifiableList(list)
-        : List.copyOf(inputs);
+    return Collections.unmodifiableList(Arrays.asList(copy));
   }
 
   /**

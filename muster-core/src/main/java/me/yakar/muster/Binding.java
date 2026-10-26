@@ -97,7 +97,8 @@ public final class Binding<I> {
    * whole call, and violations name the position of their element in their target, as in {@code
    * [3].name}. An empty collection passes.
    *
-   * @param inputs the inputs; unless the input type of this binding is final, all of one class
+   * @param inputs the inputs; unless the input type of this binding is final, all of one class;
+   *     rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
