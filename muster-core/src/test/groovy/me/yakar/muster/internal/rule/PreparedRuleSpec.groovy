@@ -45,6 +45,34 @@ class PreparedRuleSpec extends Specification {
   @Rule(id = 'task.ready')
   static class InheritsChecksAll extends ChecksAll {}
 
+  /** A generic base class of rules that checks at once. */
+  static abstract class ChecksAllBase<T> implements BusinessRule<T> {
+    RuleResult checkAll(List<? extends T> inputs, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'task.ready')
+  static class FromGenericBase extends ChecksAllBase<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  /** An interface of rules that overrides checkAll with a default of its own. */
+  static interface ChecksAllByDefault<T> extends BusinessRule<T> {
+    default RuleResult checkAll(List<? extends T> inputs, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'task.ready')
+  static class FromInterfaceDefault implements ChecksAllByDefault<String> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
   /** Public methods that look like checkAll, but are not it. */
   @Rule(id = 'task.ready')
   static class LooksLikeChecksAll implements BusinessRule<String> {
@@ -97,6 +125,8 @@ class PreparedRuleSpec extends Specification {
     how                                        | ruleClass || checksAll
     'overrides checkAll'                       | ChecksAll || true
     'inherits an override'                     | InheritsChecksAll || true
+    'inherits it from a generic base class' | FromGenericBase || true
+    'inherits a default of a sub-interface' | FromInterfaceDefault || true
     'does not override it'                     | TaskReady || false
     'has methods that only look like checkAll' | LooksLikeChecksAll || false
   }
