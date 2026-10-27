@@ -15,14 +15,22 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
+import static java.lang.System.Logger.Level.WARNING;
+import static java.util.Comparator.comparing;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import me.yakar.muster.Muster;
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocation;
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode;
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationScanner;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.jspecify.annotations.Nullable;
@@ -47,8 +55,11 @@ import org.springframework.util.ReflectionUtils;
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
+  private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
+
   private final ObjectProvider<Muster> muster;
   private final ObjectProvider<TransactionGuard> transactions;
+  private final SelfInvocationMode selfInvocation;
 
   private final Object lock = new Object();
 
@@ -78,10 +89,12 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   RulesInterceptor(
       AdviceTable table,
       ObjectProvider<Muster> muster,
-      ObjectProvider<TransactionGuard> transactions) {
+      ObjectProvider<TransactionGuard> transactions,
+      SelfInvocationMode selfInvocation) {
     this.table = table;
     this.muster = muster;
     this.transactions = transactions;
+    this.selfInvocation = selfInvocation;
   }
 
   /** Notes a class the pointcut advises; once the application has started, prepares it at once. */
@@ -109,9 +122,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   }
 
   /**
-   * Prepares the noted classes that are not prepared yet. Muster, the guard and its transaction
-   * test are resolved before the lock is taken: creating them may wait for a bean that another
-   * thread creates, and that thread may note a class meanwhile.
+   * Prepares the noted classes that are not prepared yet, and scans each for calls of its advised
+   * methods on {@code this}. Muster, the guard and its transaction test are resolved before the
+   * lock is taken: creating them may wait for a bean that another thread creates, and that thread
+   * may note a class meanwhile.
    */
   private void prepareNoted() {
     if (resolving.get() != null) {
@@ -137,12 +151,25 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     synchronized (lock) {
       preparing = true;
       try {
+        var selfInvocations = new ArrayList<SelfInvocation>();
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
           for (var targetClass : unprepared) {
-            table.put(targetClass, adviceOf(muster, resolved, targetClass));
+            var advice = adviceOf(muster, resolved, targetClass);
+            var found =
+                selfInvocation == SelfInvocationMode.OFF
+                    ? List.<SelfInvocation>of()
+                    : SelfInvocationScanner.find(targetClass, labels(advice));
+            selfInvocations.addAll(found);
+            // A class whose calls fail the pass stays unprepared, so that creating a bean of it
+            // later fails again.
+            if (found.isEmpty() || selfInvocation != SelfInvocationMode.FAIL) {
+              table.put(targetClass, advice);
+            }
           }
+          requireNone(selfInvocations);
         }
+        warn(selfInvocations);
       } finally {
         preparing = false;
       }
@@ -152,6 +179,51 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     if (checkOrder) {
       guard.checkOrder(RulesAdvisor.ORDER);
     }
+  }
+
+  /** The advised methods of a class, each to the label its advice names it by. */
+  private static Map<Method, String> labels(Map<Method, MethodAdvice> advice) {
+    var labels = new HashMap<Method, String>();
+    advice.forEach((method, methodAdvice) -> labels.put(method, methodAdvice.label()));
+    return labels;
+  }
+
+  /**
+   * Fails on the calls of advised methods on {@code this} found so far, naming them all in the
+   * order of their callers, if the configuration says so.
+   *
+   * @throws IllegalStateException in {@link SelfInvocationMode#FAIL} mode, if any was found
+   */
+  private void requireNone(List<SelfInvocation> selfInvocations) {
+    if (selfInvocation == SelfInvocationMode.FAIL && !selfInvocations.isEmpty()) {
+      throw new IllegalStateException(
+          "Muster found calls of advised methods through this, which pass no proxy and check no"
+              + " rules: "
+              + sorted(selfInvocations).stream()
+                  .map(Object::toString)
+                  .collect(Collectors.joining("; "))
+              + ". Call the method through its bean: inject the bean itself, with @Lazy or an"
+              + " ObjectProvider, or move the method to another bean; or set"
+              + " muster.self-invocation=warn to log such calls instead");
+    }
+  }
+
+  /**
+   * Warns of each call of an advised method on {@code this} found in a pass, in the order of their
+   * callers.
+   */
+  private static void warn(List<SelfInvocation> selfInvocations) {
+    for (var found : sorted(selfInvocations)) {
+      LOGGER.log(
+          WARNING,
+          found + ", which passes no proxy and checks no rules; call the method through its bean");
+    }
+  }
+
+  private static List<SelfInvocation> sorted(List<SelfInvocation> selfInvocations) {
+    return selfInvocations.stream()
+        .sorted(comparing(SelfInvocation::caller).thenComparing(SelfInvocation::callee))
+        .toList();
   }
 
   /** Returns the noted classes that are not prepared yet. Called under {@link #lock}. */

@@ -23,6 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import me.yakar.muster.CheckMode;
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
@@ -52,6 +53,8 @@ public final class Settings {
       ConfigurationPropertyName.of("muster.validation.reorder-advisor");
   private static final ConfigurationPropertyName MIXED_STATUS =
       ConfigurationPropertyName.of("muster.problem-details.mixed-status");
+  private static final ConfigurationPropertyName SELF_INVOCATION =
+      ConfigurationPropertyName.of("muster.self-invocation");
   private static final ConfigurationPropertyName PROXY_TARGET_CLASS =
       ConfigurationPropertyName.of("spring.aop.proxy-target-class");
 
@@ -168,6 +171,19 @@ public final class Settings {
               + ", since a violation is an error of the client");
     }
     return status;
+  }
+
+  /**
+   * Returns what to do when a method of an advised class calls an advised method on {@code this}.
+   *
+   * @throws IllegalStateException if {@code muster.self-invocation} is set to nothing
+   */
+  public static SelfInvocationMode selfInvocation(Environment environment) {
+    var binder = Binder.get(environment);
+    requireValue(binder, SELF_INVOCATION, "fail, warn or off");
+    return binder
+        .bind(SELF_INVOCATION, Bindable.of(SelfInvocationMode.class))
+        .orElse(SelfInvocationMode.FAIL);
   }
 
   /** Returns whether proxies extend the class of their target, as in Spring Boot by default. */

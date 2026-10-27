@@ -35,6 +35,13 @@
       "defaultValue": 422
     },
     {
+      "name": "muster.self-invocation",
+      "type": "me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode",
+      "description": "What to do when a method of an advised class calls an advised method on this, which passes no proxy and checks no rules: fail stops the application and names the methods, warn logs them, off skips the scan. The starter scans the bytecode of the advised classes when it prepares them, the bodies of lambdas included; a call through reflection, through a nested class or from code compiled to dynamic calls, as Groovy's, is not seen.",
+      "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
+      "defaultValue": "fail"
+    },
+    {
       "name": "muster.rules",
       "type": "java.util.Map<java.lang.String,java.lang.Boolean>",
       "description": "Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false. Rules are on unless switched off. A key that switches no rule stops the application, and so does any key in an application with a Muster bean of its own.",
@@ -52,6 +59,23 @@
         {
           "value": "collect-all",
           "description": "Run every rule and report every violation."
+        }
+      ]
+    },
+    {
+      "name": "muster.self-invocation",
+      "values": [
+        {
+          "value": "fail",
+          "description": "Stop the application and name the methods."
+        },
+        {
+          "value": "warn",
+          "description": "Log the methods and go on."
+        },
+        {
+          "value": "off",
+          "description": "Do not scan the advised classes."
         }
       ]
     }
