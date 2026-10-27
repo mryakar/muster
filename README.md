@@ -179,6 +179,7 @@ build; a property set to nothing stops the application:
 | `muster.problem-details.mixed-status` | `422` | The status of violations of different categories, from 400 to 499 |
 | `muster.transaction.reorder-advisor` | `true` | Moves the transaction advice ahead of Muster's, so that rules run inside the transaction, unless `@EnableTransactionManagement` has an order of its own |
 | `muster.validation.reorder-advisor` | `true` | On the proxies Muster advises, moves the method validation advice ahead of Muster's, so that the constraints of a `@Validated` method are checked before its rules and before its transaction; other advice, and other beans, keep Spring's order |
+| `muster.self-invocation` | `fail` | What to do with a method that calls an advised method through `this`, which passes no proxy and checks no rules: `fail` stops the application and names the methods, `warn` logs them, `off` skips the scan |
 
 [`muster-examples/spring-boot`](muster-examples/spring-boot) is a complete application along these
 lines.
@@ -194,8 +195,15 @@ replaces the starter's; such an application does not start if it also sets `must
 **Methods.** `@Rules` is found as Spring finds `@Transactional`: on the method, on the method it
 overrides or implements, and as a meta-annotation. A method with rules is public, and neither
 static nor final; wrong use stops the application when it starts, as does a transaction advice that
-would not run around Muster's. A call through `this` passes no proxy and checks no rules; a call
-from one advised method to another checks them again. The constraints of a `@Validated` method are
+would not run around Muster's. A call through `this` passes no proxy and checks no rules, so the
+starter scans the bytecode of each class it advises, with its superclasses and interfaces, for
+calls of its advised methods through `this`, the bodies of lambdas and method references included,
+and stops the application, naming the methods; `muster.self-invocation=warn` logs them instead,
+and `off` skips the scan. Call the method through its bean, injecting the bean itself with `@Lazy`
+or an `ObjectProvider`, or move it to another bean. A call through reflection, through a nested
+class, or from code compiled to dynamic calls, as Groovy's, is not seen, and nothing is scanned
+where the class files are not there, as in a native image. A call from one advised method to
+another through the bean checks the rules again. The constraints of a `@Validated` method are
 checked before its rules, and before its transaction: Spring adds the validation advice after the
 advice a proxy already has, and Muster moves it ahead of its own on the proxies it advises, leaving
 other advice, such as method security, and beans without rules as they are; with
