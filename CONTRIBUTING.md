@@ -57,8 +57,10 @@ threads than a benchmark declares. A change that affects performance is compared
 ## Dependencies
 
 Gradle verifies every dependency against the SHA-256 checksums in
-`gradle/verification-metadata.xml`. When you add or update a dependency, update the file with the
-tasks that resolve it, and review what changed. `--refresh-dependencies` makes Gradle read parent
+`gradle/verification-metadata.xml`. The sources and javadoc jars that IDEs download next to the
+dependencies are the one exception: the file trusts them by name, in `<trusted-artifacts>`, since
+they are read and never run, and Gradle keeps that block when it rewrites the file. When you add or
+update a dependency, update the file with the tasks that resolve it, and review what changed. `--refresh-dependencies` makes Gradle read parent
 and BOM POMs again, which it would otherwise take from its cache without recording them:
 
 ```bash

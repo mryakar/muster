@@ -3,6 +3,10 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <trusted-artifacts>
+         <trust file=".*-sources\.jar" regex="true" reason="IDEs download the sources of dependencies; they are read, never run"/>
+         <trust file=".*-javadoc\.jar" regex="true" reason="IDEs download the API docs of dependencies; they are read, never run"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="antlr" name="antlr" version="2.7.7">
