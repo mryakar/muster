@@ -29,6 +29,7 @@ import org.springframework.beans.factory.ObjectProvider
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
 import org.springframework.transaction.interceptor.TransactionAttributeSource
 import org.springframework.transaction.interceptor.TransactionInterceptor
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode
 import spock.lang.Specification
 
 class RulesInterceptorSpec extends Specification {
@@ -55,7 +56,8 @@ class RulesInterceptorSpec extends Specification {
       null
     }, getIfAvailable: { Object[] args ->
       null
-    }] as ObjectProvider)
+    }] as ObjectProvider,
+  SelfInvocationMode.FAIL)
 
   def method = Object.getMethod('toString')
 
@@ -139,7 +141,8 @@ class RulesInterceptorSpec extends Specification {
           }] as ObjectProvider,
         [getIfAvailable: { Object[] args ->
             guard
-          }] as ObjectProvider)
+          }] as ObjectProvider,
+        SelfInvocationMode.FAIL)
     reentered.note(VehicleComponent)
     reentered.note(OtherComponent)
 

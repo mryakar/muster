@@ -153,6 +153,7 @@ class SettingsSpec extends Specification {
     'muster.mode=' || 'muster.mode is set to nothing; set it to fail-fast or collect-all'
     'muster.transaction.reorder-advisor=' || 'muster.transaction.reorder-advisor is set to nothing; set it to true or false'
     'muster.validation.reorder-advisor=' || 'muster.validation.reorder-advisor is set to nothing; set it to true or false'
+    'muster.self-invocation=' || 'muster.self-invocation is set to nothing; set it to fail, warn or off'
   }
 
   def 'muster.rules itself switches no rule'() {

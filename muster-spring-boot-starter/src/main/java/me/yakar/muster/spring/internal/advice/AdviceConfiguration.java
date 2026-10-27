@@ -16,12 +16,14 @@
 package me.yakar.muster.spring.internal.advice;
 
 import me.yakar.muster.Muster;
+import me.yakar.muster.spring.internal.Settings;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
+import org.springframework.core.env.Environment;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 
 /**
@@ -45,8 +47,10 @@ public final class AdviceConfiguration {
   static RulesInterceptor musterRulesInterceptor(
       AdviceTable musterAdviceTable,
       ObjectProvider<Muster> muster,
-      ObjectProvider<TransactionGuard> transactions) {
-    return new RulesInterceptor(musterAdviceTable, muster, transactions);
+      ObjectProvider<TransactionGuard> transactions,
+      Environment environment) {
+    return new RulesInterceptor(
+        musterAdviceTable, muster, transactions, Settings.selfInvocation(environment));
   }
 
   // Infrastructure, so that the proxy creator that transaction management registers applies it.

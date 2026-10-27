@@ -17,6 +17,7 @@ package me.yakar.muster.spring
 
 import com.jayway.jsonpath.JsonPath
 import me.yakar.muster.CheckMode
+import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode
 import spock.lang.Specification
 
 class ConfigurationMetadataSpec extends Specification {
@@ -30,6 +31,7 @@ class ConfigurationMetadataSpec extends Specification {
       'muster.transaction.reorder-advisor',
       'muster.validation.reorder-advisor',
       'muster.problem-details.mixed-status',
+      'muster.self-invocation',
       'muster.rules'
     ]
     metadata.read('$..sourceType').every { it == MusterAutoConfiguration.name }
@@ -44,6 +46,15 @@ class ConfigurationMetadataSpec extends Specification {
     expect:
     metadata.read('$.hints[?(@.name == "muster.mode")].values[*].value') == modes
     metadata.read('$.properties[?(@.name == "muster.mode")].defaultValue') == ['fail-fast']
+  }
+
+  def 'offers every self-invocation mode, in the form a property takes'() {
+    given:
+    def modes = SelfInvocationMode.values().collect { it.name().toLowerCase() }
+
+    expect:
+    metadata.read('$.hints[?(@.name == "muster.self-invocation")].values[*].value') == modes
+    metadata.read('$.properties[?(@.name == "muster.self-invocation")].defaultValue') == ['fail']
   }
 
   def 'gives the default mixed status'() {
