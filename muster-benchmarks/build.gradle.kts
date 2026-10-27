@@ -23,10 +23,12 @@ dependencies {
   // What the starter adds, with the oldest Spring Boot it supports.
   implementation(project(":muster-spring-boot-starter"))
   implementation(platform(libs.spring.boot.dependencies))
-  // The advice the starter's is measured next to: method security and transactions.
+  // The advice the starter's is measured next to: method security and transactions; and the
+  // observations a listener reports.
   implementation("org.springframework.security:spring-security-config")
   implementation("org.springframework.security:spring-security-core")
   implementation("org.springframework:spring-tx")
+  implementation("io.micrometer:micrometer-observation")
   implementation(libs.jmh.core)
   // Reads JMH's results, which give each fork's measurements, for the published summary.
   implementation(libs.jackson.databind)
