@@ -57,17 +57,14 @@ threads than a benchmark declares. A change that affects performance is compared
 ## Dependencies
 
 Gradle verifies every dependency against the SHA-256 checksums in
-`gradle/verification-metadata.xml`. What IDEs download to show sources is the one exception: the
-file trusts the sources and javadoc jars of the dependencies and the source zip of the Gradle
-distribution by name, in `<trusted-artifacts>`, since they are read and never run, and Gradle keeps
-that block when it rewrites the file. The Groovy that Gradle bundles is listed with checksums, since
-an IDE reads its metadata on the way to its sources: when the Gradle wrapper moves to a version that
-bundles another Groovy, download the `.module` and `.pom` of `org.apache.groovy:groovy` and
-`groovy-bom` in that version from Maven Central, compare their SHA-256 with the copies on
-`repo.gradle.org/gradle/list/libs-releases`, and, when they match, add the entries in place of the
-old ones; Gradle does not add or remove them when it rewrites the file, since no build resolves
-them. When you add or update a dependency, update the file with the tasks that resolve it, and
-review what changed.
+`gradle/verification-metadata.xml`. What IDEs download to show sources is the one exception, in
+`<trusted-artifacts>`, which Gradle keeps when it rewrites the file. The sources and javadoc jars of
+the dependencies and the source zip of the Gradle distribution are trusted by name, since they are
+read and never run. The metadata of the Groovy that Gradle bundles is trusted too, for that one
+version: an IDE reads it on the way to the sources of each bundled module, and no build resolves it.
+When the Gradle wrapper moves to a version that bundles another Groovy, which the `groovy-*.jar`
+files in the `lib` directory of the distribution name, put that version in the rule. When you add or
+update a dependency, update the file with the tasks that resolve it, and review what changed.
 `--refresh-dependencies` makes Gradle read parent and BOM POMs again, which it would otherwise take
 from its cache without recording them:
 
