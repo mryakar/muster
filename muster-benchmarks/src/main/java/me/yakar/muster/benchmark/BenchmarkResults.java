@@ -57,7 +57,8 @@ final class BenchmarkResults {
           CheckBenchmark.class,
           ViolationBenchmark.class,
           BindingBenchmark.class,
-          StarterBenchmark.class);
+          StarterBenchmark.class,
+          ListenerBenchmark.class);
 
   private BenchmarkResults() {}
 
