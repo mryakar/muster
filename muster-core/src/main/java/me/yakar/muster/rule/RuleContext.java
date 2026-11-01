@@ -40,7 +40,7 @@ import org.jspecify.annotations.Nullable;
  * java.time.Clock} or a repository, is a dependency of the rule: take it in the constructor, and a
  * test can pass a fixed clock.
  */
-public final class RuleContext {
+public sealed class RuleContext {
 
   /** No element: the context is not about one element of a collection. */
   private static final int NONE = -1;
@@ -49,26 +49,21 @@ public final class RuleContext {
   private final @Nullable Principal caller;
   private final Locale locale;
 
-  /**
-   * The positions, in the checked collection, of the inputs that {@code checkAll} receives, by
-   * their index in its list; {@code null} where they are the same.
-   */
-  private final int @Nullable [] positions;
+  private RuleContext(String ruleId, @Nullable Principal caller, Locale locale) {
+    this.ruleId = ruleId;
+    this.caller = caller;
+    this.locale = locale;
+  }
 
-  /** The position, in the checked collection, of the element this context is about, or none. */
-  private final int element;
-
-  private RuleContext(
+  private static RuleContext of(
       String ruleId,
       @Nullable Principal caller,
       Locale locale,
       int @Nullable [] positions,
       int element) {
-    this.ruleId = ruleId;
-    this.caller = caller;
-    this.locale = locale;
-    this.positions = positions;
-    this.element = element;
+    return positions == null && element == NONE
+        ? new RuleContext(ruleId, caller, locale)
+        : new Positioned(ruleId, caller, locale, positions, element);
   }
 
   /**
@@ -178,12 +173,14 @@ public final class RuleContext {
    * @throws IllegalStateException if this is already the context of an element
    */
   public RuleContext element(int index) {
+    var element = position();
     if (element != NONE) {
       throw new IllegalStateException(
           "this is the context of the element at ["
               + element
               + "] already; get the contexts of elements from the context that checkAll receives");
     }
+    var positions = positions();
     int position;
     if (positions == null) {
       if (index < 0) {
@@ -197,7 +194,7 @@ public final class RuleContext {
       }
       position = positions[index];
     }
-    return new RuleContext(ruleId, caller, locale, null, position);
+    return new Positioned(ruleId, caller, locale, null, position);
   }
 
   /**
@@ -206,6 +203,7 @@ public final class RuleContext {
    * @return the position, or empty if this context is not about an element
    */
   public OptionalInt elementPosition() {
+    var element = position();
     return element == NONE ? OptionalInt.empty() : OptionalInt.of(element);
   }
 
@@ -215,7 +213,7 @@ public final class RuleContext {
    * @return a builder for the violation
    */
   public Violation.Builder violation() {
-    return new Violation.Builder(ruleId, element);
+    return new Violation.Builder(ruleId, position());
   }
 
   /**
@@ -228,7 +226,7 @@ public final class RuleContext {
    *     format characters, or unpaired surrogates
    */
   public Violation.Builder violation(String code) {
-    return new Violation.Builder(ruleId, code, element);
+    return new Violation.Builder(ruleId, code, position());
   }
 
   /**
@@ -244,6 +242,7 @@ public final class RuleContext {
       text.append(", caller=").append(caller.getName());
     }
     text.append(", locale=").append(locale.toLanguageTag());
+    var element = position();
     if (element != NONE) {
       text.append(", element=").append(element);
     }
@@ -272,8 +271,10 @@ public final class RuleContext {
       ruleId = context.ruleId;
       caller = context.caller;
       locale = context.locale;
-      positions = context.positions;
-      element = context.element;
+      if (context instanceof Positioned positioned) {
+        positions = positioned.positions;
+        element = positioned.element;
+      }
     }
 
     /**
@@ -330,7 +331,45 @@ public final class RuleContext {
      * @return the context
      */
     public RuleContext build() {
-      return new RuleContext(ruleId, caller, locale, positions, element);
+      return of(ruleId, caller, locale, positions, element);
+    }
+  }
+
+  /** The positions of the inputs that {@code checkAll} receives, or {@code null}. */
+  private int @Nullable [] positions() {
+    return this instanceof Positioned positioned ? positioned.positions : null;
+  }
+
+  /** The position of the element this context is about, or {@link #NONE}. */
+  private int position() {
+    return this instanceof Positioned positioned ? positioned.element : NONE;
+  }
+
+  /**
+   * The context of a collection whose inputs have positions, or of one of its elements. Only these
+   * carry positions, so that the context of a rule in a single check keeps three fields and stays
+   * as small as it can be: each rule of a check gets its own.
+   */
+  private static final class Positioned extends RuleContext {
+
+    /**
+     * The positions, in the checked collection, of the inputs that {@code checkAll} receives, by
+     * their index in its list; {@code null} where they are the same.
+     */
+    private final int @Nullable [] positions;
+
+    /** The position, in the checked collection, of the element this context is about, or none. */
+    private final int element;
+
+    private Positioned(
+        String ruleId,
+        @Nullable Principal caller,
+        Locale locale,
+        int @Nullable [] positions,
+        int element) {
+      super(ruleId, caller, locale);
+      this.positions = positions;
+      this.element = element;
     }
   }
 }

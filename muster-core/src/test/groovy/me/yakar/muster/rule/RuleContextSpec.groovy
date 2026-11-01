@@ -263,6 +263,13 @@ class RuleContextSpec extends Specification {
     RuleContext.forRule('task.ready').element(3).toBuilder().build().elementPosition() == OptionalInt.of(3)
   }
 
+  def 'the context of a rule in a single check is the plain class, which carries no positions'() {
+    expect: 'each rule of a check gets its own context, so it stays as small as it can be'
+    RuleContext.forRule('task.ready').toBuilder().caller(amo).locale(Locale.GERMANY).build().getClass() == RuleContext
+    RuleContext.forRule('task.ready').element(3).getClass() != RuleContext
+    RuleContext.builder('task.ready').positions(2, 4).build().getClass() != RuleContext
+  }
+
   def 'a context describes itself for logs'() {
     given:
     def anonymous = RuleContext.forRule('task.ready')
