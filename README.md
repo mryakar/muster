@@ -368,8 +368,11 @@ path.
 </picture>
 
 Muster checks and orders the rules of a chain once, when the chain is created, and does no
-reflection while it checks. A passing check of 20 rules adds about 110 ns to calling them by hand,
-and the Spring Boot starter about 120 ns to a call of an advised service method.
+reflection while it checks. A passing check of 20 rules adds about 130 ns to calling them by hand,
+and the Spring Boot starter about 130 ns to a call of an advised service method. Next to method
+security or a transaction, which take microseconds, the starter adds little and allocates nothing
+more. Without a listener, a check pays one null check. `checkAll` costs more for each element than
+checking each on its own, unless its rules override it to check the collection at once.
 [The benchmarks](docs/benchmarks/README.md) give the machine, the method, every result and the
 budget a change is held to.
 
