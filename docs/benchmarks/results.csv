@@ -1,25 +1,58 @@
 Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median: fork (ns),Allocated (B)
-BindingBenchmark.check,bound=first,40.8,38.2,41.8,3 (47.8),0
-BindingBenchmark.check,bound=second,49.2,47.1,50.0,3 (41.9),0
-CheckBenchmark.chain,rules=0,11.5,11.4,11.6,5 (12.9),16
-CheckBenchmark.chain,rules=1,11.9,11.8,11.9,,0
-CheckBenchmark.chain,rules=5,102.6,101.9,109.7,,144
-CheckBenchmark.chain,rules=20,381.8,379.4,403.9,,520
+BindingBenchmark.check,bound=first,44.7,41.6,46.1,1 (52.3),0
+BindingBenchmark.check,bound=second,46.6,46.1,48.6,3 (40.0) 4 (52.8),0
+CheckBenchmark.chain,rules=0,12.3,11.6,12.7,2 (15.1),16
+CheckBenchmark.chain,rules=1,12.6,12.5,12.8,,0
+CheckBenchmark.chain,rules=5,107.1,101.8,111.8,,144
+CheckBenchmark.chain,rules=20,391.2,379.7,422.9,,520
 CheckBenchmark.direct,rules=0,1.3,1.3,1.3,,0
-CheckBenchmark.direct,rules=1,11.2,11.0,11.2,,0
-CheckBenchmark.direct,rules=5,66.1,65.6,66.9,,0
-CheckBenchmark.direct,rules=20,275.7,266.5,289.5,,0
-CheckBenchmark.target,rules=0,19.9,19.9,20.1,,16
-CheckBenchmark.target,rules=1,21.3,21.2,21.3,,0
-CheckBenchmark.target,rules=5,117.8,114.7,124.8,,144
-CheckBenchmark.target,rules=20,405.5,394.5,410.5,,520
-StarterBenchmark.advised,rules=0,142.0,140.7,146.7,,112
-StarterBenchmark.advised,rules=1,144.1,143.3,153.3,,120
-StarterBenchmark.advised,rules=20,530.4,522.6,542.2,,616
-StarterBenchmark.manual,rules=0,19.3,19.1,20.5,,16
-StarterBenchmark.manual,rules=1,21.2,21.0,21.7,,24
-StarterBenchmark.manual,rules=20,398.6,396.1,417.6,,520
-ViolationBenchmark.check,mode=FAIL_FAST violated=1,588.1,582.5,620.5,,640
-ViolationBenchmark.check,mode=FAIL_FAST violated=5,272.9,263.0,277.2,,256
-ViolationBenchmark.check,mode=COLLECT_ALL violated=1,665.0,661.0,724.5,,792
-ViolationBenchmark.check,mode=COLLECT_ALL violated=5,905.4,874.5,935.0,,1264
+CheckBenchmark.direct,rules=1,11.0,11.0,11.0,,0
+CheckBenchmark.direct,rules=5,66.0,65.7,67.8,,0
+CheckBenchmark.direct,rules=20,260.3,258.9,266.4,,0
+CheckBenchmark.target,rules=0,20.7,20.6,20.7,,16
+CheckBenchmark.target,rules=1,22.4,22.0,22.5,,0
+CheckBenchmark.target,rules=5,116.5,115.9,121.2,,144
+CheckBenchmark.target,rules=20,401.7,387.0,434.6,,520
+CollectionBenchmark.checkAll,elements=1,1606.0,1494.2,1637.7,,2568
+CollectionBenchmark.checkAll,elements=10,7491.6,7470.1,7629.4,,16360
+CollectionBenchmark.checkAll,elements=100,64958.8,63725.5,65759.6,,155280
+CollectionBenchmark.direct,elements=1,288.7,287.2,294.2,,0
+CollectionBenchmark.direct,elements=10,3002.6,2947.6,3075.6,,0
+CollectionBenchmark.direct,elements=100,28932.4,28340.3,30001.5,,0
+CollectionBenchmark.eachCheck,elements=1,397.5,397.0,407.1,,520
+CollectionBenchmark.eachCheck,elements=10,4037.7,3938.4,4349.2,,5200
+CollectionBenchmark.eachCheck,elements=100,39640.8,39256.1,40993.8,,52000
+ListenerBenchmark.target,listener=none rules=0,38.7,38.2,39.5,,16
+ListenerBenchmark.target,listener=none rules=20,420.4,412.3,427.5,,520
+ListenerBenchmark.target,listener=noop rules=0,104.7,103.8,105.5,,72
+ListenerBenchmark.target,listener=noop rules=20,2101.0,2082.3,2155.0,,608
+ListenerBenchmark.target,listener=observation rules=0,468.9,465.5,476.0,,848
+ListenerBenchmark.target,listener=observation rules=20,10484.8,10283.6,10552.1,,16552
+StarterBenchmark.advised,advice=none rules=0,154.1,152.1,157.3,,112
+StarterBenchmark.advised,advice=none rules=1,155.5,151.1,159.5,,120
+StarterBenchmark.advised,advice=none rules=20,548.4,533.4,562.0,,616
+StarterBenchmark.advised,advice=security rules=0,2596.1,2497.5,2760.8,,6112
+StarterBenchmark.advised,advice=security rules=1,2493.7,2466.2,2553.3,,6008
+StarterBenchmark.advised,advice=security rules=20,3199.5,3075.1,3300.2,,6616
+StarterBenchmark.advised,advice=transactional rules=0,1210.2,1191.3,1227.3,,712
+StarterBenchmark.advised,advice=transactional rules=1,1234.3,1199.7,1265.5,,720
+StarterBenchmark.advised,advice=transactional rules=20,1722.6,1685.1,1736.0,,1216
+StarterBenchmark.advised,advice=both rules=0,4052.1,3952.1,4442.2,,6648
+StarterBenchmark.advised,advice=both rules=1,3955.7,3896.9,3997.3,,6648
+StarterBenchmark.advised,advice=both rules=20,4758.1,4647.6,5000.0,,7112
+StarterBenchmark.manual,advice=none rules=0,26.2,24.0,28.0,,16
+StarterBenchmark.manual,advice=none rules=1,26.9,26.1,27.5,,24
+StarterBenchmark.manual,advice=none rules=20,395.1,368.2,431.3,,520
+StarterBenchmark.manual,advice=security rules=0,2629.8,2513.8,2760.1,,6112
+StarterBenchmark.manual,advice=security rules=1,2571.4,2523.4,2685.8,,6104
+StarterBenchmark.manual,advice=security rules=20,3119.8,2896.2,3236.4,,6616
+StarterBenchmark.manual,advice=transactional rules=0,1153.5,1127.0,1167.7,,712
+StarterBenchmark.manual,advice=transactional rules=1,1143.3,1132.8,1175.9,,720
+StarterBenchmark.manual,advice=transactional rules=20,1595.5,1530.3,1642.4,,1216
+StarterBenchmark.manual,advice=both rules=0,3831.5,3783.0,4154.6,,6712
+StarterBenchmark.manual,advice=both rules=1,3899.3,3810.0,4140.3,,6720
+StarterBenchmark.manual,advice=both rules=20,4624.9,4449.4,4874.1,,7152
+ViolationBenchmark.check,mode=FAIL_FAST violated=1,682.9,671.4,714.6,,720
+ViolationBenchmark.check,mode=FAIL_FAST violated=5,266.9,264.4,273.0,,256
+ViolationBenchmark.check,mode=COLLECT_ALL violated=1,758.2,744.0,768.4,,872
+ViolationBenchmark.check,mode=COLLECT_ALL violated=5,931.6,915.0,983.6,,1264
