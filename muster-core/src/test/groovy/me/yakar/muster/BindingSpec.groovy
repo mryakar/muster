@@ -433,52 +433,57 @@ class BindingSpec extends EngineSpecification {
     logged*.message == ["Rules bound to ${FIELDS} (${CREATE}): [fields.listed, fields.bound]"]
   }
 
-  def 'a binding for another type tells the chains of the classes checked so far, by name, as a copy'() {
+  def 'a binding for another type tells the rule ids of the classes checked so far, by name, as a copy'() {
     given:
     def binding = muster(FieldsListed, IdentifiedBound).binding(VehicleFields).rules(FieldsListed).build()
 
     expect:
-    binding.chains().isEmpty()
+    binding.ruleIds().isEmpty()
 
     when:
     binding.check(new UpdateVehicle(1L, 'TR-1', 'Atlas'))
-    def one = binding.chains()
+    def one = binding.ruleIds()
     binding.check(VALID)
-    def two = binding.chains()
+    def two = binding.ruleIds()
 
     then:
     one.keySet().toList() == [UpdateVehicle]
     two.keySet().toList() == [CreateVehicle, UpdateVehicle]
-    two.values()*.ruleIds() == [['fields.listed'], ['fields.listed', 'identified.bound']]
+    two.values().toList() == [['fields.listed'], ['fields.listed', 'identified.bound']]
 
     when:
     two.clear()
 
     then:
     thrown(UnsupportedOperationException)
+
+    when:
+    two[CreateVehicle].clear()
+
+    then:
+    thrown(UnsupportedOperationException)
   }
 
-  def 'a binding for a final type tells its one chain, bound when it was built'() {
+  def 'a binding for a final type tells the rule ids of its one chain, bound when it was built'() {
     given:
     def binding = muster(FieldsListed, FieldsBound).binding(CreateVehicle).rules(FieldsListed).build()
 
     expect:
-    binding.chains().keySet().toList() == [CreateVehicle]
-    binding.chains()[CreateVehicle].ruleIds() == ['fields.listed', 'fields.bound']
+    binding.ruleIds() == [(CreateVehicle): ['fields.listed', 'fields.bound']]
   }
 
-  def 'threads read the chains checked so far while others bind new classes'() {
+  def 'threads read the rule ids of the classes checked so far while others bind new classes'() {
     given:
     def binding = muster(FieldsListed, IdentifiedBound).binding(VehicleFields).rules(FieldsListed).build()
 
     when:
     def seen = concurrently { n ->
       binding.check(n % 2 == 0 ? VALID : new UpdateVehicle(1L, 'TR-1', 'Atlas'))
-      binding.chains().keySet().toList()
+      binding.ruleIds().keySet().toList()
     }
 
     then:
     seen.every { it in [[CreateVehicle], [UpdateVehicle], [CreateVehicle, UpdateVehicle]] }
-    binding.chains().keySet().toList() == [CreateVehicle, UpdateVehicle]
+    binding.ruleIds().keySet().toList() == [CreateVehicle, UpdateVehicle]
   }
 }

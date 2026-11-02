@@ -18,7 +18,6 @@ package me.yakar.muster.spring.internal.advice;
 import java.util.List;
 import java.util.Map;
 import me.yakar.muster.CheckMode;
-import me.yakar.muster.RuleChain;
 
 /**
  * An advised method, as the actuator endpoint reports it: what its input is checked against.
@@ -28,10 +27,11 @@ import me.yakar.muster.RuleChain;
  * @param inputType the type of the input, or of the elements of the collection the method takes
  * @param collection whether the method takes a collection
  * @param mode the mode of the check
- * @param rules the ids of the rules the method lists, as it lists them; the chains tell what runs
+ * @param rules the ids of the rules the method lists, as it lists them; {@code ruleIds} tells what
+ *     runs
  * @param excluded the ids of the rules the method excludes, as it lists them
- * @param chains the chains bound so far, by class, as {@link me.yakar.muster.Binding#chains}
- *     reports them
+ * @param ruleIds the ids of the rules of the chains bound so far, by class, as {@link
+ *     me.yakar.muster.Binding#ruleIds} reports them
  */
 public record AdvisedMethod(
     String label,
@@ -41,4 +41,4 @@ public record AdvisedMethod(
     CheckMode mode,
     List<String> rules,
     List<String> excluded,
-    Map<Class<?>, RuleChain<?>> chains) {}
+    Map<Class<?>, List<String>> ruleIds) {}

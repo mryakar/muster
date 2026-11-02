@@ -87,7 +87,7 @@ class MusterEndpointSpec extends Specification {
   .withUserConfiguration(Application)
   .withPropertyValues(EXPOSED, 'muster.rules.garage.closed.enabled=false')
 
-  def 'the endpoint lists the mode, the disabled rules and every advised method once, with the chains bound so far'() {
+  def 'the endpoint lists the mode, the disabled rules and every advised method once, with the rule ids of the chains bound so far'() {
     expect:
     runner.run { context ->
       def endpoint = context.getBean(MusterEndpoint)
@@ -109,7 +109,7 @@ class MusterEndpointSpec extends Specification {
       assert report.methods()*.mode() == [CheckMode.FAIL_FAST] * 4 + [CheckMode.COLLECT_ALL, CheckMode.FAIL_FAST, CheckMode.FAIL_FAST]
       assert report.methods()*.rules() == [[], [], [], [], ['garage.id-known'], [], []]
       assert report.methods()*.excluded() == [['garage.plate-free'], [], [], [], [], [], []]
-      assert report.methods()*.chains() == [
+      assert report.methods()*.ruleIds() == [
         [(CAR): ['garage.plate-format']],
         [:],
         [(CAR): ['garage.batch-limit', 'garage.plate-format', 'garage.plate-free']],
@@ -128,17 +128,17 @@ class MusterEndpointSpec extends Specification {
       context.getBean('washService', Washing).wash(new Car('TR-3'))
       def later = endpoint.rules()
 
-      // Their chains are listed, by name; the earlier report is unchanged.
-      assert later.methods()[1].chains() == [
+      // The ids of their rules are listed, by name; the earlier report is unchanged.
+      assert later.methods()[1].ruleIds() == [
         (CAR): ['garage.plate-format', 'garage.plate-free'],
         (TRUCK): ['garage.axles', 'garage.plate-format', 'garage.plate-free']
       ]
       assert later.methods()*.method() == report.methods()*.method()
-      assert report.methods()[1].chains() == [:]
+      assert report.methods()[1].ruleIds() == [:]
     }
   }
 
-  def 'the endpoint lists the chains Muster bound by type, for single targets and for collections apart'() {
+  def 'the endpoint lists the rule ids of the chains Muster bound by type, for single targets and for collections apart'() {
     expect:
     runner.run { context ->
       def muster = context.getBean(Muster)
@@ -159,7 +159,7 @@ class MusterEndpointSpec extends Specification {
         report.methods(),
         report.types(),
         report.collections(),
-        report.methods()[0].chains()
+        report.methods()[0].ruleIds()
       ].each {
         try {
           it.clear()
@@ -180,7 +180,7 @@ class MusterEndpointSpec extends Specification {
           def report = context.getBean(MusterEndpoint).rules()
           assert report.mode() == CheckMode.COLLECT_ALL
           assert report.disabled() == ['garage.plate-format', 'garage.plate-free']
-          assert report.methods()[3].chains() == [(CAR): ['garage.closed']]
+          assert report.methods()[3].ruleIds() == [(CAR): ['garage.closed']]
         }
   }
 
@@ -221,10 +221,10 @@ class MusterEndpointSpec extends Specification {
           service.park(n % 4 == 0 ? new Car("TR-$n") : new Truck("TR-$n", 2))
           return null
         }
-        endpoint.rules().methods()[1].chains().keySet().toList()
+        endpoint.rules().methods()[1].ruleIds().keySet().toList()
       }
       assert seen.findAll { it != null }.every { it in [[], [CAR], [TRUCK], [CAR, TRUCK]] }
-      assert endpoint.rules().methods()[1].chains().keySet().toList() == [CAR, TRUCK]
+      assert endpoint.rules().methods()[1].ruleIds().keySet().toList() == [CAR, TRUCK]
     }
   }
 }

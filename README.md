@@ -252,11 +252,11 @@ Muster bound by type for single targets and for collections. It is exposed and e
 actuator's own endpoints are, so `management.endpoints.web.exposure.include=muster` makes it answer
 at `/actuator/muster`. A method is named by its class and parameter types, as in
 `VehicleService.create(CreateVehicle)`, with the full name of its class beside it; its `rules` and
-`excluded` are the rules it lists, and its `chains` tell what runs. It reads what Muster has
-prepared and binds nothing itself: the one chain of
-a final input type, such as a record, is listed from startup, the chain of another class from its
-first check, and the methods of a bean not prepared yet, such as a lazy bean not called so far, are
-not listed. The listing names classes and rule ids, never an input.
+`excluded` are the rules it lists, and its `ruleIds` tell what runs. It reads what Muster has
+prepared and binds nothing itself: the one chain of a final input type, such as a record, or of a
+collection whose elements are not rule targets, is listed from startup, the chain of another class
+from its first check, and the methods of a bean not prepared yet, such as a lazy bean not called so
+far, are not listed. The listing names classes and rule ids, never an input.
 
 ## Usage without Spring
 
@@ -344,9 +344,10 @@ What the starter does for you is up to you:
 - **Switching rules off:** read the ids from the environment or your configuration and pass them to
   `disable`. `build()` fails if an id is unknown or an enabled rule requires a disabled one.
 - **Seeing the rules:** `chain.ruleIds()` tells the rules of a chain in the order they run;
-  `binding.chains()`, `collectionBinding.chains()`, `muster.chains()` and
-  `muster.collectionChains()` the chains bound so far, by class; `muster.disabledRules()` the rules
-  switched off. None binds on being asked. Muster also logs each chain at DEBUG when it binds it.
+  `binding.ruleIds()`, `collectionBinding.ruleIds()`, `muster.boundRuleIds()` and
+  `muster.collectionRuleIds()` those of the chains bound so far, by class; `muster.disabledRules()`
+  the rules switched off. None binds on being asked. Muster also logs each chain at DEBUG when it
+  binds it.
 - **Transactions:** check as the first step inside the transaction of the operation, so that a rule
   reads the data that the operation then changes.
 - **Messages:** `MessageResolver.ofResourceBundles(locale -> ResourceBundle.getBundle("com.example.messages", locale))`

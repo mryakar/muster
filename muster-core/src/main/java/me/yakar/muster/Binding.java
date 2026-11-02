@@ -136,15 +136,15 @@ public final class Binding<I> {
   }
 
   /**
-   * Returns the chains of the classes checked so far, by class in the order of their names, each
-   * with the {@linkplain RuleChain#ruleIds() ids of its rules}. For a final input type, it is the
-   * one chain bound when the binding was built. The map is a copy, taken now, that later checks do
-   * not change.
+   * Returns the ids of the rules of the chains of the classes checked so far, by class in the order
+   * of their names, each list in the order the rules run. For a final input type, it is the one
+   * chain bound when the binding was built. The map is a copy, taken now, that later checks do not
+   * change.
    *
-   * @return the chains, unmodifiable
+   * @return the ids by class, unmodifiable
    */
-  public Map<Class<?>, RuleChain<?>> chains() {
-    return only != null ? Map.of(inputType, only) : chains.resolved();
+  public Map<Class<?>, List<String>> ruleIds() {
+    return only != null ? Map.of(inputType, only.ruleIds()) : chains.ruleIds();
   }
 
   /**
