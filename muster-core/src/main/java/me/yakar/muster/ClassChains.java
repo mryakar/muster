@@ -105,7 +105,11 @@ final class ClassChains {
    * a copy, taken now, that a class bound later does not change.
    */
   Map<Class<?>, List<String>> ruleIds() {
-    var sorted = new TreeMap<Class<?>, List<String>>(Comparator.comparing(Class::getTypeName));
+    // Classes of one name from different class loaders are told apart by identity.
+    var sorted =
+        new TreeMap<Class<?>, List<String>>(
+            Comparator.<Class<?>, String>comparing(Class::getTypeName)
+                .thenComparingInt(System::identityHashCode));
     chains.forEach((type, chain) -> sorted.put(type, chain.ruleIds()));
     return Collections.unmodifiableMap(sorted);
   }
