@@ -29,7 +29,7 @@ val springBootVersion =
     .gradleProperty("springBootVersion")
     .map { if (it == "latest") libs.versions.spring.boot.latest.get() else it }
     .getOrElse(libs.versions.spring.boot.asProvider().get())
-val springBoot = "org.springframework.boot:spring-boot-dependencies:$springBootVersion"
+val springBoot = "${libs.spring.boot.dependencies.get().module}:$springBootVersion"
 
 dependencies {
   api(project(":muster-core"))
