@@ -20,6 +20,19 @@ import me.yakar.muster.BusinessRuleViolationException
 /** What a call inside a context comes to, where Spock's {@code thrown()} cannot see it. */
 final class Outcomes {
 
+  /** Returns the exception of the given type that the call throws, and fails if it passes. */
+  static <T extends Throwable> T failure(Class<T> type, Closure call) {
+    try {
+      call()
+    } catch (Throwable e) {
+      if (!type.isInstance(e)) {
+        throw e
+      }
+      return type.cast(e)
+    }
+    throw new AssertionError('the call passed')
+  }
+
   /** Returns the codes of the violations that the call throws, or none if it passes. */
   static List<String> violated(Closure call) {
     try {

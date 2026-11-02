@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Outcomes.failure
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import me.yakar.muster.BusinessRuleViolationException
@@ -180,12 +181,9 @@ class CollectionAdviceSpec extends Specification {
     expect:
     runner.run { context ->
       def service = context.getBean(FleetService)
-      try {
+      assert failure(NullPointerException) {
         service.addAll(null)
-        assert false
-      } catch (NullPointerException e) {
-        assert e.message == 'inputs'
-      }
+      }.message == 'inputs'
     }
   }
 
