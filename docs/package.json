@@ -1,0 +1,12 @@
+{
+  "name": "muster-docs",
+  "private": true,
+  "description": "Builds the documentation site of Muster with Antora.",
+  "scripts": {
+    "build": "antora --log-failure-level=warn antora-playbook.yml"
+  },
+  "devDependencies": {
+    "@antora/lunr-extension": "1.0.0-alpha.13",
+    "antora": "3.2.2"
+  }
+}
