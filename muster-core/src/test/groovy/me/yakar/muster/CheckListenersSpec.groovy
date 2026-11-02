@@ -150,13 +150,104 @@ class CheckListenersSpec extends EngineSpecification {
     when:
     chain.check(VALID)
 
-    then:
-    def e = thrown(IllegalStateException)
-    e.is(first)
-    e.suppressed.toList() == [second]
+    then: 'the last listener is told first'
+    def e = thrown(IllegalArgumentException)
+    e.is(second)
+    e.suppressed.toList() == [first]
     listeners.every {
       it.summary() == [['started', 'vehicle.code-format'], ['ended', 'vehicle.code-format', PASSED], ['check', PASSED]]
     }
+  }
+
+  /** Notes each event it is told, with its own name, in a log it shares with other listeners. */
+  static class Logging implements CheckListener, CheckListener.Observer {
+    final String name
+    final List<String> log
+
+    Logging(String name, List<String> log) {
+      this.name = name
+      this.log = log
+    }
+
+    CheckListener.Observer checkStarted(CheckListener.Check check) {
+      log << "$name checkStarted".toString()
+      this
+    }
+
+    void ruleStarted(String ruleId) {
+      log << "$name ruleStarted".toString()
+    }
+
+    void ruleEnded(RuleEnd end) {
+      log << "$name ruleEnded".toString()
+    }
+
+    void checkEnded(CheckEnd end) {
+      log << "$name checkEnded".toString()
+    }
+  }
+
+  def 'observers are told that a check or a rule starts in the order of their listeners, and that it ends in the reverse order: #how'() {
+    given:
+    def log = []
+    def chain = musterOf([new Logging('a', log), new Logging('b', log)], new CodeFormat()).chain(CreateVehicle, CodeFormat)
+
+    when:
+    try {
+      chain.check(input)
+    } catch (BusinessRuleViolationException ignored) {
+    }
+
+    then:
+    log == [
+      'a checkStarted',
+      'b checkStarted',
+      'a ruleStarted',
+      'b ruleStarted',
+      'b ruleEnded',
+      'a ruleEnded',
+      'b checkEnded',
+      'a checkEnded'
+    ]
+
+    where:
+    how         | input
+    'passing'   | VALID
+    'violating' | INVALID
+  }
+
+  def 'when an observer throws as a rule or a check starts, the observers told before it are told that it ended, in the reverse order: #at'() {
+    given:
+    def log = []
+    def failing = at == 'ruleStarted' ? new Logging('c', log) {
+          void ruleStarted(String ruleId) {
+            throw new IllegalStateException('c down')
+          }
+        } : { throw new IllegalStateException('c down') } as CheckListener
+    def chain = musterOf([new Logging('a', log), new Logging('b', log), failing], new CodeFormat()).chain(CreateVehicle, CodeFormat)
+
+    when:
+    chain.check(VALID)
+
+    then:
+    thrown(IllegalStateException)
+    log == told
+
+    where:
+    at || told
+    'ruleStarted' || [
+      'a checkStarted',
+      'b checkStarted',
+      'c checkStarted',
+      'a ruleStarted',
+      'b ruleStarted',
+      'b ruleEnded',
+      'a ruleEnded',
+      'c checkEnded',
+      'b checkEnded',
+      'a checkEnded'
+    ]
+    'checkStarted' || ['a checkStarted', 'b checkStarted', 'b checkEnded', 'a checkEnded']
   }
 
   def 'every observer is told that a rule ends when one throws, and then that the check ended with that exception'() {

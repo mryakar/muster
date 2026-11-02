@@ -30,10 +30,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Muster tells a listener on the thread that checks, in the order things happen: {@link
  * #checkStarted} once, then for each rule of the chain, in the order the rules run, {@link
- * Observer#ruleStarted} and {@link Observer#ruleEnded}, then {@link Observer#checkEnded}. Each
- * check gets an {@link Observer} of its own, so a listener keeps no state to tell one check from
- * another. The listener itself is shared by every check and must be thread-safe. A check of an
- * empty collection runs no rule, and a listener is not told of it.
+ * Observer#ruleStarted} and {@link Observer#ruleEnded}, then {@link Observer#checkEnded}. Listeners
+ * are told that a check or a rule starts in the order they are added, and that it ends in the
+ * reverse order, so that what their observers open nests. Each check gets an {@link Observer} of
+ * its own, so a listener keeps no state to tell one check from another. The listener itself is
+ * shared by every check and must be thread-safe. A check of an empty collection runs no rule, and a
+ * listener is not told of it.
  *
  * <p>A listener that throws stops the check, as a rule that throws does. If the check is ending
  * with an exception already, that exception propagates and the listener's is added to it as
