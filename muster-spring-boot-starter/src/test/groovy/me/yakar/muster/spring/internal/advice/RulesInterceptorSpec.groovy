@@ -19,11 +19,15 @@ import java.lang.reflect.Method
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.logging.Handler
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.Rules
 import me.yakar.muster.spring.fixture.advice.SaveVehicle
 import me.yakar.muster.spring.fixture.advice.UnregisteredRule
 import me.yakar.muster.spring.fixture.advice.VehicleComponent
+import me.yakar.muster.spring.fixture.selfinvocation.Garage
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import org.aopalliance.intercept.MethodInvocation
 import org.springframework.beans.factory.ObjectProvider
@@ -248,5 +252,53 @@ class RulesInterceptorSpec extends Specification {
     def again = thrown(IllegalArgumentException)
     again.message == first.message
     !table.contains(UnregisteredRule)
+  }
+
+  def 'a pass logs the calls through this without the lock, so that a slow log holds up no other pass'() {
+    given: 'a log that blocks on the first call through this'
+    def warning = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
+    def handler = new Handler() {
+          void publish(LogRecord record) {
+            if (record.message.contains('through this') && warning.count> 0) {
+              warning.countDown()
+              release.await()
+            }
+          }
+
+          void flush() {}
+
+          void close() {}
+        }
+    def logger = Logger.getLogger('me.yakar.muster')
+    logger.addHandler(handler)
+    def warned = new RulesInterceptor(
+        new AdviceTable(),
+        [getObject: { Object[] args ->
+            muster
+          }] as ObjectProvider,
+        [getIfAvailable: { Object[] args ->
+            null
+          }] as ObjectProvider,
+        SelfInvocationMode.WARN)
+    warned.note(Garage)
+    def starting = CompletableFuture.runAsync {
+      warned.afterSingletonsInstantiated()
+    }
+    assert warning.await(1, TimeUnit.MINUTES)
+
+    when: 'another class is prepared while the log blocks'
+    def noted = CompletableFuture.runAsync {
+      warned.note(OtherComponent)
+    }
+
+    then:
+    noted.get(10, TimeUnit.SECONDS) == null
+    warned.@table.contains(OtherComponent)
+
+    cleanup:
+    release.countDown()
+    starting?.get(1, TimeUnit.MINUTES)
+    logger.removeHandler(handler)
   }
 }
