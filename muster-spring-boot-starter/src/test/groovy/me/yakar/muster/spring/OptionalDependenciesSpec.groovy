@@ -58,7 +58,7 @@ class OptionalDependenciesSpec extends Specification {
     classOf('internal.advice.MethodAdvice'),
     classOf('internal.advice.AdvisedMethod'),
     classOf('internal.advice.RulesAdvisor'),
-    classOf('internal.advice.AdvisedMethods'),
+    classOf('internal.advice.RulesPointcut'),
     classOf('internal.advice.ProxyCreatorRegistrar'),
     classOf('internal.advice.ValidationOrdering'),
     classOf('internal.advice.TransactionGuard$Resolved')

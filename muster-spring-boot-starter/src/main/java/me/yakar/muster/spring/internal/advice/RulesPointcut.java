@@ -27,20 +27,36 @@ import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.spring.Rules;
 import org.jspecify.annotations.Nullable;
 import org.springframework.aop.support.AopUtils;
+import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Service;
 
 /**
- * Tells which methods Muster advises: those with {@link Rules}, and the public methods of a
- * {@code @Service} bean that take a {@link RuleTarget}, whose rules bind to it by type.
+ * Matches the methods Muster advises, and notes the class of each with the interceptor: the methods
+ * with {@link Rules}, and the public methods of a {@code @Service} bean that take a {@link
+ * RuleTarget} or a collection of them, whose rules bind by type. Its static methods also check and
+ * name an advised method.
  *
  * <p>A call may reach a method through an interface, a bridge method or a method of a base class.
  * As for {@code @Transactional}, what counts is the method of the target class that the call runs.
  */
-final class AdvisedMethods {
+final class RulesPointcut extends StaticMethodMatcherPointcut {
 
-  private AdvisedMethods() {}
+  private final RulesInterceptor interceptor;
+
+  RulesPointcut(RulesInterceptor interceptor) {
+    this.interceptor = interceptor;
+  }
+
+  @Override
+  public boolean matches(Method method, Class<?> targetClass) {
+    if (advised(method, targetClass) != null) {
+      interceptor.note(targetClass);
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Returns the method of the target class that a call of the given method runs, its bridge
