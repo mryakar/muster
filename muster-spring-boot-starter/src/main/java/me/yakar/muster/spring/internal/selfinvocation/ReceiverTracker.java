@@ -200,15 +200,20 @@ final class ReceiverTracker extends MethodVisitor {
 
   /** A value on the operand stack. */
   enum Value {
+    /** {@code this}, loaded from the first local variable of an instance method. */
     THIS,
+    /** The input of the method, unchanged, of one slot. */
     INPUT,
+    /** The input of the method, unchanged, a {@code long} or a {@code double}. */
     WIDE_INPUT,
-    ONE,
-    TWO;
+    /** Another value, of one slot. */
+    OTHER,
+    /** Another value, a {@code long} or a {@code double}. */
+    WIDE_OTHER;
 
     /** Returns whether the value takes two slots, as a {@code long} or a {@code double} does. */
     boolean wide() {
-      return this == WIDE_INPUT || this == TWO;
+      return this == WIDE_INPUT || this == WIDE_OTHER;
     }
 
     /** Returns whether the value is the input of the method, unchanged. */
@@ -224,23 +229,25 @@ final class ReceiverTracker extends MethodVisitor {
   private static final @Nullable Value[] PUSHES = new Value[IFNONNULL + 1];
 
   static {
-    effect(0, Value.ONE, ACONST_NULL, ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3, ICONST_4);
-    effect(0, Value.ONE, ICONST_5, FCONST_0, FCONST_1, FCONST_2, BIPUSH, SIPUSH, ILOAD, FLOAD);
-    effect(0, Value.ONE, ALOAD, NEW, JSR);
-    effect(0, Value.TWO, LCONST_0, LCONST_1, DCONST_0, DCONST_1, LLOAD, DLOAD);
+    effect(
+        0, Value.OTHER, ACONST_NULL, ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3, ICONST_4);
+    effect(0, Value.OTHER, ICONST_5, FCONST_0, FCONST_1, FCONST_2, BIPUSH, SIPUSH, ILOAD, FLOAD);
+    effect(0, Value.OTHER, ALOAD, NEW, JSR);
+    effect(0, Value.WIDE_OTHER, LCONST_0, LCONST_1, DCONST_0, DCONST_1, LLOAD, DLOAD);
     effect(1, null, POP, ISTORE, LSTORE, FSTORE, DSTORE, ASTORE, GETFIELD, PUTSTATIC);
     effect(1, null, MONITORENTER);
     effect(1, null, MONITOREXIT, IFEQ, IFNE, IFLT, IFGE, IFGT, IFLE, IFNULL, IFNONNULL);
-    effect(1, Value.ONE, INEG, FNEG, I2F, L2I, L2F, F2I, D2I, D2F, I2B, I2C, I2S, ARRAYLENGTH);
-    effect(1, Value.ONE, NEWARRAY, ANEWARRAY, INSTANCEOF);
-    effect(1, Value.TWO, LNEG, DNEG, I2L, I2D, L2D, F2L, F2D, D2L);
+    effect(1, Value.OTHER, INEG, FNEG, I2F, L2I, L2F, F2I, D2I, D2F, I2B, I2C, I2S, ARRAYLENGTH);
+    effect(1, Value.OTHER, NEWARRAY, ANEWARRAY, INSTANCEOF);
+    effect(1, Value.WIDE_OTHER, LNEG, DNEG, I2L, I2D, L2D, F2L, F2D, D2L);
     effect(2, null, PUTFIELD, IF_ICMPEQ, IF_ICMPNE, IF_ICMPLT, IF_ICMPGE, IF_ICMPGT, IF_ICMPLE);
     effect(2, null, IF_ACMPEQ, IF_ACMPNE);
-    effect(2, Value.ONE, IALOAD, FALOAD, AALOAD, BALOAD, CALOAD, SALOAD, IADD, FADD, ISUB, FSUB);
-    effect(2, Value.ONE, IMUL, FMUL, IDIV, FDIV, IREM, FREM, ISHL, ISHR, IUSHR, IAND, IOR, IXOR);
-    effect(2, Value.ONE, LCMP, FCMPL, FCMPG, DCMPL, DCMPG);
-    effect(2, Value.TWO, LALOAD, DALOAD, LADD, DADD, LSUB, DSUB, LMUL, DMUL, LDIV, DDIV, LREM);
-    effect(2, Value.TWO, DREM, LSHL, LSHR, LUSHR, LAND, LOR, LXOR);
+    effect(2, Value.OTHER, IALOAD, FALOAD, AALOAD, BALOAD, CALOAD, SALOAD, IADD, FADD, ISUB, FSUB);
+    effect(2, Value.OTHER, IMUL, FMUL, IDIV, FDIV, IREM, FREM, ISHL, ISHR, IUSHR, IAND, IOR, IXOR);
+    effect(2, Value.OTHER, LCMP, FCMPL, FCMPG, DCMPL, DCMPG);
+    effect(
+        2, Value.WIDE_OTHER, LALOAD, DALOAD, LADD, DADD, LSUB, DSUB, LMUL, DMUL, LDIV, DDIV, LREM);
+    effect(2, Value.WIDE_OTHER, DREM, LSHL, LSHR, LUSHR, LAND, LOR, LXOR);
     effect(3, null, IASTORE, LASTORE, FASTORE, DASTORE, AASTORE, BASTORE, CASTORE, SASTORE);
   }
 
@@ -367,7 +374,7 @@ final class ReceiverTracker extends MethodVisitor {
     if (opcode == INVOKESTATIC) {
       pop(arguments);
     } else {
-      callIf(value(arguments), arguments == 1 ? top() : Value.ONE, owner, name + descriptor);
+      callIf(value(arguments), arguments == 1 ? top() : Value.OTHER, owner, name + descriptor);
       pop(arguments + 1);
     }
     push(Type.getReturnType(descriptor));
@@ -391,7 +398,7 @@ final class ReceiverTracker extends MethodVisitor {
         } else if (invokes(handle.getTag()) && arguments > 0) {
           callIf(
               value(arguments - 1),
-              Value.ONE,
+              Value.OTHER,
               handle.getOwner(),
               handle.getName() + handle.getDesc());
         }
@@ -415,7 +422,7 @@ final class ReceiverTracker extends MethodVisitor {
     if (value instanceof ConstantDynamic constant) {
       push(Type.getType(constant.getDescriptor()));
     } else {
-      stack.add(value instanceof Long || value instanceof Double ? Value.TWO : Value.ONE);
+      stack.add(value instanceof Long || value instanceof Double ? Value.WIDE_OTHER : Value.OTHER);
     }
   }
 
@@ -432,7 +439,7 @@ final class ReceiverTracker extends MethodVisitor {
   @Override
   public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
     pop(numDimensions);
-    stack.add(Value.ONE);
+    stack.add(Value.OTHER);
   }
 
   /** Sizes the stack as the frame says, keeping the values below and adding other values above. */
@@ -442,7 +449,9 @@ final class ReceiverTracker extends MethodVisitor {
     for (var index = this.stack.size(); index < numStack; index++) {
       var value = stack[index];
       this.stack.add(
-          Opcodes.LONG.equals(value) || Opcodes.DOUBLE.equals(value) ? Value.TWO : Value.ONE);
+          Opcodes.LONG.equals(value) || Opcodes.DOUBLE.equals(value)
+              ? Value.WIDE_OTHER
+              : Value.OTHER);
     }
   }
 
@@ -471,7 +480,7 @@ final class ReceiverTracker extends MethodVisitor {
   /** Pushes a value of the type, if it is not {@code void}. */
   private void push(Type type) {
     if (type.getSort() != Type.VOID) {
-      stack.add(type.getSize() == 2 ? Value.TWO : Value.ONE);
+      stack.add(type.getSize() == 2 ? Value.WIDE_OTHER : Value.OTHER);
     }
   }
 
@@ -489,7 +498,7 @@ final class ReceiverTracker extends MethodVisitor {
   /** The value at a depth from the top, or another value if the stack is not that deep. */
   private Value value(int depth) {
     var index = stack.size() - 1 - depth;
-    return index < 0 ? Value.ONE : stack.get(index);
+    return index < 0 ? Value.OTHER : stack.get(index);
   }
 
   /** Inserts values at a depth from the top, or at the bottom if the stack is not that deep. */
