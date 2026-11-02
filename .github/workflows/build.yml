@@ -35,7 +35,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - run: ./gradlew build -PtestJavaVersion=${{ matrix.java }}
 
-  # The build uses the oldest Spring Boot the starter supports; this job tests the newest.
+  # The build uses the oldest Spring Boot the starter supports; this job tests the newest, on both
+  # JDKs.
   spring-boot-latest:
     name: Build (Spring Boot latest)
     runs-on: ubuntu-latest
@@ -47,10 +48,14 @@ jobs:
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
-          java-version: 21
+          java-version: |
+            25
+            21
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - name: Test the starter against the newest Spring Boot
         run: ./gradlew :muster-spring-boot-starter:check -PspringBootVersion=latest
+      - name: Test the starter against the newest Spring Boot on JDK 25
+        run: ./gradlew :muster-spring-boot-starter:check -PspringBootVersion=latest -PtestJavaVersion=25
 
   mutation:
     name: Mutation testing
