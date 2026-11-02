@@ -121,15 +121,18 @@ class VehicleService {
 }
 ```
 
-A method that takes a collection checks the rules of each element, whose violations name the
-position of the element as in `[3].name`, and the rules of the whole collection, such as a limit on
-its size in a `BusinessRule<List<CreateVehicle>>`. A rule of the whole collection takes a `List`,
-`SequencedCollection` or `Collection` of the elements, not a `Set`, since it gets a copy of the
-collection as a list; one that takes `Collection<?>` or `List<Object>` checks every collection of
-rule targets. The element type of the parameter must be known: a raw `List`, `List<?>`,
-`List<? super E>` or an unbound `List<T>` stops the application. Where the element type is a rule
-target that is not final, the elements of one call must be of one class, since rules bind to that
-class; other elements may be of different classes. An array is a single input, as in 0.2.0.
+A method that takes a collection checks the rules of each element and the rules of the whole
+collection, such as a limit on its size in a `BusinessRule<List<CreateVehicle>>`. Any violation
+rejects the whole call, and the target of a violation about an element starts with its position, as
+in `[3].name`. A rule of the whole collection takes a `List`, `SequencedCollection` or `Collection`
+of the elements, not a `Set`, since it gets a copy of the collection as a list; one that takes
+`Collection<?>` or `List<Object>` checks every collection of rule targets.
+
+The element type of a parameter of a method with `@Rules` must be known: a raw `List`, `List<?>`,
+`List<? super E>` or an unbound `List<T>` stops the application; a `@Service` method without
+`@Rules` that takes one checks no rules. The elements of one call that are rule targets must be of
+one class, since rules bind to that class, and cannot be mixed with elements that are not; those
+may be of different classes. An array is checked as a single input.
 
 In a Spring MVC application, a violated rule becomes problem details (RFC 9457). The status
 follows the category: 403 for `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 for
@@ -253,10 +256,11 @@ actuator's own endpoints are, so `management.endpoints.web.exposure.include=must
 at `/actuator/muster`. A method is named by its class and parameter types, as in
 `VehicleService.create(CreateVehicle)`, with the full name of its class beside it; its `rules` and
 `excluded` are the rules it lists, and its `ruleIds` tell what runs. It reads what Muster has
-prepared and binds nothing itself: the one chain of a final input type, such as a record, or of a
-collection whose elements are not rule targets, is listed from startup, the chain of another class
-from its first check, and the methods of a bean not prepared yet, such as a lazy bean not called so
-far, are not listed. The listing names classes and rule ids, never an input.
+prepared and binds nothing itself: the one chain of a final input type, such as a record, or of an
+input type that is not a rule target, such as `Number` or the elements of a `List<Number>`, is
+listed from startup; the chain of each class of rule targets from its first check; and the methods
+of a bean not prepared yet, such as a lazy bean not called so far, are not listed. The listing names
+classes and rule ids, never an input.
 
 ## Usage without Spring
 
@@ -268,7 +272,7 @@ Muster muster = Muster.builder()
     .rules(new VehicleNameUnique(vehicles), new VehiclePlateFormat())
     .caller(() -> CurrentCall.principal()) // your own ThreadLocal, for example
     .locale(() -> CurrentCall.locale())
-    .disable(disabledRules()) // ids from your configuration, for example
+    .disable(disabledRuleIds()) // ids from your configuration, for example
     .build();
 
 RuleChain<CreateVehicle> create =
@@ -284,9 +288,10 @@ createAll.check(commands); // the listed rules, of the whole collection and of e
 ```
 
 A collection is checked in one call: each rule checks every element that passed the rules it
-requires, one violated element rejects the call, and a violation names the position of its element
-in its target, as in `[3].name`. A rule that looks every input up, as a uniqueness check does,
-overrides `checkAll` to check them all at once, which also finds conflicts within the collection:
+requires. Any violation rejects the whole call, and the target of a violation about an element
+starts with its position, as in `[3].name`. A rule that looks every element up, as a uniqueness
+check does, overrides `checkAll` to check them all at once, which also finds conflicts within the
+collection:
 
 ```java
 @Override
@@ -385,6 +390,7 @@ budget a change is held to.
 | `muster-spring-boot-starter` | Spring Boot integration: rules around service methods and inside their transaction, problem details, messages, configuration. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Complete example applications, with Spring Boot and without; also the test of the published artifacts. Not published. |
+| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call, with [the results](docs/benchmarks/README.md). Not published. |
 
 ## Contributing
 
