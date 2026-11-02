@@ -31,12 +31,7 @@ if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; th
   echo "$version is not a release version such as 1.2.3 or 1.2.3-rc.1" >&2
   exit 1
 fi
-if ! awk -v heading="## [$version]" 'index($0, heading) == 1 { found = 1 } END { exit !found }' \
-  CHANGELOG.md; then
-  echo "CHANGELOG.md has no section for $version" >&2
-  exit 1
-fi
-# The section becomes the notes of the GitHub Release.
+# The section becomes the notes of the GitHub Release; the script fails if there is none.
 notes="$(.github/scripts/release-notes.sh "$version")"
 if [[ -z "${notes//[[:space:]]/}" ]]; then
   echo "the section for $version in CHANGELOG.md is empty" >&2
