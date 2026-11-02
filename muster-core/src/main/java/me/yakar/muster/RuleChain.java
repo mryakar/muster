@@ -58,6 +58,9 @@ public final class RuleChain<I> {
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
+  /** The position of no element: the result is of the whole collection, or of a single input. */
+  private static final int NO_ELEMENT = -1;
+
   /** What a listener is told a check is of: the name of the binding, or of the input type. */
   private final String name;
 
@@ -263,7 +266,7 @@ public final class RuleChain<I> {
         continue;
       }
       if (step.whole()) {
-        var violations = violations(rule, rule.instance().check(inputs, ctx), "");
+        var violations = violations(rule, rule.instance().check(inputs, ctx), NO_ELEMENT);
         if (violations == null) {
           Arrays.fill(passed[i], true);
           if (observed != null) {
@@ -297,7 +300,7 @@ public final class RuleChain<I> {
               violations(
                   rule,
                   rule.instance().check(inputs.get(position), ctx.element(position)),
-                  " for the element at [" + position + "]");
+                  position);
           if (violations == null) {
             passed[i][position] = true;
           } else if (mode == CheckMode.FAIL_FAST) {
@@ -325,7 +328,7 @@ public final class RuleChain<I> {
                           ? inputs
                           : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
                       ctx.toBuilder().positions(eligible).build()),
-              "");
+              NO_ELEMENT);
       if (violations == null) {
         for (var position : eligible) {
           passed[i][position] = true;
@@ -364,12 +367,17 @@ public final class RuleChain<I> {
 
   /**
    * Returns the violations of a result, or {@code null} if it passed, after checking that they are
-   * the rule's own. The suffix tells what a null result was returned for.
+   * the rule's own. The position tells which element a null result was returned for, if any; the
+   * message is built only then, so that a check of each element allocates nothing for it.
    */
   private static @Nullable List<Violation> violations(
-      PreparedRule rule, RuleResult result, String suffix) {
+      PreparedRule rule, RuleResult result, int position) {
     if (result == null) {
-      throw new NullPointerException("rule '" + rule.id() + "' returned null" + suffix);
+      throw new NullPointerException(
+          "rule '"
+              + rule.id()
+              + "' returned null"
+              + (position == NO_ELEMENT ? "" : " for the element at [" + position + "]"));
     }
     if (!(result instanceof RuleResult.Failed failed)) {
       return null;
