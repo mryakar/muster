@@ -81,8 +81,6 @@ tasks.withType<JacocoReportBase>().configureEach {
   executionData(*tests.toTypedArray())
 }
 
-tasks.jacocoTestReport { reports { xml.required = true } }
-
 tasks.jacocoTestCoverageVerification {
   violationRules {
     rule {
@@ -103,7 +101,7 @@ pitest {
   junit5PluginVersion = version("pitest-junit5-plugin")
   targetClasses = setOf("me.yakar.muster.*")
   threads = Runtime.getRuntime().availableProcessors()
-  outputFormats = setOf("HTML", "XML")
+  outputFormats = setOf("HTML")
   timestampedReports = false
   mutationThreshold = 95
 }
