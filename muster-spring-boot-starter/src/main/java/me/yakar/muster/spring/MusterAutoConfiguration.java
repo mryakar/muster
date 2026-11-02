@@ -50,15 +50,21 @@ import org.springframework.context.i18n.LocaleContextHolder;
 @AutoConfiguration(
     afterName =
         "org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration")
-@Import({
-  EngineConfiguration.class,
-  MessagesConfiguration.class,
-  AdviceConfiguration.class,
-  ProblemDetailsConfiguration.class,
-  ObservationConfiguration.class,
-  ActuatorConfiguration.class
-})
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
+
+  /** The configurations of the starter, imported here so that its API docs do not name them. */
+  @Import({
+    EngineConfiguration.class,
+    MessagesConfiguration.class,
+    AdviceConfiguration.class,
+    ProblemDetailsConfiguration.class,
+    ObservationConfiguration.class,
+    ActuatorConfiguration.class
+  })
+  static final class Configurations {
+
+    private Configurations() {}
+  }
 }

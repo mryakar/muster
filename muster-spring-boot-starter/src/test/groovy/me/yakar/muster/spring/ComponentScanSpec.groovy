@@ -57,6 +57,7 @@ class ComponentScanSpec extends Specification {
           // A scanned class would be named after its simple name.
           assert starter as Set == [
             MusterAutoConfiguration.name,
+            MusterAutoConfiguration.name + '$Configurations',
             EngineConfiguration.name,
             EngineConfiguration.name + '$SecurityConfiguration',
             MessagesConfiguration.name,
