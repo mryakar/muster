@@ -5,7 +5,7 @@ live in [`muster-benchmarks`](../../muster-benchmarks), which is not published.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 391 ns and muster.check(target) 402 ns, against 260 ns for calling the same rules by hand." src="check-cost-light.svg">
+  <img alt="Time of a passing check by number of rules. With 20 rules, RuleChain.check takes 382 ns and muster.check(target) 405 ns, against 265 ns for calling the same rules by hand." src="check-cost-light.svg">
 </picture>
 
 ## Budget
@@ -16,12 +16,12 @@ checks. A check that passes is held to this budget, against the same rules calle
 
 | | Measured | Budget |
 |---|---|---|
-| Fixed cost of `RuleChain.check` | about 11 ns | at most 20 ns |
-| Cost that `RuleChain.check` adds with 20 rules | about 131 ns | at most 150 ns |
-| Fixed cost of `muster.check(target)` | about 19 ns | at most 35 ns |
-| Cost that `muster.check(target)` adds with 20 rules | about 141 ns | at most 235 ns |
+| Fixed cost of `RuleChain.check` | about 12 ns | at most 20 ns |
+| Cost that `RuleChain.check` adds with 20 rules | about 117 ns | at most 150 ns |
+| Fixed cost of `muster.check(target)` | about 20 ns | at most 35 ns |
+| Cost that `muster.check(target)` adds with 20 rules | about 140 ns | at most 235 ns |
 | Memory a check allocates | 24 bytes per rule, plus up to 40 | at most 24 bytes per rule, plus 48 |
-| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 128 ns and 96 bytes | at most 200 ns and 128 bytes |
+| Fixed cost of the Spring Boot starter, against calling the same binding by hand | about 132 ns and 96 bytes | at most 200 ns and 128 bytes |
 
 Most of what a rule adds is the context it receives: each rule gets its own, 24 bytes, since it
 carries the rule's id. For a passing check the memory figures are exact; the JIT does not vary them.
@@ -45,10 +45,10 @@ A check that passes:
 
 | Rules | By hand (baseline) | `RuleChain.check` | `muster.check(target)` |
 |---|---|---|---|
-| 0 | 1.3 ns (1.3–1.3), 0 B | 12.3 ns (11.6–12.7), 16 B | 20.7 ns (20.6–20.7), 16 B |
-| 1 | 11.0 ns (11.0–11.0), 0 B | 12.6 ns (12.5–12.8), 0 B | 22.4 ns (22.0–22.5), 0 B |
-| 5 | 66.0 ns (65.7–67.8), 0 B | 107.1 ns (101.8–111.8), 144 B | 116.5 ns (115.9–121.2), 144 B |
-| 20 | 260.3 ns (258.9–266.4), 0 B | 391.2 ns (379.7–422.9), 520 B | 401.7 ns (387.0–434.6), 520 B |
+| 0 | 1.3 ns (1.3–1.3), 0 B | 13.0 ns (11.9–13.4), 16 B | 21.1 ns (21.1–22.5), 16 B |
+| 1 | 11.0 ns (11.0–11.0), 0 B | 12.3 ns (12.3–12.4), 0 B | 22.7 ns (22.6–23.2), 0 B |
+| 5 | 65.1 ns (65.0–65.3), 0 B | 106.0 ns (103.7–116.1), 144 B | 115.9 ns (115.1–124.2), 144 B |
+| 20 | 265.0 ns (261.0–266.4), 0 B | 381.6 ns (378.3–384.5), 520 B | 404.7 ns (386.3–436.0), 520 B |
 
 With a single rule the JIT inlines the call to it and optimizes the context away, so the check
 allocates nothing.
@@ -58,16 +58,17 @@ evenly, and the last rule is always one of them:
 
 | Violated rules | `FAIL_FAST` | `COLLECT_ALL` |
 |---|---|---|
-| 1 | 683 ns (671–715), 720 B | 758 ns (744–768), 872 B |
-| 5 | 267 ns (264–273), 256 B | 932 ns (915–984), 1,264 B |
+| 1 | 446 ns (423–446), 640 B | 499 ns (487–514), 792 B |
+| 5 | 117 ns (112–123), 256 B | 749 ns (731–759), 1,264 B |
 
 `FAIL_FAST` stops at the first violated rule, so with five of them it runs only four rules. The
 exception has no stack trace. In this run every fork of a failing check allocated the same.
 
-With one violated rule, after 19 that pass, a failing check is slower and allocates more than in
-0.2.0: measured on the same machine on the same day, 0.2.0 took 582 ns and 640 bytes with
-`FAIL_FAST`, and 691 ns and 800 bytes with `COLLECT_ALL`. Why is not known yet; a check that passes
-is not affected.
+A failing check is faster than in 0.2.0: measured on the same machine on the same day, with one
+violated rule 0.2.0 took 583 ns and 640 bytes with `FAIL_FAST`, and 674 ns and 808 bytes with
+`COLLECT_ALL`. The loop over the rules is a method of its own, too large for the JIT to inline,
+that returns the violations it found; the small method that throws is inlined into the caller,
+which catches the exception without unwinding a frame.
 
 The checks above have no transaction and no method security, so that the numbers show Muster.
 
@@ -80,19 +81,19 @@ interceptors and their order, not JDBC:
 
 | Other advice | Rules | By hand | With the starter |
 |---|---|---|---|
-| None | 0 | 26.2 ns (24.0–28.0), 16 B | 154.1 ns (152.1–157.3), 112 B |
-| None | 20 | 395.1 ns (368.2–431.3), 520 B | 548.4 ns (533.4–562.0), 616 B |
-| Method security | 0 | 2,630 ns (2,514–2,760), 6,112 B | 2,596 ns (2,498–2,761), 6,112 B |
-| Method security | 20 | 3,120 ns (2,896–3,236), 6,616 B | 3,200 ns (3,075–3,300), 6,616 B |
-| Transaction | 0 | 1,154 ns (1,127–1,168), 712 B | 1,210 ns (1,191–1,227), 712 B |
-| Transaction | 20 | 1,596 ns (1,530–1,642), 1,216 B | 1,723 ns (1,685–1,736), 1,216 B |
-| Both | 0 | 3,832 ns (3,783–4,155), 6,712 B | 4,052 ns (3,952–4,442), 6,648 B |
-| Both | 20 | 4,625 ns (4,449–4,874), 7,152 B | 4,758 ns (4,648–5,000), 7,112 B |
+| None | 0 | 25.1 ns (24.8–25.9), 16 B | 157.2 ns (154.4–161.9), 112 B |
+| None | 20 | 399.4 ns (398.1–404.2), 520 B | 548.9 ns (540.9–563.4), 616 B |
+| Method security | 0 | 2,550 ns (2,522–2,638), 6,096 B | 2,569 ns (2,534–2,599), 6,048 B |
+| Method security | 20 | 3,231 ns (3,003–3,324), 6,552 B | 3,120 ns (3,093–3,289), 6,568 B |
+| Transaction | 0 | 1,188 ns (1,125–1,215), 712 B | 1,253 ns (1,216–1,292), 712 B |
+| Transaction | 20 | 1,609 ns (1,567–1,645), 1,216 B | 1,681 ns (1,663–1,763), 1,216 B |
+| Both | 0 | 3,778 ns (3,734–3,846), 6,648 B | 4,063 ns (3,872–4,315), 6,648 B |
+| Both | 20 | 4,793 ns (4,548–4,950), 7,152 B | 4,789 ns (4,656–4,933), 7,128 B |
 
-Next to other advice, the starter adds between nothing measurable and about 220 ns, no more than
-the forks with method security differ from one another, and no memory: with a transaction both
-columns allocate the same, and with method security the memory varies from fork to fork by up to
-about 400 bytes, more than the starter could add. The proxy and the 96 bytes that Spring AOP
+Next to other advice, the starter adds between nothing measurable and about 290 ns, no more than
+the forks of one benchmark differ from one another, and no memory: with a transaction both columns
+allocate the same, and with method security the memory varies from fork to fork by up to about
+300 bytes, more than the starter could add. The proxy and the 96 bytes that Spring AOP
 allocates for each call are there anyway.
 
 Spring Security is on the class path of every benchmark of the starter, and the starter reads the
@@ -107,16 +108,15 @@ observation:
 
 | Listener | No rule | 20 rules |
 |---|---|---|
-| None | 38.7 ns (38.2–39.5), 16 B | 420.4 ns (412.3–427.5), 520 B |
-| One that does nothing | 104.7 ns (103.8–105.5), 72 B | 2,101 ns (2,082–2,155), 608 B |
-| Observations | 468.9 ns (465.5–476.0), 848 B | 10,485 ns (10,284–10,552), 16,552 B |
+| None | 40.2 ns (40.1–42.9), 16 B | 416.2 ns (415.5–425.9), 520 B |
+| One that does nothing | 105.3 ns (105.0–108.7), 72 B | 2,096 ns (2,038–2,134), 576 B |
+| Observations | 449.0 ns (448.0–461.3), 776 B | 9,925 ns (9,711–10,034), 15,040 B |
 
-Without a listener, a check pays one null check; it takes longer here than in the first table
-because the starter's Muster reads the caller from Spring Security and the locale from Spring's
-`LocaleContextHolder` on each check. A listener
-that does nothing adds about 66 ns and 56 bytes to a check, and about 80 ns to each rule. The
-observations add about 430 ns and 830 bytes to a check, and about 480 ns and 760 bytes to each
-rule.
+Without a listener, a check pays one null check, and each rule a test of a local that is null; it
+takes longer here than in the first table because the starter's Muster reads the caller from Spring
+Security and the locale from Spring's `LocaleContextHolder` on each check. A listener that does
+nothing adds about 65 ns and 56 bytes to a check, and about 80 ns to each rule. The observations
+add about 410 ns and 760 bytes to a check, and about 455 ns and 690 bytes to each rule.
 
 ### A collection
 
@@ -125,22 +125,27 @@ with `muster.checkAll`:
 
 | Elements | By hand | `muster.check` on each | `muster.checkAll` |
 |---|---|---|---|
-| 1 | 288.7 ns (287.2–294.2), 0 B | 397.5 ns (397.0–407.1), 520 B | 1,606 ns (1,494–1,638), 2,568 B |
-| 10 | 3,003 ns (2,948–3,076), 0 B | 4,038 ns (3,938–4,349), 5,200 B | 7,492 ns (7,470–7,629), 16,360 B |
-| 100 | 28,932 ns (28,340–30,002), 0 B | 39,641 ns (39,256–40,994), 52,000 B | 64,959 ns (63,726–65,760), 155,280 B |
+| 1 | 293.5 ns (285.3–295.8), 0 B | 401.7 ns (394.8–435.4), 520 B | 929 ns (852–958), 1,768 B |
+| 10 | 2,969 ns (2,920–3,015), 0 B | 3,951 ns (3,930–4,309), 5,200 B | 3,850 ns (3,758–3,917), 8,360 B |
+| 100 | 28,490 ns (28,351–29,274), 0 B | 39,737 ns (39,235–43,159), 52,000 B | 30,774 ns (30,352–31,004), 75,280 B |
 
-The rules do not override `checkAll`, so Muster checks each element against each rule itself: with
-100 elements, about 650 ns and 1,550 bytes for each element, against about 400 ns and 520 bytes for
-checking each on its own. A rule that looks up its elements, as in a database, can override
-`checkAll` to do it with one query instead of one for each element.
+The rules do not override `checkAll`, so Muster checks each element against each rule itself, in a
+loop of each rule over the elements. From ten elements on that takes less time than checking each
+on its own, since the chain is looked up, the listener asked and the rules walked once: with 100
+elements, about 310 ns for each element, against about 400 ns. It allocates more, about 750 bytes
+for each element against 520, since the context of each rule carries the element's position, and
+the elements each rule passed are kept to skip those that failed in the rules that require it. A
+rule that looks up its elements, as in a database, can override `checkAll` to do it with one query
+instead of one for each element.
 
 Now and then a fork settles on other compiled code than the others, by hand as well as in Muster,
-and nearly always slower code. In this run, four of the 285 forks ended more than 10% from the
-median of their benchmark, and the ranges above leave them out: `RuleChain.check` with no rule
-(15.1 ns), and three forks of the multi-threaded benchmark, whose results are only in
-`results.csv`: one checking the class bound first to a shared bucket of the chain map, slower
-(52.3 ns), and two checking the class bound second, one faster (40.0 ns) and one slower (52.8 ns)
-than the others. The median of five forks keeps such a fork from deciding the published number.
+and nearly always slower code. In this run, seven of the 285 forks ended more than 10% from the
+median of their benchmark, all slower, and the ranges above leave them out: one calling 20 rules by
+hand (297.1 ns); two of a failing check with one violated rule in `FAIL_FAST` (568.8 and 496.7 ns)
+and one in `COLLECT_ALL` (559.8 ns); two of the starter's binding by hand without other advice,
+with no rule (29.0 ns) and with one (31.2 ns); and one of the multi-threaded benchmark, whose
+results are only in `results.csv`, checking the class bound first to a shared bucket of the chain
+map (55.3 ns). The median of five forks keeps such a fork from deciding the published number.
 
 The raw results are in [`results.json`](results.json), and the medians, ranges and the forks more
 than 10% from the median in [`results.csv`](results.csv). `./gradlew jmhReport` writes both and the
