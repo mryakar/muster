@@ -23,8 +23,10 @@ import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The listeners registered with a {@code Muster}, told in the order they were registered, as one.
- * The list is copied when the {@code Muster} is built and never changed, so checks share it.
+ * The listeners registered with a {@code Muster}, as one: told that a check or a rule starts in the
+ * order they were registered, and that it ends in the reverse order, so that what their observers
+ * open nests. The list is copied when the {@code Muster} is built and never changed, so checks
+ * share it.
  *
  * <p>Every observer that was told that a check or a rule started is told that it ended, also when
  * another listener or observer throws: the first exception propagates, and those thrown after it
@@ -64,7 +66,7 @@ final class CheckListeners implements CheckListener {
       } catch (Throwable e) {
         if (observers != null) {
           var end = new CheckEnd(Outcome.ERROR, Duration.ZERO, List.of(), e);
-          tellEnd(observers, 0, observers.size(), Observer::checkEnded, end, e, e);
+          tellEnd(observers, observers.size(), Observer::checkEnded, end, e, e);
         }
         throw e;
       }
@@ -81,35 +83,34 @@ final class CheckListeners implements CheckListener {
   }
 
   /**
-   * Tells every observer that a rule or the check ended, then throws the first exception one of
-   * them threw, with those thrown after it suppressed on it.
+   * Tells every observer that a rule or the check ended, last one first, then throws the first
+   * exception one of them threw, with those thrown after it suppressed on it.
    */
   private static <E> void tellEveryEnd(
       List<Observer> observers, BiConsumer<Observer, E> event, E end, @Nullable Throwable told) {
-    for (var i = 0; i < observers.size(); i++) {
+    for (var i = observers.size() - 1; i >= 0; i--) {
       try {
         event.accept(observers.get(i), end);
       } catch (Throwable e) {
-        tellEnd(observers, i + 1, observers.size(), event, end, e, told);
+        tellEnd(observers, i, event, end, e, told);
         throw e;
       }
     }
   }
 
   /**
-   * Tells the observers from one index to another, that one excluded, that a rule or the check
-   * ended. What one throws is suppressed on the exception that propagates, unless it is the
-   * exception the end tells of, which propagates anyway.
+   * Tells the observers before an index that a rule or the check ended, last one first. What one
+   * throws is suppressed on the exception that propagates, unless it is the exception the end tells
+   * of, which propagates anyway.
    */
   private static <E> void tellEnd(
       List<Observer> observers,
-      int from,
-      int to,
+      int before,
       BiConsumer<Observer, E> event,
       E end,
       Throwable propagating,
       @Nullable Throwable told) {
-    for (var i = from; i < to; i++) {
+    for (var i = before - 1; i >= 0; i--) {
       try {
         event.accept(observers.get(i), end);
       } catch (Throwable fromObserver) {
@@ -121,8 +122,9 @@ final class CheckListeners implements CheckListener {
   }
 
   /**
-   * The observers of one check, told in the order of their listeners. If one throws when a rule
-   * starts, those told before it are told that the rule ended with that exception.
+   * The observers of one check, told that a rule starts in the order of their listeners, and that
+   * it or the check ends in the reverse order. If one throws when a rule starts, those told before
+   * it are told that the rule ended with that exception.
    */
   private record Observers(List<Observer> observers) implements Observer {
 
@@ -133,7 +135,7 @@ final class CheckListeners implements CheckListener {
           observers.get(i).ruleStarted(ruleId);
         } catch (Throwable e) {
           var end = new RuleEnd(ruleId, Outcome.ERROR, Duration.ZERO, List.of(), e);
-          tellEnd(observers, 0, i, Observer::ruleEnded, end, e, e);
+          tellEnd(observers, i, Observer::ruleEnded, end, e, e);
           throw e;
         }
       }
