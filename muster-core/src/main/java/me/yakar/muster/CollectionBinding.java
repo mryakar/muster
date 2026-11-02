@@ -59,7 +59,10 @@ public final class CollectionBinding<E> {
   /** The chain of the only class an element of a final type can have, or {@code null}. */
   private final @Nullable RuleChain<Object> only;
 
-  /** The chains of the classes of elements checked so far, for a type that is not final. */
+  /**
+   * The chains of the classes of the rule targets checked so far, and, bound when the binding is
+   * built, the chain of the element type for other elements, for a type that is not final.
+   */
   private final ClassChains chains = new ClassChains(this::bind);
 
   private CollectionBinding(
@@ -68,18 +71,20 @@ public final class CollectionBinding<E> {
     this.elementType = elementType;
     this.selection = selection;
     this.mode = mode;
-    // Rules bind by type to rule targets only, so for other elements, of whatever classes, the
-    // chain of the declared type is the chain of each class.
-    if (Modifier.isFinal(elementType.getModifiers())
-        || !RuleTarget.class.isAssignableFrom(elementType)) {
+    if (Modifier.isFinal(elementType.getModifiers())) {
       var bound = bind(elementType);
       bound.plan().log();
       this.only = bound.chain();
-    } else {
-      // Each class is bound on its first check; planning the declared type now fails at once for
-      // listed rules, and what they require, that cannot check its elements.
+    } else if (RuleTarget.class.isAssignableFrom(elementType)) {
+      // The class of the elements is bound on their first check; planning the declared type now
+      // fails at once for listed rules, and what they require, that cannot check its elements.
       ChainPlan.collection(muster.catalog(), elementType, selection);
       this.only = null;
+    } else {
+      // The one chain of every collection of elements that are not rule targets; binding it now
+      // logs it.
+      this.only = null;
+      chains.of(elementType);
     }
   }
 
@@ -88,13 +93,12 @@ public final class CollectionBinding<E> {
    * violation rejects the whole call; a violation about an element names its position in its
    * target, as in {@code [3].name}. An empty collection passes without running a rule.
    *
-   * @param inputs the inputs; where the element type of this binding is a rule target that is not
-   *     final, all of one class, since rules bind to that class; rules see an unmodifiable copy,
-   *     taken when the check starts
+   * @param inputs the inputs: rule targets of one class, since rules bind to that class, or none a
+   *     rule target; rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code inputs} or an element is {@code null}
-   * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
-   *     binding's type, which only unchecked code can pass
+   * @throws IllegalArgumentException if the elements are rule targets of different classes, or rule
+   *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
   public void check(Collection<? extends E> inputs) {
     var elements = RuleChain.elements(inputs, elementType, only == null, "binding");
@@ -103,7 +107,7 @@ public final class CollectionBinding<E> {
     }
     var chain = only;
     if (chain == null) {
-      chain = chains.of(elements.getFirst().getClass());
+      chain = chains.of(RuleChain.chainKey(elements.getFirst(), elementType));
     }
     chain.runAll(elements, mode);
   }
@@ -118,10 +122,11 @@ public final class CollectionBinding<E> {
   }
 
   /**
-   * Returns the ids of the rules of the chains of the classes of elements checked so far, by class
-   * in the order of their names, each list in the order the rules run. For an element type that is
-   * final or not a rule target, it is the one chain bound when the binding was built. The map is a
-   * copy, taken now, that later checks do not change.
+   * Returns the ids of the rules of the chains bound so far, by class in the order of their names,
+   * each list in the order the rules run: the chain of the element type, bound when the binding was
+   * built, for a type that is final or not a rule target, and the chain of the class of the rule
+   * targets of each collection checked so far. The map is a copy, taken now, that later checks do
+   * not change.
    *
    * @return the ids by class, unmodifiable
    */
@@ -239,9 +244,9 @@ public final class CollectionBinding<E> {
     }
 
     /**
-     * Builds the binding. For a final element type, such as a record, or one that is not a rule
-     * target, it also binds the rules now and logs them; for other types, each class of elements is
-     * bound on its first check.
+     * Builds the binding. For an element type that is final, such as a record, or not a rule
+     * target, it also binds the rules of that type now and logs them; the rules of each class of
+     * rule targets are bound on its first check.
      *
      * @return the binding
      * @throws IllegalArgumentException if a listed rule is not registered or neither accepts the

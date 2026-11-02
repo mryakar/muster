@@ -52,7 +52,10 @@ public final class Binding<I> {
   /** The chain of the only class an input of a final type can have, or {@code null}. */
   private final @Nullable RuleChain<Object> only;
 
-  /** The chains of the classes checked so far, for a type that is not final. */
+  /**
+   * The chains of the classes of the rule targets checked so far, and, bound when the binding is
+   * built, the chain of the input type for other inputs, for a type that is not final.
+   */
   private final ClassChains chains = new ClassChains(this::bind);
 
   private Binding(Muster muster, Class<?> inputType, Selection selection, CheckMode mode) {
@@ -66,6 +69,10 @@ public final class Binding<I> {
       this.only = bound.chain();
     } else {
       this.only = null;
+      if (!RuleTarget.class.isAssignableFrom(inputType)) {
+        // The one chain of every input that is not a rule target; binding it now logs it.
+        chains.of(inputType);
+      }
     }
   }
 
@@ -88,7 +95,7 @@ public final class Binding<I> {
     }
     var chain = only;
     if (chain == null) {
-      chain = chains.of(input.getClass());
+      chain = chains.of(RuleChain.chainKey(input, inputType));
     }
     chain.run(input, mode);
   }
@@ -101,27 +108,21 @@ public final class Binding<I> {
    * [3].name}. An empty collection passes. The rules check each element; a {@link
    * CollectionBinding} also checks rules of the whole collection.
    *
-   * @param inputs the inputs; where the input type of this binding is a rule target that is not
-   *     final, all of one class; rules see an unmodifiable copy, taken when the check starts
+   * @param inputs the inputs: rule targets of one class, or none a rule target; rules see an
+   *     unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
-   * @throws IllegalArgumentException if the elements are of different classes, or one is not of the
-   *     binding's type, which only unchecked code can pass
+   * @throws IllegalArgumentException if the elements are rule targets of different classes, or rule
+   *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
   public void checkAll(Collection<? extends I> inputs) {
-    // Rules bind by type to rule targets only, so other elements may be of different classes.
-    var elements =
-        RuleChain.elements(
-            inputs,
-            inputType,
-            only == null && RuleTarget.class.isAssignableFrom(inputType),
-            "binding");
+    var elements = RuleChain.elements(inputs, inputType, only == null, "binding");
     if (elements.isEmpty()) {
       return;
     }
     var chain = only;
     if (chain == null) {
-      chain = chains.of(elements.getFirst().getClass());
+      chain = chains.of(RuleChain.chainKey(elements.getFirst(), inputType));
     }
     chain.runAll(elements, mode);
   }
@@ -136,10 +137,10 @@ public final class Binding<I> {
   }
 
   /**
-   * Returns the ids of the rules of the chains of the classes checked so far, by class in the order
-   * of their names, each list in the order the rules run. For a final input type, it is the one
-   * chain bound when the binding was built. The map is a copy, taken now, that later checks do not
-   * change.
+   * Returns the ids of the rules of the chains bound so far, by class in the order of their names,
+   * each list in the order the rules run: the chain of the input type, bound when the binding was
+   * built, for a type that is final or not a rule target, and the chain of the class of each rule
+   * target checked so far. The map is a copy, taken now, that later checks do not change.
    *
    * @return the ids by class, unmodifiable
    */
@@ -257,8 +258,9 @@ public final class Binding<I> {
     }
 
     /**
-     * Builds the binding. For a final input type, such as a record, it also binds the rules now and
-     * logs them; for other types, each class is bound on its first check.
+     * Builds the binding. For an input type that is final, such as a record, or not a rule target,
+     * it also binds the rules of that type now and logs them; the rules of each class of rule
+     * targets are bound on its first check.
      *
      * @return the binding
      * @throws IllegalArgumentException if a listed rule is not registered or does not accept the

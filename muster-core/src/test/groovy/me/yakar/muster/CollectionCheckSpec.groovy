@@ -661,7 +661,7 @@ class CollectionCheckSpec extends EngineSpecification {
 
     where:
     problem                       | inputs || exception                | message
-    'elements of different classes' | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || IllegalArgumentException | "the elements of a checked collection must be of one class; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+    'elements of different classes' | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || IllegalArgumentException | "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
     'a null element'              | [VALID, null] || NullPointerException     | 'the element at [1] is null'
     'no collection'               | null || NullPointerException     | 'inputs'
   }
@@ -693,7 +693,7 @@ class CollectionCheckSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "the elements of a checked collection must be of one class; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
   }
 
   def 'a binding of a final type checks a collection with its own chain'() {

@@ -441,7 +441,7 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "the elements of a checked collection must be of one class; the element at [0] is a ${CREATE}, the element at [1] a ${UpdateVehicle.typeName}"
+    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CREATE}, the element at [1] a ${UpdateVehicle.typeName}"
   }
 
   def 'a binding rejects an element of another type, which only unchecked code can pass'() {
@@ -540,6 +540,7 @@ class CollectionBindingSpec extends EngineSpecification {
 
     expect:
     logged*.message == ['Rules bound to a collection of java.lang.Number: [amount.limit, amount.positive]']
+    binding.ruleIds() == [(Number): ['amount.limit', 'amount.positive']]
 
     when:
     binding.check([1, 2L])
@@ -553,6 +554,40 @@ class CollectionBindingSpec extends EngineSpecification {
     then:
     def e = thrown(BusinessRuleViolationException)
     described(e) == ['amount.limit -', 'amount.positive [2]']
+    binding.ruleIds().keySet() == [Number] as Set
+  }
+
+  def 'a binding of a type that is not a rule target checks rule targets with the rules bound to their class, of both kinds'() {
+    given:
+    def limit = new BatchLimit()
+    def binding = vehicles(new CodeFormat(), limit, new ReportsCall()).collectionBinding(Object).rules(ReportsCall).build()
+
+    expect:
+    binding.ruleIds() == [(Object): ['call.reported']]
+
+    when:
+    binding.check([INVALID])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['call.reported [0]', 'vehicle.code-format [0]']
+    limit.received == [[INVALID]]
+    binding.ruleIds() == [(Object): ['call.reported'], (CreateVehicle): ['call.reported', 'vehicle.batch-limit', 'vehicle.code-format']]
+  }
+
+  def 'a binding of a type that is not a rule target rejects #what'() {
+    when:
+    vehicles().collectionBinding(Object).build().check(elements)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${first.typeName}, the element at [1] a ${second.typeName}"
+
+    where:
+    what                                   | elements || first         | second
+    'rule targets of different classes'    | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || CreateVehicle | UpdateVehicle
+    'a rule target after another element'  | [5L, VALID] || Long          | CreateVehicle
+    'another element after a rule target'  | [VALID, 5L] || CreateVehicle | Long
   }
 
   def 'a binding of a type that is not a rule target checks elements of different classes with checkAll'() {

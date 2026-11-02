@@ -29,6 +29,7 @@ import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
+import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
@@ -149,12 +150,13 @@ public final class RuleChain<I> {
 
   /**
    * Returns the inputs of a check of a collection, after checking that every element is of the
-   * given type and, if asked, of one class: a chain bound to a class checks that class only. The
-   * inputs are copied once, before they are checked, so that a change to the collection during the
-   * check reaches no rule, and every rule reads an element in constant time.
+   * given type and, for a check that binds rules to the class of its elements, that they are rule
+   * targets of one class, or that none is a rule target. The inputs are copied once, before they
+   * are checked, so that a change to the collection during the check reaches no rule, and every
+   * rule reads an element in constant time.
    */
   static List<?> elements(
-      Collection<?> inputs, Class<?> inputType, boolean oneClass, String checker) {
+      Collection<?> inputs, Class<?> inputType, boolean byClass, String checker) {
     var copy = requireNonNull(inputs, "inputs").toArray();
     for (var position = 0; position < copy.length; position++) {
       var input = copy[position];
@@ -172,9 +174,13 @@ public final class RuleChain<I> {
                 + "] is a "
                 + input.getClass().getTypeName());
       }
-      if (oneClass && input.getClass() != copy[0].getClass()) {
+      // Rules bind by type to rule targets only, so other elements may be of different classes.
+      if (byClass
+          && input.getClass() != copy[0].getClass()
+          && (input instanceof RuleTarget || copy[0] instanceof RuleTarget)) {
         throw new IllegalArgumentException(
-            "the elements of a checked collection must be of one class; the element at [0] is a "
+            "the elements of a checked collection must be rule targets of one class, or none a"
+                + " rule target; the element at [0] is a "
                 + copy[0].getClass().getTypeName()
                 + ", the element at ["
                 + position
@@ -183,6 +189,15 @@ public final class RuleChain<I> {
       }
     }
     return Collections.unmodifiableList(Arrays.asList(copy));
+  }
+
+  /**
+   * Returns the class whose chain checks an input, or the elements of a collection, that bind rules
+   * by type: the class of a rule target, or else the declared type, since rules bind by type to
+   * rule targets only.
+   */
+  static Class<?> chainKey(Object input, Class<?> inputType) {
+    return input instanceof RuleTarget ? input.getClass() : inputType;
   }
 
   /**
