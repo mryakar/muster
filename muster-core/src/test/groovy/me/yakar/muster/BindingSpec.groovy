@@ -94,6 +94,10 @@ class BindingSpec extends EngineSpecification {
   @InheritConstructors
   static class LongNeedsBase extends Noted<Long> {}
 
+  @Rule(id = 'any.listed')
+  @InheritConstructors
+  static class AnyListed extends Noted<Object> {}
+
   Muster.Builder builder(Class<?>... ruleClasses) {
     Muster.builder().rules({
       it.getDeclaredConstructor(List).newInstance(ran)
@@ -134,6 +138,57 @@ class BindingSpec extends EngineSpecification {
 
     where:
     type << [Long, long]
+  }
+
+  def 'a binding of a type that is not a rule target checks a rule target with the rules bound to its class, and other inputs with one chain of that type, bound when it is built'() {
+    given:
+    log.level = Level.FINE
+    def binding = muster(AnyListed, FieldsBound, LongBound).binding(Object).rules(AnyListed).build()
+
+    expect:
+    logged*.message == ['Rules bound to java.lang.Object: [any.listed]']
+    binding.ruleIds() == [(Object): ['any.listed']]
+
+    when:
+    binding.check(VALID)
+    binding.check(1L)
+    binding.check('text')
+
+    then:
+    ran == ['any.listed', 'fields.bound', 'any.listed', 'any.listed']
+    binding.ruleIds().keySet().toList() == [Object, CreateVehicle]
+    binding.ruleIds().values().toList() == [['any.listed'], ['any.listed', 'fields.bound']]
+  }
+
+  def 'checkAll of a binding of a type that is not a rule target checks rule targets with the rules bound to their class'() {
+    given:
+    def binding = muster(AnyListed, FieldsBound).binding(Object).rules(AnyListed).build()
+
+    when:
+    binding.checkAll([VALID, INVALID])
+
+    then:
+    ran == ['any.listed', 'any.listed', 'fields.bound', 'fields.bound']
+    binding.ruleIds().keySet().toList() == [Object, CreateVehicle]
+  }
+
+  def 'checkAll of a binding of a type that is not a rule target rejects #what'() {
+    given:
+    def binding = muster(AnyListed, FieldsBound).binding(Object).rules(AnyListed).build()
+
+    when:
+    binding.checkAll(elements)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${first.typeName}, the element at [1] a ${second.typeName}"
+    ran.empty
+
+    where:
+    what                                  | elements || first         | second
+    'rule targets of different classes'   | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || CreateVehicle | UpdateVehicle
+    'a rule target after another element' | [5L, VALID] || Long          | CreateVehicle
+    'another element after a rule target' | [VALID, 5L] || CreateVehicle | Long
   }
 
   def 'the listed rules and their requirements run first; the rules bound by type follow, after theirs, in the order of their ids'() {

@@ -418,6 +418,20 @@ class ObservedCheckSpec extends EngineSpecification {
     listener.checks*.collection() == [false, false, false, true, true, true]
   }
 
+  def 'a binding of a type that is not a rule target tells that a check is of the class of a rule target, or else of that type'() {
+    given:
+    def muster = Muster.builder().rules(new CodeFormat()).listener(listener).build()
+    def binding = muster.binding(Object).build()
+
+    when:
+    binding.check(VALID)
+    binding.check(1L)
+    muster.collectionBinding(Object).build().check([1L, 'text'])
+
+    then:
+    listener.checks*.inputType() == [CreateVehicle, Object, Object]
+  }
+
   def 'a chain with its own mode keeps the listener'() {
     given:
     def chain = Muster.builder().rules(new CodeFormat()).listener(listener).build()
