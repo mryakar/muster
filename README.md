@@ -165,9 +165,7 @@ POST /vehicles                Accept-Language: tr-TR
 ```
 
 The response holds neither the rule id, nor the internal arguments added with `internalArg`, nor
-the severity; violations are logged at DEBUG with all three. A controller advice of the application
-that names `BusinessRuleViolationException` in an `@ExceptionHandler` replaces the starter's
-handler, and can inject its `MessageResolver` bean to resolve the messages.
+the severity; violations are logged at DEBUG with all three.
 
 Rules learn who makes the call from Spring Security, when the application has it, and the locale
 from `LocaleContextHolder`; a `Supplier<Principal>` or `Supplier<Locale>` bean replaces either.
@@ -192,27 +190,31 @@ lines.
 **Rules.** Every bean that implements `BusinessRule` is a rule. A rule class outside the packages of
 the application joins once it is a bean, for example through `@Bean` or `@Import`. A rule bean must
 be a singleton, since Muster creates each rule once and keeps it. A `Muster` bean of the application
-replaces the starter's; such an application does not start if it also sets `muster.mode` or a key under
-`muster.rules`, which configure only the Muster the starter builds.
+replaces the starter's; such an application does not start if it also sets `muster.mode` or a key
+under `muster.rules`, which configure only the Muster the starter builds.
 
 **Methods.** `@Rules` is found as Spring finds `@Transactional`: on the method, on the method it
 overrides or implements, and as a meta-annotation. A method with rules is public, and neither
 static nor final; wrong use stops the application when it starts, as does a transaction advice that
-would not run around Muster's. A call through `this` passes no proxy and checks no rules, so the
-starter scans the bytecode of each class it advises, with its superclasses and interfaces, for
-calls of its advised methods through `this`, the bodies of lambdas and method references included,
-and stops the application, naming the methods; `muster.self-invocation=warn` logs them instead,
-and `off` skips the scan. Call the method through its bean, injecting the bean itself with `@Lazy`
-or an `ObjectProvider`, or move it to another bean. A call through reflection, through a nested
-class, or from code compiled to dynamic calls, as Groovy's, is not seen, and nothing is scanned
-where the class files are not there, as in a native image. A call from one advised method to
-another through the bean checks the rules again. The constraints of a `@Validated` method are
-checked before its rules, and before its transaction: Spring adds the validation advice after the
-advice a proxy already has, and Muster moves it ahead of its own on the proxies it advises, leaving
-other advice, such as method security, and beans without rules as they are; with
-`muster.validation.reorder-advisor=false`, the rules run before the constraints. Other advice runs as
-Spring orders it: a `@Cacheable` hit checks no rules, and an `@Async` method checks them on its own
-thread, where a violation does not reach the caller.
+would not run around Muster's. A call from one advised method to another through the bean checks
+the rules again.
+
+**Calls through `this`.** A call through `this` passes no proxy and checks no rules, so the starter
+scans the bytecode of each class it advises, with its superclasses and interfaces, for calls of its
+advised methods through `this`, the bodies of lambdas and method references included, and stops the
+application, naming the methods; `muster.self-invocation=warn` logs them instead, and `off` skips
+the scan. Call the method through its bean, injecting the bean itself with `@Lazy` or an
+`ObjectProvider`, or move it to another bean. A call through reflection, through a nested class, or
+from code compiled to dynamic calls, as Groovy's, is not seen, and nothing is scanned where the
+class files are not there, as in a native image.
+
+**Validation and other advice.** The constraints of a `@Validated` method are checked before its
+rules, and before its transaction: Spring adds the validation advice after the advice a proxy
+already has, and Muster moves it ahead of its own on the proxies it advises, leaving other advice,
+such as method security, and beans without rules as they are; with
+`muster.validation.reorder-advisor=false`, the rules run before the constraints. Other advice runs
+as Spring orders it: a `@Cacheable` hit checks no rules, and an `@Async` method checks them on its
+own thread, where a violation does not reach the caller.
 
 **Caller and locale.** The caller is read through the `SecurityContextHolderStrategy` bean of the
 application if it has one; a call that is anonymous or not authenticated has no caller. Without a
@@ -234,19 +236,21 @@ ordered before it still can. The handler also answers an exception that a violat
 an earlier advice handles that exception. A controller advice that names
 `BusinessRuleViolationException` in an `@ExceptionHandler`, in the context of the application or a
 parent one, replaces the handler for every controller, even if the advice applies to some
-controllers only. A controller's own handler comes first anyway. A `@WebMvcTest` gets the handler
-and the message resolver, without the rules.
+controllers only, and can inject the starter's `MessageResolver` bean to resolve the messages. A
+controller's own handler comes first anyway. A `@WebMvcTest` gets the handler and the message
+resolver, without the rules.
 
 **Observations.** When the application has an `ObservationRegistry`, each check opens an
 observation `muster.check`, tagged `name` with the name of the binding, such as
 `VehicleService.create(CreateVehicle)`, or of the type checked, and each of its rules a child
 observation `muster.rule`, tagged `rule` with the rule id. Both get an `outcome` tag when they end:
 `passed`, `failed` or `error` for the check, and `skipped` as well for a rule; an error carries the
-exception, and a violation is not an error. Each observation
-is in scope while it runs, so what a rule calls, such as a repository, is observed under it. No tag
-carries a code, a target or an argument. The names and the tags are fixed; an `ObservationPredicate`
-of the registry that leaves `muster.check` out observes nothing of a check. The `CheckListener`
-beans of the application observe the checks too, in their order, before the starter's.
+exception, and a violation is not an error. Each observation is in scope while it runs, so what a
+rule calls, such as a repository, is observed under it. No tag carries a code, a target or an
+argument. The names and the tags are fixed; an `ObservationPredicate` of the registry that leaves
+`muster.check` out observes nothing of a check. The `CheckListener` beans of the application are
+added before the starter's, so they are told that a check or a rule starts before it, and that it
+ends after it.
 
 **Actuator.** When the application has the Spring Boot actuator, the read-only endpoint `muster`
 lists the rules: the mode of Muster, the rules the configuration switches off, every advised method
@@ -315,8 +319,8 @@ public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx
 }
 ```
 
-A rule whose input type is a `List`, `SequencedCollection` or `Collection` of the elements, such
-as `BusinessRule<List<CreateVehicle>>`, checks the whole collection: it gets a copy of the collection
+A rule whose input type is a `List`, `SequencedCollection` or `Collection` of the elements, such as
+`BusinessRule<List<CreateVehicle>>`, checks the whole collection: it gets a copy of the collection
 as a list, once every element passed the rules it requires, and its violations name no element.
 
 Muster checks a rule that does not override `checkAll` element by element, stops at the first
@@ -342,7 +346,7 @@ Muster muster = Muster.builder()
 
 A rule ends passed, failed, skipped, when it does not apply or a rule it requires did not pass, or
 with an error, when it threw; the end of a check carries its violations or the exception. A listener
-that throws stops the check. Without a listener, a check pays one null check.
+that throws stops the check.
 
 What the starter does for you is up to you:
 
@@ -359,8 +363,8 @@ What the starter does for you is up to you:
   resolves the message of a violation from your resource bundles, with the same `{name}`
   placeholders. Load the bundles in your own module, so that they are found on the module path.
 - **HTTP:** map `Violation.category()` to a status yourself, as the starter does: 403 for
-  `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 otherwise. Send the code, the message
-  and `clientArgs()`, never the violation itself.
+  `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 otherwise. Send the code, the
+  message and `clientArgs()`, never the violation itself.
 
 A rule that needs the time takes a `Clock` in its constructor, so that its tests can fix it.
 [`muster-examples/plain-java`](muster-examples/plain-java) is a complete application on the module

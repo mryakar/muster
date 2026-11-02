@@ -31,7 +31,8 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 - Integration tests live in the `integrationTest` source set and use Spring Boot, Testcontainers and
   PostgreSQL.
 - Every change comes with tests. The build requires 100% instruction, branch and line coverage.
-- Mutation testing (PIT) guards against tests that execute code without checking it.
+- Mutation testing (PIT) guards against tests that execute code without checking it;
+  `./gradlew pitest` fails when it kills fewer than 95% of the mutations.
 
 ## Benchmarks
 
@@ -42,11 +43,11 @@ against the same rules called by hand. It is not published, and the build only c
 ./gradlew jmh
 ```
 
-The run takes about an hour and writes `muster-benchmarks/build/results/jmh/results.json`, with
-the time and the allocation per call of each fork. `--args` selects benchmarks and overrides their settings,
-except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -f 1"`. For numbers
-worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a fixed CPU
-frequency.
+The run takes about an hour and writes `muster-benchmarks/build/results/jmh/results.json`, with the
+time and the allocation per call of each fork. `--args` selects benchmarks and overrides their
+settings, except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -f 1"`. For
+numbers worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a
+fixed CPU frequency.
 
 `./gradlew jmhReport` copies the results of the last run to `docs/benchmarks`, writes the median of
 each benchmark's forks to `results.csv` there, and draws the chart that the README shows. It refuses
@@ -103,7 +104,8 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 Allowed types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `build`, `ci`, `perf`. Mark
 breaking changes with `!` or a `BREAKING CHANGE:` footer. Keep commits small; each commit should
-contain only related changes. CI checks every commit message in a pull request.
+contain only related changes. CI checks every commit message in a pull request;
+`.github/scripts/check-commit-messages.sh main HEAD` checks those of your branch before you push.
 
 ## Pull requests
 
@@ -114,7 +116,8 @@ contain only related changes. CI checks every commit message in a pull request.
 ## Releases
 
 The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uploads it to Maven
-Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
+Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to
+verify a release.
 
 To check what a build would publish, publish it to the local repository and run the examples in
 `muster-examples`, which use Muster the way applications do: one without Spring, on the module path,

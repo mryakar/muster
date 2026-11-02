@@ -26,10 +26,10 @@ checks. A check that passes is held to this budget, against the same rules calle
 Most of what a rule adds is the context it receives: each rule gets its own, 24 bytes, since it
 carries the rule's id. For a passing check the memory figures are exact; the JIT does not vary them.
 
-Most of what the starter costs is Spring AOP's own: a proxy whose advice does nothing, measured
-the same way, takes about 85 ns, and the 96 bytes are what Spring AOP allocates for each call: the
-array of arguments, a cache key and the method invocation. The starter's advice itself looks up the method's rules in two maps and allocates
-nothing.
+Most of what the starter costs is Spring AOP's own: a proxy whose advice does nothing, measured the
+same way, takes about 85 ns, and the 96 bytes are what Spring AOP allocates for each call: the array
+of arguments, a cache key and the method invocation. The starter's advice itself looks up the
+method's rules in two maps and allocates nothing.
 
 The numbers hold for the machine described below. A faster machine gives smaller numbers; a change
 to Muster is compared with the budget on the same machine.
