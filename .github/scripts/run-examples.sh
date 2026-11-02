@@ -18,6 +18,7 @@
 # Gradle module metadata and once with the POMs only, as Maven reads them. The version defaults to
 # the one in gradle.properties.
 set -euo pipefail
+cd "$(dirname "$0")/../.."
 
 version="${1:-$(sed -n 's/^version=//p' gradle.properties)}"
 ./gradlew -p muster-examples run -PmusterVersion="$version"
