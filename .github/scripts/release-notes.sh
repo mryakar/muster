@@ -14,14 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Prints the CHANGELOG.md section of a version, without its heading, as release notes.
+# Prints the CHANGELOG.md section of a version, without its heading, as release notes. Fails if
+# CHANGELOG.md has no section for the version.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 version="${1:?usage: release-notes.sh <version>}"
-awk -v heading="## [$version]" '
+if ! awk -v heading="## [$version]" '
   index($0, heading) == 1 { found = 1; next }
   found && /^## \[/ { exit }
   found && /^\[[^]]+\]: / { exit }
   found { print }
-' CHANGELOG.md
+  END { exit !found }
+' CHANGELOG.md; then
+  echo "CHANGELOG.md has no section for $version" >&2
+  exit 1
+fi
