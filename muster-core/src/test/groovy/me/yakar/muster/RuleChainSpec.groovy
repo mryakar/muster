@@ -50,13 +50,6 @@ class RuleChainSpec extends EngineSpecification {
     }
   }
 
-  @Rule(id = 'vehicle.impostor')
-  static class Impostor implements BusinessRule<Object> {
-    RuleResult check(Object input, RuleContext ctx) {
-      RuleResult.failed(ctx.violation().build(), RuleContext.forRule('vehicle.name-unique').violation().build())
-    }
-  }
-
   @Rule(id = 'import.only')
   static class ImportOnly implements BusinessRule<Object> {
     boolean appliesTo(RuleContext ctx) {
@@ -65,13 +58,6 @@ class RuleChainSpec extends EngineSpecification {
 
     RuleResult check(Object input, RuleContext ctx) {
       RuleResult.failed(ctx.violation().build())
-    }
-  }
-
-  @Rule(id = 'rule.returns-null')
-  static class ReturnsNull implements BusinessRule<Object> {
-    RuleResult check(Object input, RuleContext ctx) {
-      null
     }
   }
 
