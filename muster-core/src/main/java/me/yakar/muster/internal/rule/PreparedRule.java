@@ -24,7 +24,7 @@ import me.yakar.muster.rule.RuleContext;
 /**
  * A rule definition with the instance that checks it, and a context to start each call's context
  * from. Chains share a prepared rule across threads: everything is final, and the only state that
- * changes, whether the rule has been told that it checks elements one by one, is atomic.
+ * changes, whether Muster has warned that the rule checks elements one by one, is atomic.
  */
 public final class PreparedRule {
 
@@ -36,28 +36,11 @@ public final class PreparedRule {
   private final boolean checksAll;
   private final AtomicBoolean toldOneByOne = new AtomicBoolean();
 
-  /**
-   * Prepares a rule. Checks that the context is the rule's own and has no caller: every call
-   * derives its context from it, and checks violations against the rule's id.
-   *
-   * @param definition the definition
-   * @param instance the instance; it accepts inputs of the {@linkplain RuleDefinition#inputType()
-   *     input type} only
-   * @param context the rule's context with no caller and the root locale; its id is checked once,
-   *     here, rather than on every call
-   * @throws IllegalArgumentException if the context is of another rule or has a caller
-   */
-  public PreparedRule(
-      RuleDefinition definition, BusinessRule<Object> instance, RuleContext context) {
-    if (!context.ruleId().equals(definition.id()) || context.caller().isPresent()) {
-      throw new IllegalArgumentException(
-          "the prepared context of rule '"
-              + definition.id()
-              + "' must be for that rule and have no caller");
-    }
+  private PreparedRule(RuleDefinition definition, BusinessRule<Object> instance) {
     this.definition = definition;
     this.instance = instance;
-    this.context = context;
+    // Every call derives its context from this one, so the id is checked once, here.
+    this.context = RuleContext.forRule(definition.id());
     this.checksAll = overridesCheckAll(definition.ruleClass());
   }
 
@@ -65,13 +48,13 @@ public final class PreparedRule {
    * Pairs a definition with its instance.
    *
    * @param definition the definition
-   * @param rule an instance of the defined class
+   * @param rule an instance of the defined class; it accepts inputs of the {@linkplain
+   *     RuleDefinition#inputType() input type} only
    * @return the prepared rule
    */
   @SuppressWarnings("unchecked") // Callers pass inputs of the definition's input type only.
   public static PreparedRule of(RuleDefinition definition, BusinessRule<?> rule) {
-    return new PreparedRule(
-        definition, (BusinessRule<Object>) rule, RuleContext.forRule(definition.id()));
+    return new PreparedRule(definition, (BusinessRule<Object>) rule);
   }
 
   /**
@@ -93,7 +76,8 @@ public final class PreparedRule {
   }
 
   /**
-   * Returns the context to start each call's context from.
+   * Returns the context to start each call's context from: the rule's, with no caller and the root
+   * locale.
    *
    * @return the context
    */

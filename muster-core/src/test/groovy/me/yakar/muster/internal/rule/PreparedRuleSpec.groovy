@@ -15,7 +15,6 @@
  */
 package me.yakar.muster.internal.rule
 
-import java.security.Principal
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
@@ -99,22 +98,6 @@ class PreparedRuleSpec extends Specification {
     prepared.context().ruleId() == 'task.ready'
     prepared.context().caller().empty
     prepared.context().locale() == Locale.ROOT
-  }
-
-  def 'the context of #what is rejected'() {
-    when:
-    new PreparedRule(definition, new TaskReady(), context)
-
-    then:
-    def e = thrown(IllegalArgumentException)
-    e.message == "the prepared context of rule 'task.ready' must be for that rule and have no caller"
-
-    where:
-    what                    | context
-    'another rule'          | RuleContext.forRule('task.exists')
-    'a call with a caller'  | RuleContext.builder('task.ready').caller({
-      'amo'
-    } as Principal).build()
   }
 
   def 'a rule checks a collection itself if its class #how'() {
