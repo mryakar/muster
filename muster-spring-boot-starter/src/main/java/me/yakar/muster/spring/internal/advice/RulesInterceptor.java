@@ -48,8 +48,8 @@ import org.springframework.util.ReflectionUtils;
  * wrong binding fails when its class is prepared.
  *
  * <p>Concurrency: a pass gets the {@code Muster} before it takes {@link #lock}, so that no bean is
- * created under the lock. A class that the same thread notes while it gets the {@code Muster} or
- * prepares a class, such as when preparing creates an advised bean, starts no pass of its own: the
+ * created under the lock. A class that the thread of a pass notes meanwhile, such as when getting
+ * the {@code Muster} or preparing a class creates an advised bean, starts no pass of its own: the
  * running pass prepares it, since the pass repeats until no noted class is left unprepared. A call
  * reads the {@link AdviceTable table} without a lock: two map lookups.
  */
@@ -74,17 +74,8 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   /** Guarded by {@link #lock}. */
   private boolean started;
 
-  /**
-   * Set while a pass prepares classes, so that a class its thread notes meanwhile waits for the
-   * pass rather than change {@link #noted} under it. Guarded by {@link #lock}.
-   */
-  private boolean preparing;
-
-  /**
-   * Set while this thread gets the {@code Muster} or the guard for a pass, so that a class it notes
-   * meanwhile joins that pass.
-   */
-  private final ThreadLocal<Boolean> resolving = new ThreadLocal<>();
+  /** Set while this thread runs a pass, so that a class it notes meanwhile joins that pass. */
+  private final ThreadLocal<Boolean> inPass = new ThreadLocal<>();
 
   /** Whether the order of the transaction advice has been checked. Guarded by {@link #lock}. */
   private boolean orderChecked;
@@ -114,10 +105,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     // The pass of another thread may fail on the class and drop it before this thread's pass
     // runs, so this thread prepares it until it is prepared or a pass here fails on it. A class
     // that the thread of a running pass notes joins that pass.
-    while (prepare && resolving.get() == null) {
+    while (prepare && inPass.get() == null) {
       prepareNoted();
       synchronized (lock) {
-        prepare = !preparing && !table.contains(targetClass);
+        prepare = !table.contains(targetClass);
         if (prepare) {
           noted.add(targetClass);
         }
@@ -140,29 +131,17 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
    * may note a class meanwhile.
    */
   private void prepareNoted() {
-    if (resolving.get() != null) {
+    if (inPass.get() != null) {
       return;
     }
-    synchronized (lock) {
-      if (preparing) {
-        return;
-      }
-    }
-    Muster muster;
     @Nullable TransactionGuard guard;
-    TransactionGuard.@Nullable Resolved resolved;
-    resolving.set(Boolean.TRUE);
-    try {
-      muster = this.muster.getObject();
-      guard = transactions.getIfAvailable();
-      resolved = guard == null ? null : guard.resolve();
-    } finally {
-      resolving.remove();
-    }
     boolean checkOrder;
-    synchronized (lock) {
-      preparing = true;
-      try {
+    inPass.set(Boolean.TRUE);
+    try {
+      var muster = this.muster.getObject();
+      guard = transactions.getIfAvailable();
+      var resolved = guard == null ? null : guard.resolve();
+      synchronized (lock) {
         var selfInvocations = new ArrayList<SelfInvocation>();
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
@@ -190,11 +169,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
           requireNone(selfInvocations);
         }
         warn(selfInvocations);
-      } finally {
-        preparing = false;
+        checkOrder = guard != null && !orderChecked && !table.isEmpty();
+        orderChecked |= checkOrder;
       }
-      checkOrder = guard != null && !orderChecked && !table.isEmpty();
-      orderChecked |= checkOrder;
+    } finally {
+      inPass.remove();
     }
     if (checkOrder) {
       guard.checkOrder(RulesAdvisor.ORDER);
