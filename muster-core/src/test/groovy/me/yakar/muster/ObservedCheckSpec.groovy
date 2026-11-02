@@ -546,4 +546,47 @@ class ObservedCheckSpec extends EngineSpecification {
       it.outcomes == ['task.exists FAILED', 'task.locked PASSED', 'check FAILED']
     } == 8
   }
+
+  def 'checks on many threads at once with two listeners each get an observer of each, told of that check only, on its thread'() {
+    given:
+    def first = new CopyOnWriteArrayList<OneCheck>()
+    def second = new CopyOnWriteArrayList<OneCheck>()
+    def threads = new CopyOnWriteArrayList<Boolean>()
+    def recording = { List<OneCheck> observers ->
+      { Check check ->
+        def thread = Thread.currentThread()
+        def observer = new OneCheck(check) {
+              void checkEnded(CheckEnd end) {
+                threads << Thread.currentThread().is(thread)
+                super.checkEnded(end)
+              }
+            }
+        observers << observer
+        observer
+      } as CheckListener
+    }
+    def chain = Muster.builder().rules(new TaskExists(ran), new TaskLocked(ran)).mode(CheckMode.COLLECT_ALL)
+        .listener(recording(first)).listener(recording(second))
+        .build().chain(Long, TaskExists, TaskLocked)
+
+    when:
+    concurrently { n ->
+      try {
+        chain.check(n % 2 == 0 ? 1L : 404L)
+      } catch (BusinessRuleViolationException ignored) {
+      }
+    }
+
+    then:
+    [first, second].every { observers ->
+      observers.size() == 16 &&
+          observers.count {
+            it.outcomes == ['task.exists PASSED', 'task.locked PASSED', 'check PASSED']
+          } == 8 &&
+          observers.count {
+            it.outcomes == ['task.exists FAILED', 'task.locked PASSED', 'check FAILED']
+          } == 8
+    }
+    threads == [true] * 32
+  }
 }
