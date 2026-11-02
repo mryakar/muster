@@ -122,11 +122,16 @@ public final class PreparedRule {
 
   /**
    * Returns {@code true} the first time it is called, and {@code false} after that, also when
-   * threads call it at once: the rule is told once that it checks elements one by one.
+   * threads call it at once, so that Muster warns once that the rule checks elements one by one.
    *
    * @return whether this is the first call
    */
   public boolean firstOneByOne() {
+    // Read first, so that once the flag is set a call reads it and writes nothing; the
+    // compare-and-set alone decides which call is the first.
+    if (toldOneByOne.get()) {
+      return false;
+    }
     return toldOneByOne.compareAndSet(false, true);
   }
 
