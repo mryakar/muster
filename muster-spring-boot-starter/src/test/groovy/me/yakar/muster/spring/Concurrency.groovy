@@ -20,30 +20,33 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** Runs a task on many threads at once, so that a test can race shared state. */
+/** Runs a task on many threads at once, for tests of shared state. */
 final class Concurrency {
 
+  private Concurrency() {
+  }
+
   /**
-   * Runs the task on each of the threads, given the index of the thread, once all of them are
-   * ready, and returns what each returned. A run that takes longer than a minute in all fails the
-   * test, as a deadlock would.
+   * Runs a task on each of the threads, released together once every one is ready, and returns
+   * the results by thread number. A deadlock fails the test instead of hanging it, once the whole
+   * run has taken a minute.
    */
   static <T> List<T> concurrently(int threads = 16, Closure<T> task) {
     def ready = new CountDownLatch(threads)
     def start = new CountDownLatch(1)
     def pool = Executors.newFixedThreadPool(threads)
     try {
-      def futures = (0..<threads).collect { int index ->
+      def results = (0..<threads).collect { n ->
         pool.submit({
           ready.countDown()
           start.await()
-          task(index)
+          task(n)
         } as Callable<T>)
       }
       def deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(1)
       assert ready.await(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)
       start.countDown()
-      futures.collect { it.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS) }
+      results.collect { it.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS) }
     } finally {
       pool.shutdownNow()
     }
