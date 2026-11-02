@@ -15,11 +15,9 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
-import java.lang.reflect.Method;
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.PointcutAdvisor;
-import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.core.Ordered;
 
 /**
@@ -35,17 +33,7 @@ final class RulesAdvisor implements PointcutAdvisor, Ordered {
 
   RulesAdvisor(RulesInterceptor interceptor) {
     this.interceptor = interceptor;
-    pointcut =
-        new StaticMethodMatcherPointcut() {
-          @Override
-          public boolean matches(Method method, Class<?> targetClass) {
-            if (AdvisedMethods.advised(method, targetClass) != null) {
-              interceptor.note(targetClass);
-              return true;
-            }
-            return false;
-          }
-        };
+    pointcut = new RulesPointcut(interceptor);
   }
 
   @Override

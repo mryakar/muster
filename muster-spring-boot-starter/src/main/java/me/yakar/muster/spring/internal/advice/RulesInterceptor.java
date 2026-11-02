@@ -205,7 +205,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     if (advice == null) {
       throw new IllegalStateException(
           "Muster has not prepared the rules of "
-              + AdvisedMethods.label(invocation.getMethod(), target.getClass()));
+              + RulesPointcut.label(invocation.getMethod(), target.getClass()));
     }
     advice.check(invocation.getArguments()[0]);
     return invocation.proceed();
@@ -220,7 +220,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
     var methods = table.get(targetClass);
     if (methods == null) {
       throw new IllegalStateException(
-          AdvisedMethods.label(method, targetClass)
+          RulesPointcut.label(method, targetClass)
               + " is called while Muster is created, before its rules can be prepared; do not call"
               + " advised methods from the constructors of rules or of the beans they need");
     }

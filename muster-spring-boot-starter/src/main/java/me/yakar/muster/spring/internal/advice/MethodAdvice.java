@@ -67,7 +67,7 @@ record MethodAdvice(
     var bySpecific = new HashMap<Method, MethodAdvice>();
     var advice = new HashMap<Method, MethodAdvice>();
     for (var method : candidates) {
-      var specific = AdvisedMethods.advised(method, targetClass);
+      var specific = RulesPointcut.advised(method, targetClass);
       if (specific != null) {
         var methodAdvice = bySpecific.get(specific);
         if (methodAdvice == null) {
@@ -84,7 +84,7 @@ record MethodAdvice(
    * Prepares the advice of a method.
    *
    * @throws IllegalStateException if the method cannot be checked, see {@link
-   *     AdvisedMethods#requireCheckable}, or takes a collection whose element type is not known
+   *     RulesPointcut#requireCheckable}, or takes a collection whose element type is not known
    */
   @SuppressWarnings("unchecked")
   static MethodAdvice of(
@@ -92,9 +92,9 @@ record MethodAdvice(
       TransactionGuard.@Nullable Resolved transactions,
       Method method,
       Class<?> targetClass) {
-    var label = AdvisedMethods.label(method, targetClass);
-    var annotation = AdvisedMethods.rules(method);
-    AdvisedMethods.requireCheckable(method, annotation, label);
+    var label = RulesPointcut.label(method, targetClass);
+    var annotation = RulesPointcut.rules(method);
+    RulesPointcut.requireCheckable(method, annotation, label);
     var transaction = transactions == null ? null : transactions.forMethod(method, targetClass);
     var listed = annotation == null ? NO_RULES : annotation.value();
     var excluded = annotation == null ? NO_RULES : annotation.exclude();
@@ -102,7 +102,7 @@ record MethodAdvice(
     var parameterType = method.getParameterTypes()[0];
     Bound bound;
     if (Collection.class.isAssignableFrom(parameterType)) {
-      var elementType = AdvisedMethods.elementType(method, 0, targetClass);
+      var elementType = RulesPointcut.elementType(method, 0, targetClass);
       if (elementType == null) {
         throw new IllegalStateException(
             label
