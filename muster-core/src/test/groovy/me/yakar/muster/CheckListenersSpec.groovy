@@ -19,8 +19,6 @@ import static me.yakar.muster.spi.CheckListener.Outcome.ERROR
 import static me.yakar.muster.spi.CheckListener.Outcome.PASSED
 
 import java.time.Duration
-import me.yakar.muster.ObservedCheckSpec.Recording
-import me.yakar.muster.ObservedCheckSpec.Throwing
 import me.yakar.muster.spi.CheckListener
 import me.yakar.muster.spi.CheckListener.CheckEnd
 import me.yakar.muster.spi.CheckListener.RuleEnd
@@ -30,7 +28,7 @@ import me.yakar.muster.rule.BusinessRule
 class CheckListenersSpec extends EngineSpecification {
 
   /** Records what it is told, as Recording does, and then throws when told of one kind of event. */
-  static class ThrowingAt extends Recording {
+  static class ThrowingAt extends EngineSpecification.Recording {
     final String at
     final Throwable failure
 
@@ -62,7 +60,7 @@ class CheckListenersSpec extends EngineSpecification {
   }
 
   /** Records what it is told, and throws again the exception a rule or the check ended with. */
-  static class Rethrowing extends Recording {
+  static class Rethrowing extends EngineSpecification.Recording {
     void ruleEnded(RuleEnd end) {
       super.ruleEnded(end)
       throw end.error()

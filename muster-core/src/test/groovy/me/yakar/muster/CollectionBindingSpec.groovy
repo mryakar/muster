@@ -32,26 +32,6 @@ class CollectionBindingSpec extends EngineSpecification {
   static final String CREATE = CreateVehicle.typeName
   static final String FIELDS = VehicleFields.typeName
 
-  /** At most two vehicles in one call. */
-  @Rule(id = 'vehicle.batch-limit')
-  static class BatchLimit implements BusinessRule<Collection<? extends VehicleFields>> {
-    final List<List<?>> received = new CopyOnWriteArrayList<>()
-
-    RuleResult check(Collection<? extends VehicleFields> input, RuleContext ctx) {
-      received << input
-      input.size() > 2 ? RuleResult.failed(ctx.violation().clientArg('limit', 2).build()) : RuleResult.passed()
-    }
-  }
-
-  /** No two vehicles of one call share a name; checked once the batch is within its limit. */
-  @Rule(id = 'vehicle.names-distinct')
-  @RequiresRule(BatchLimit)
-  static class NamesDistinct implements BusinessRule<List<VehicleFields>> {
-    RuleResult check(List<VehicleFields> input, RuleContext ctx) {
-      input*.name().toSet().size() <input.size() ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
-    }
-  }
-
   @Rule(id = 'vehicle.distinct-set')
   static class SetOfVehicles implements BusinessRule<Set<VehicleFields>> {
     RuleResult check(Set<VehicleFields> input, RuleContext ctx) {
@@ -95,10 +75,10 @@ class CollectionBindingSpec extends EngineSpecification {
 
   @Rule(id = 'vehicle.names-distinct')
   @RequiresRule(NeverApplies)
-  static class DistinctAfterNeverApplies extends NamesDistinct {}
+  static class DistinctAfterNeverApplies extends EngineSpecification.NamesDistinct {}
 
   @Rule(id = 'vehicle.batch-limit')
-  static class ReturnsNull implements BusinessRule<List<VehicleFields>> {
+  static class ReturnsNullOfWhole implements BusinessRule<List<VehicleFields>> {
     RuleResult check(List<VehicleFields> input, RuleContext ctx) {
       null
     }
@@ -112,10 +92,6 @@ class CollectionBindingSpec extends EngineSpecification {
 
   Muster vehicles(BusinessRule<?>... rules) {
     Muster.builder().rules(rules).mode(CheckMode.COLLECT_ALL).build()
-  }
-
-  static List<String> described(BusinessRuleViolationException e) {
-    e.violations().collect { it.ruleId() + ' ' + it.target().orElse('-') }
   }
 
   /** All tasks positive; a rule of the whole collection. */
@@ -334,7 +310,7 @@ class CollectionBindingSpec extends EngineSpecification {
 
   def 'a rule of the whole collection that returns null fails the check'() {
     when:
-    vehicles(new ReturnsNull()).collectionBinding(CreateVehicle).rules(ReturnsNull).build().check([VALID])
+    vehicles(new ReturnsNullOfWhole()).collectionBinding(CreateVehicle).rules(ReturnsNullOfWhole).build().check([VALID])
 
     then:
     def e = thrown(NullPointerException)
@@ -519,9 +495,9 @@ class CollectionBindingSpec extends EngineSpecification {
     logged*.message.findAll {
       it.startsWith('Rules bound')
     } == ["Rules bound to $label: [vehicle.batch-limit, vehicle.counted]".toString()]
-    logged.findAll { it.level == Level.WARNING }*.message == [
-      "Rule 'vehicle.counted' checks the elements of a collection one by one, since it does not override checkAll; override it to check them at once, or call BusinessRule.super.checkAll from it to keep checking them one by one"
-    ]
+    logged.findAll {
+      it.level == Level.WARNING
+    }*.message == ["Rule 'vehicle.counted' " + ONE_BY_ONE]
 
     where:
     how             | check || label

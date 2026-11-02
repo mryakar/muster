@@ -24,6 +24,11 @@ import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.rule.RuleTarget
+import me.yakar.muster.spi.CheckListener
+import me.yakar.muster.spi.CheckListener.Check
+import me.yakar.muster.spi.CheckListener.CheckEnd
+import me.yakar.muster.spi.CheckListener.Observer
+import me.yakar.muster.spi.CheckListener.RuleEnd
 import spock.lang.Specification
 
 /** The rules, inputs and log capture that the engine specifications share. */
@@ -42,6 +47,14 @@ abstract class EngineSpecification extends Specification {
   static record CreateVehicle(String code, String name) implements VehicleFields {}
 
   static record UpdateVehicle(Long id, String code, String name) implements VehicleFields, Identified {}
+
+  /** What Muster warns of a rule checked one by one, after its id. */
+  static final String ONE_BY_ONE = "checks the elements of a collection one by one, since it does not override checkAll; override it to check them at once, or call BusinessRule.super.checkAll from it to keep checking them one by one"
+
+  /** The violations of a rejected check, each as its rule id and its target, or '-' for none. */
+  static List<String> described(BusinessRuleViolationException e) {
+    e.violations().collect { it.ruleId() + ' ' + it.target().orElse('-') }
+  }
 
   static final CreateVehicle VALID = new CreateVehicle('TR-1', 'Atlas')
   static final CreateVehicle INVALID = new CreateVehicle('bad', 'taken')
@@ -142,6 +155,120 @@ abstract class EngineSpecification extends Specification {
   static class TaskLocked extends TaskRule {
     TaskLocked(List<String> ran) {
       super(ran, 423L)
+    }
+  }
+
+  /** Records every event of every check it observes, as a list of the kind and the value, per check. */
+  static class Recording implements CheckListener, Observer {
+    final List<Check> checks = new CopyOnWriteArrayList<>()
+    final List<List> events = new CopyOnWriteArrayList<>()
+
+    Observer checkStarted(Check check) {
+      checks << check
+      events << []
+      this
+    }
+
+    void ruleStarted(String ruleId) {
+      events.last() << ['started', ruleId]
+    }
+
+    void ruleEnded(RuleEnd end) {
+      events.last() << ['ended', end]
+    }
+
+    void checkEnded(CheckEnd end) {
+      events.last() << ['check', end]
+    }
+
+    /** The events of the only check, as the kind, the rule id or outcome, and for an end its outcome. */
+    List<List> summary() {
+      assert events.size() == 1
+      events.first().collect { kind, value ->
+        switch (kind) {
+          case 'started' -> [kind, value]
+          case 'ended' -> [kind, value.ruleId(), value.outcome()]
+          default -> [kind, value.outcome()]
+        }
+      }
+    }
+
+    /** The ends of the rules of the only check, by rule id. */
+    Map<String, RuleEnd> ruleEnds() {
+      events.first().findAll { it[0] == 'ended' }.collectEntries { [(it[1].ruleId()): it[1]] }
+    }
+
+    CheckEnd checkEnd() {
+      events.first().last()[1]
+    }
+  }
+
+  @Rule(id = 'rule.throwing')
+  static class Throwing implements BusinessRule<Object> {
+    final RuntimeException failure
+
+    Throwing(RuntimeException failure) {
+      this.failure = failure
+    }
+
+    RuleResult check(Object input, RuleContext ctx) {
+      throw failure
+    }
+  }
+
+  /** At most two vehicles in one call. */
+  @Rule(id = 'vehicle.batch-limit')
+  static class BatchLimit implements BusinessRule<Collection<? extends VehicleFields>> {
+    final List<List<?>> received = new CopyOnWriteArrayList<>()
+
+    RuleResult check(Collection<? extends VehicleFields> input, RuleContext ctx) {
+      received << input
+      input.size() > 2 ? RuleResult.failed(ctx.violation().clientArg('limit', 2).build()) : RuleResult.passed()
+    }
+  }
+
+  /** No two vehicles of one call share a name; checked once the batch is within its limit. */
+  @Rule(id = 'vehicle.names-distinct')
+  @RequiresRule(BatchLimit)
+  static class NamesDistinct implements BusinessRule<List<VehicleFields>> {
+    RuleResult check(List<VehicleFields> input, RuleContext ctx) {
+      input*.name().toSet().size() <input.size() ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+    }
+  }
+
+  /** Looks the names of a collection up at once, and finds names taken in the collection itself. */
+  @Rule(id = 'vehicle.names-free')
+  static class NamesFree implements BusinessRule<VehicleFields> {
+    final List<List<?>> received = new CopyOnWriteArrayList<>()
+
+    RuleResult check(VehicleFields input, RuleContext ctx) {
+      throw new AssertionError('checked one by one')
+    }
+
+    RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx) {
+      received << inputs
+      def violations = []
+      def seen = [] as Set
+      inputs.eachWithIndex { input, i ->
+        if (input.name() == 'taken' || !seen.add(input.name())) {
+          violations << ctx.element(i).violation().target('name').build()
+        }
+      }
+      violations ? RuleResult.failed(violations) : RuleResult.passed()
+    }
+  }
+
+  @Rule(id = 'vehicle.impostor')
+  static class Impostor implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.failed(ctx.violation().build(), RuleContext.forRule('vehicle.name-unique').violation().build())
+    }
+  }
+
+  @Rule(id = 'rule.returns-null')
+  static class ReturnsNull implements BusinessRule<Object> {
+    RuleResult check(Object input, RuleContext ctx) {
+      null
     }
   }
 

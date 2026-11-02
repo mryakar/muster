@@ -23,11 +23,6 @@ import static me.yakar.muster.spi.CheckListener.Outcome.SKIPPED
 
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
-import me.yakar.muster.CollectionBindingSpec.BatchLimit
-import me.yakar.muster.CollectionBindingSpec.NamesDistinct
-import me.yakar.muster.CollectionCheckSpec.NamesFree
-import me.yakar.muster.RuleChainSpec.Impostor
-import me.yakar.muster.RuleChainSpec.ReturnsNull
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
@@ -40,64 +35,6 @@ import me.yakar.muster.spi.CheckListener.RuleEnd
 
 /** What a listener is told about a check: the events, their order, outcomes, durations and exceptions. */
 class ObservedCheckSpec extends EngineSpecification {
-
-  /** Records every event of every check it observes, as a list of the kind and the value, per check. */
-  static class Recording implements CheckListener, Observer {
-    final List<Check> checks = new CopyOnWriteArrayList<>()
-    final List<List> events = new CopyOnWriteArrayList<>()
-
-    Observer checkStarted(Check check) {
-      checks << check
-      events << []
-      this
-    }
-
-    void ruleStarted(String ruleId) {
-      events.last() << ['started', ruleId]
-    }
-
-    void ruleEnded(RuleEnd end) {
-      events.last() << ['ended', end]
-    }
-
-    void checkEnded(CheckEnd end) {
-      events.last() << ['check', end]
-    }
-
-    /** The events of the only check, as the kind, the rule id or outcome, and for an end its outcome. */
-    List<List> summary() {
-      assert events.size() == 1
-      events.first().collect { kind, value ->
-        switch (kind) {
-          case 'started' -> [kind, value]
-          case 'ended' -> [kind, value.ruleId(), value.outcome()]
-          default -> [kind, value.outcome()]
-        }
-      }
-    }
-
-    /** The ends of the rules of the only check, by rule id. */
-    Map<String, RuleEnd> ruleEnds() {
-      events.first().findAll { it[0] == 'ended' }.collectEntries { [(it[1].ruleId()): it[1]] }
-    }
-
-    CheckEnd checkEnd() {
-      events.first().last()[1]
-    }
-  }
-
-  @Rule(id = 'rule.throwing')
-  static class Throwing implements BusinessRule<Object> {
-    final RuntimeException failure
-
-    Throwing(RuntimeException failure) {
-      this.failure = failure
-    }
-
-    RuleResult check(Object input, RuleContext ctx) {
-      throw failure
-    }
-  }
 
   /** Fails whatever it is given, with the id of the vehicle code rule. */
   @Rule(id = 'vehicle.code-format')

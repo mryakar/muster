@@ -32,29 +32,6 @@ import me.yakar.muster.rule.Violation
 /** Checking the elements of a collection in one call: each rule, its requirements per element, and the modes. */
 class CollectionCheckSpec extends EngineSpecification {
 
-  static final String ONE_BY_ONE = "checks the elements of a collection one by one, since it does not override checkAll; override it to check them at once, or call BusinessRule.super.checkAll from it to keep checking them one by one"
-
-  /** Looks the names of a collection up at once, and finds names taken in the collection itself. */
-  @Rule(id = 'vehicle.names-free')
-  static class NamesFree implements BusinessRule<VehicleFields> {
-    final List<List<?>> received = new CopyOnWriteArrayList<>()
-
-    RuleResult check(VehicleFields input, RuleContext ctx) {
-      throw new AssertionError('checked one by one')
-    }
-
-    RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx) {
-      received << inputs
-      def violations = []
-      def seen = [] as Set
-      inputs.eachWithIndex { input, i ->
-        if (input.name() == 'taken' || !seen.add(input.name())) {
-          violations << ctx.element(i).violation().target('name').build()
-        }
-      }
-      violations ? RuleResult.failed(violations) : RuleResult.passed()
-    }
-  }
 
   /** Assigns the tasks that exist at once; 409 is not assignable. */
   @Rule(id = 'task.assignable-at-once')
@@ -232,10 +209,6 @@ class CollectionCheckSpec extends EngineSpecification {
 
   Muster.Builder tasks(BusinessRule<?>... rules) {
     Muster.builder().rules(rules).mode(CheckMode.COLLECT_ALL)
-  }
-
-  static List<String> described(BusinessRuleViolationException e) {
-    e.violations().collect { it.ruleId() + ' ' + it.target().orElse('-') }
   }
 
   def 'an empty collection passes without running a rule or logging'() {
