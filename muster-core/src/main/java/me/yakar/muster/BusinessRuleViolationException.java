@@ -82,7 +82,8 @@ public final class BusinessRuleViolationException extends RuntimeException {
 
   /**
    * Rebuilds the exception, so that a deserialized one keeps the guarantees of the constructor: at
-   * least one violation, none of them {@code null}, in a list that cannot be changed.
+   * least one violation, none of them {@code null}, in a list that cannot be changed. The rebuilt
+   * exception keeps the exceptions suppressed on the one read.
    *
    * @return the rebuilt exception
    * @throws InvalidObjectException if the stream breaks those guarantees
@@ -90,7 +91,11 @@ public final class BusinessRuleViolationException extends RuntimeException {
   @Serial
   private Object readResolve() throws ObjectStreamException {
     try {
-      return new BusinessRuleViolationException(violations);
+      var rebuilt = new BusinessRuleViolationException(violations);
+      for (var suppressed : getSuppressed()) {
+        rebuilt.addSuppressed(suppressed);
+      }
+      return rebuilt;
     } catch (RuntimeException e) {
       var invalid = new InvalidObjectException(e.getMessage());
       invalid.initCause(e);

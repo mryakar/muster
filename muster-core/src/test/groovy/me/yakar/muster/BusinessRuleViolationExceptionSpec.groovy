@@ -176,6 +176,26 @@ class BusinessRuleViolationExceptionSpec extends Specification {
     copy.violations()*.code() == ['request.not-owner']
   }
 
+  def 'a deserialized exception keeps the exceptions suppressed on it, in order'() {
+    given:
+    def exception = new BusinessRuleViolationException([owner])
+    exception.addSuppressed(new IllegalStateException('first'))
+    exception.addSuppressed(new IllegalArgumentException('second'))
+
+    when:
+    def copy = Serialization.roundTrip(exception)
+
+    then:
+    copy.suppressed*.getClass() == [IllegalStateException, IllegalArgumentException]
+    copy.suppressed*.message == ['first', 'second']
+    copy.violations()*.code() == ['request.not-owner']
+  }
+
+  def 'a deserialized exception without suppressed exceptions has none'() {
+    expect:
+    Serialization.roundTrip(new BusinessRuleViolationException([owner])).suppressed.length == 0
+  }
+
   /** An exception whose violations field holds what a crafted stream could put there. */
   private BusinessRuleViolationException withViolations(Object violations) {
     def exception = new BusinessRuleViolationException([owner])
