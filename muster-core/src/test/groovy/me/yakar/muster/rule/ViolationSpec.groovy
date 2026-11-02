@@ -15,11 +15,9 @@
  */
 package me.yakar.muster.rule
 
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.io.InvalidObjectException
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import me.yakar.muster.Serialization
 import me.yakar.muster.internal.rule.RuleIds
 import spock.lang.Shared
@@ -430,30 +428,18 @@ class ViolationSpec extends Specification {
   }
 
   def 'violations built on many threads at once share the empty map and equal each other'() {
-    given:
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-    def task = {
-      ->
-      start.await()
-      (1..200).collect { context.violation().build() }
-    } as Callable<List<Violation>>
-
     when:
-    def futures = (1..threads).collect { pool.submit(task) }
-    start.countDown()
-    def violations = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
+    def violations = concurrently {
+      (1..200).collect { context.violation().build() }
+    }.flatten()
 
     then:
     def empty = context.violation().build().clientArgs()
+    violations.size() == 3200
     violations.every {
       it.clientArgs().is(empty) && it.internalArgs().is(empty)
     }
     violations.every { it == context.violation().build() }
-
-    cleanup:
-    pool.shutdownNow()
   }
 
   def 'a violation #what reads as 0.1.0 wrote it, and is written the same way'() {

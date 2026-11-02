@@ -16,8 +16,6 @@
 package me.yakar.muster
 
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.logging.Handler
-import java.util.logging.Level
 import java.util.logging.LogRecord
 import java.util.logging.Logger
 import me.yakar.muster.rule.BusinessRule
@@ -148,29 +146,19 @@ abstract class EngineSpecification extends Specification {
   }
 
   List<String> ran = new CopyOnWriteArrayList<String>()
-  // Threads run rules and log at the same time in the concurrency tests; a plain list would lose
-  // entries.
-  List<LogRecord> logged = new CopyOnWriteArrayList<LogRecord>()
-  // The logger is shared by the whole JVM, so specs that change it must not run in parallel.
-  Logger log = Logger.getLogger('me.yakar.muster')
-  Level level
-  Handler handler = new Handler() {
-    void publish(LogRecord record) {
-      logged << record
-    }
 
-    void flush() {}
-
-    void close() {}
-  }
+  LogCapture capture
+  // Threads run rules and log at the same time in the concurrency tests.
+  List<LogRecord> logged
+  Logger log
 
   def setup() {
-    level = log.level
-    log.addHandler(handler)
+    capture = new LogCapture()
+    logged = capture.records
+    log = capture.logger
   }
 
   def cleanup() {
-    log.removeHandler(handler)
-    log.level = level
+    capture.close()
   }
 }
