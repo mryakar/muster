@@ -42,11 +42,10 @@ import me.yakar.muster.rule.BusinessRule;
  *
  * <p>The annotation is found as Spring finds {@code @Transactional}: on the method, on a method it
  * overrides or implements, and as a meta-annotation. The method must be public and neither static
- * nor final; wrong use stops the application. A call through {@code this} checks no rules. The
- * constraints of a {@code @Validated} method are checked before its rules, unless {@code
- * muster.validation.reorder-advisor} is {@code false}. Other advice runs as Spring orders it: a
- * {@code @Cacheable} hit checks no rules, and an {@code @Async} method checks them on its own
- * thread.
+ * nor final; wrong use stops the application. A call through {@code this} passes no proxy and
+ * checks no rules, so the starter stops the application when it finds one, unless {@code
+ * muster.self-invocation} says otherwise. The constraints of a {@code @Validated} method are
+ * checked before its rules, unless {@code muster.validation.reorder-advisor} is {@code false}.
  */
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)

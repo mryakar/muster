@@ -28,13 +28,10 @@ import org.springframework.core.env.Environment;
  * Moves the method validation advice ahead of Muster's on the proxies that Muster advises, so that
  * the constraints of a method are checked before its rules, and before its transaction.
  *
- * <p>Spring Boot's post-processor adds the validation advice to a proxy after the advice the proxy
- * already has, so the rules of a {@code @Validated} method would run before its constraints and see
- * an input that validation rejects. This post-processor has no order, so it runs after the ordered
- * ones, the validation post-processor among them. On a proxy with Muster's advice, it moves a
- * validation advice that comes after Muster's to just before it, or before the transaction advice
- * when that directly precedes Muster's. Other proxies, and other advice such as method security,
- * keep Spring's order; so does a validation advice that already comes before Muster's. {@code
+ * <p>Spring Boot adds the validation advice after the advice a proxy already has. This
+ * post-processor has no order, so it runs after the validation post-processor; it moves the
+ * validation advice to just before Muster's, or before the transaction advice when that directly
+ * precedes Muster's. Other proxies and other advice keep Spring's order. {@code
  * muster.validation.reorder-advisor=false} turns it off.
  */
 final class ValidationOrdering implements BeanPostProcessor, EnvironmentAware {

@@ -187,14 +187,8 @@ import org.springframework.asm.Type;
  * calls itself with its own input, as an override does with {@code super}, checks nothing twice,
  * since the proxy checked the input already; so that call is not one.
  *
- * <p>The code after a return or a throw starts with a stack map frame, which gives the size of the
- * stack there; so does the code after an unconditional jump, whose frame cuts the stack to the
- * values that every path to it pushed, as javac pushes the receiver and the arguments before a
- * conditional expression. The values a frame keeps from the code before it keep what they were, and
- * the values it adds are other values. So a value is taken for {@code this} only if it is {@code
- * this} on the path followed, and a call whose receiver is {@code this} on one path and another
- * object on the other may be missed, as may one whose receiver javac spills to a local variable,
- * around a switch expression with a {@code try} in it.
+ * <p>A stack map frame cuts the stack to what every path to it pushed, so a receiver that is {@code
+ * this} on one path only, or that javac spills to a local variable, may be missed.
  */
 final class ReceiverTracker extends MethodVisitor {
 

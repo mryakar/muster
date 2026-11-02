@@ -32,15 +32,12 @@ import org.springframework.boot.context.properties.source.IterableConfigurationP
 import org.springframework.core.env.Environment;
 
 /**
- * Reads the properties that the starter takes: {@code muster.rules.<rule id>.enabled}, {@code
- * muster.mode}, {@code muster.transaction.reorder-advisor}, {@code
- * muster.validation.reorder-advisor}, {@code muster.problem-details.mixed-status} and {@code
- * spring.aop.proxy-target-class}.
+ * Reads the {@code muster.*} properties of the starter, and {@code spring.aop.proxy-target-class}.
  *
- * <p>The keys of the rules are read one rule id at a time rather than bound as a map: a rule id has
- * dots and hyphens, which a map key loses, and so does an environment variable such as {@code
- * MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED}. Since every rule id is known, every key under {@code
- * muster.rules} that switches no rule is a mistake, such as a misspelled id.
+ * <p>The keys under {@code muster.rules} are read one rule id at a time rather than bound as a map,
+ * since a map key loses the dots and hyphens of a rule id, and so does an environment variable such
+ * as {@code MUSTER_RULES_VEHICLE_NAMEUNIQUE_ENABLED}; any other key under it is a mistake, such as
+ * a misspelled id.
  */
 public final class Settings {
 

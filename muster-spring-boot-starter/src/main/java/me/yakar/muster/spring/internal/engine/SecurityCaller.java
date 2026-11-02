@@ -42,6 +42,7 @@ final class SecurityCaller {
     this.strategy = strategy;
   }
 
+  /** Returns the caller of the current call, or {@code null} if it is anonymous or not known. */
   @Nullable Principal current() {
     var authentication = strategy.get().getContext().getAuthentication();
     return TRUST.isAuthenticated(authentication) ? authentication : null;
