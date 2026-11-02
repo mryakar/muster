@@ -16,6 +16,13 @@ Muster needs JDK 21 and a running Docker daemon for the integration tests.
 | `./gradlew :muster-spring-boot-starter:check -PspringBootVersion=latest` | Tests the starter against the newest Spring Boot, `spring-boot-latest` in `gradle/libs.versions.toml`, or against the version given (the build uses the oldest supported, `spring-boot`) |
 | `./gradlew publishToMavenLocal`, then `.github/scripts/run-examples.sh` | Runs the example applications against what the build publishes (see [Releases](#releases)) |
 
+The documentation site is built with [Antora](https://antora.org/) from `docs/`, with Node.js 24:
+in `docs/`, `npm ci` once, then `npm run build`, which writes the site to `docs/build/site`. A
+warning, such as a broken cross reference, fails the build. Every code sample in the documentation
+is included from `muster-examples` through the symbolic links in `docs/modules/ROOT/examples`; on
+Windows, enable symbolic links in Git (`core.symlinks`) before cloning, or the links are checked
+out as files and the build fails on the first include.
+
 ## Code
 
 - Format with `./gradlew spotlessApply` before committing. Java follows google-java-format; Groovy
@@ -116,7 +123,11 @@ contain only related changes. CI checks every commit message in a pull request;
 ## Releases
 
 The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uploads it to Maven
-Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to
+Central and publishes it on GitHub. The release commit sets the version in `gradle.properties`,
+dates the section of the version in `CHANGELOG.md`, and releases the documentation: it drops the
+`prerelease` key of `docs/antora.yml` and sets `muster-version` there. The commit that starts the
+next version puts the key back. A pre-release, such as `1.0.0-rc.1`, has no version on the site
+and leaves both alone. [SECURITY.md](SECURITY.md#verifying-a-release) says how to
 verify a release.
 
 To check what a build would publish, publish it to the local repository and run the examples in
