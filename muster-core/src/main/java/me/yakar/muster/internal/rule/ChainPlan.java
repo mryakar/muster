@@ -260,5 +260,19 @@ public final class ChainPlan {
 
     /** No listed and no excluded rules, as for {@code Muster.check}. */
     public static final Selection NONE = new Selection(List.of(), Set.of(), null);
+
+    /**
+     * Describes the listed rules, in their order, and the excluded ones, in the order of their ids,
+     * for the description of a binding.
+     *
+     * @param catalog the registered rules
+     * @return the description
+     */
+    public String describe(RuleCatalog catalog) {
+      return "rules="
+          + catalog.ids(listed)
+          + ", excluded="
+          + catalog.ids(excluded).stream().sorted().toList();
+    }
   }
 }

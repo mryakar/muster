@@ -121,14 +121,7 @@ public final class RuleChain<I> {
    *     unchecked code can pass
    */
   public void check(I input) {
-    requireNonNull(input, "input");
-    if (!inputType.isInstance(input)) {
-      throw new IllegalArgumentException(
-          "the chain checks "
-              + inputType.getTypeName()
-              + ", not "
-              + input.getClass().getTypeName());
-    }
+    requireInstance(input, inputType, "chain");
     run(input, mode);
   }
 
@@ -149,6 +142,20 @@ public final class RuleChain<I> {
    */
   public void checkAll(Collection<? extends I> inputs) {
     runAll(elements(inputs, inputType, false, "chain"), mode);
+  }
+
+  /** Checks that an input is of the type that a chain or a binding checks. */
+  static void requireInstance(Object input, Class<?> inputType, String checker) {
+    requireNonNull(input, "input");
+    if (!inputType.isInstance(input)) {
+      throw new IllegalArgumentException(
+          "the "
+              + checker
+              + " checks "
+              + inputType.getTypeName()
+              + ", not "
+              + input.getClass().getTypeName());
+    }
   }
 
   /**

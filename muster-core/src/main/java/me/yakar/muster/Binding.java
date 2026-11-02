@@ -15,21 +15,12 @@
  */
 package me.yakar.muster;
 
-import static java.util.Objects.requireNonNull;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
-import me.yakar.muster.internal.rule.RuleCatalog;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The rules an input is checked against: the rules this binding lists and, for a {@link
@@ -49,31 +40,18 @@ public final class Binding<I> {
   private final Selection selection;
   private final CheckMode mode;
 
-  /** The chain of the only class an input of a final type can have, or {@code null}. */
-  private final @Nullable RuleChain<Object> only;
-
   /**
-   * The chains of the classes of the rule targets checked so far, and, bound when the binding is
-   * built, the chain of the input type for other inputs, for a type that is not final.
+   * The chains of the classes of the rule targets checked so far, and of the input type for other
+   * inputs, bound when the binding is built; for a final input type, its one chain.
    */
-  private final ClassChains chains = new ClassChains(this::bind);
+  private final ClassChains chains;
 
   private Binding(Muster muster, Class<?> inputType, Selection selection, CheckMode mode) {
     this.muster = muster;
     this.inputType = inputType;
     this.selection = selection;
     this.mode = mode;
-    if (Modifier.isFinal(inputType.getModifiers())) {
-      var bound = bind(inputType);
-      bound.plan().log();
-      this.only = bound.chain();
-    } else {
-      this.only = null;
-      if (!RuleTarget.class.isAssignableFrom(inputType)) {
-        // The one chain of every input that is not a rule target; binding it now logs it.
-        chains.of(inputType);
-      }
-    }
+    this.chains = ClassChains.forType(inputType, this::bind);
   }
 
   /**
@@ -85,19 +63,8 @@ public final class Binding<I> {
    *     unchecked code can pass
    */
   public void check(I input) {
-    requireNonNull(input, "input");
-    if (!inputType.isInstance(input)) {
-      throw new IllegalArgumentException(
-          "the binding checks "
-              + inputType.getTypeName()
-              + ", not "
-              + input.getClass().getTypeName());
-    }
-    var chain = only;
-    if (chain == null) {
-      chain = chains.of(RuleChain.chainKey(input, inputType));
-    }
-    chain.run(input, mode);
+    RuleChain.requireInstance(input, inputType, "binding");
+    chains.of(RuleChain.chainKey(input, inputType)).run(input, mode);
   }
 
   /**
@@ -116,15 +83,10 @@ public final class Binding<I> {
    *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
   public void checkAll(Collection<? extends I> inputs) {
-    var elements = RuleChain.elements(inputs, inputType, only == null, "binding");
-    if (elements.isEmpty()) {
-      return;
+    var elements = RuleChain.elements(inputs, inputType, true, "binding");
+    if (!elements.isEmpty()) {
+      chains.of(RuleChain.chainKey(elements.getFirst(), inputType)).runAll(elements, mode);
     }
-    var chain = only;
-    if (chain == null) {
-      chain = chains.of(RuleChain.chainKey(elements.getFirst(), inputType));
-    }
-    chain.runAll(elements, mode);
   }
 
   /**
@@ -145,7 +107,7 @@ public final class Binding<I> {
    * @return the ids by class, unmodifiable
    */
   public Map<Class<?>, List<String>> ruleIds() {
-    return only != null ? Map.of(inputType, only.ruleIds()) : chains.ruleIds();
+    return chains.ruleIds();
   }
 
   /**
@@ -156,20 +118,14 @@ public final class Binding<I> {
    */
   @Override
   public String toString() {
-    var catalog = muster.catalog();
     return "Binding[name="
         + selection.name()
         + ", input="
         + inputType.getTypeName()
         + ", mode="
         + mode
-        + ", rules="
-        + selection.listed().stream().map(ruleClass -> catalog.registered(ruleClass).id()).toList()
-        + ", excluded="
-        + selection.excluded().stream()
-            .map(ruleClass -> catalog.registered(ruleClass).id())
-            .sorted()
-            .toList()
+        + ", "
+        + selection.describe(muster.catalog())
         + "]";
   }
 
@@ -187,10 +143,7 @@ public final class Binding<I> {
 
     private final Muster muster;
     private final Class<I> inputType;
-    private final Set<Class<?>> listed = new LinkedHashSet<>();
-    private final Set<Class<?>> excluded = new LinkedHashSet<>();
-    private @Nullable CheckMode mode;
-    private @Nullable String name;
+    private final SelectionBuilder selection = new SelectionBuilder();
 
     Builder(Muster muster, Class<I> inputType) {
       this.muster = muster;
@@ -208,7 +161,7 @@ public final class Binding<I> {
     @SafeVarargs
     public final Builder<I> rules(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        Muster.requireDistinct(listed, ruleClass, "listed");
+        selection.list(ruleClass);
       }
       return this;
     }
@@ -224,7 +177,7 @@ public final class Binding<I> {
     @SafeVarargs
     public final Builder<I> exclude(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        Muster.requireDistinct(excluded, ruleClass, "excluded");
+        selection.exclude(ruleClass);
       }
       return this;
     }
@@ -236,7 +189,7 @@ public final class Binding<I> {
      * @return this builder
      */
     public Builder<I> mode(CheckMode mode) {
-      this.mode = requireNonNull(mode, "mode");
+      selection.mode(mode);
       return this;
     }
 
@@ -249,11 +202,7 @@ public final class Binding<I> {
      * @throws IllegalArgumentException if {@code name} is blank
      */
     public Builder<I> name(String name) {
-      requireNonNull(name, "name");
-      if (name.isBlank()) {
-        throw new IllegalArgumentException("name must not be blank");
-      }
-      this.name = name;
+      selection.name(name);
       return this;
     }
 
@@ -270,60 +219,14 @@ public final class Binding<I> {
     public Binding<I> build() {
       var catalog = muster.catalog();
       var wrapped = Muster.wrap(inputType);
-      requireSelectable(
-          catalog,
-          listed,
-          excluded,
-          ruleClass -> catalog.requireListable(ruleClass, inputType, wrapped));
       return new Binding<>(
           muster,
           wrapped,
-          new Selection(
-              List.copyOf(listed),
-              Set.copyOf(excluded),
-              name == null ? wrapped.getTypeName() : name),
-          mode == null ? muster.mode() : mode);
-    }
-  }
-
-  /**
-   * Checks the listed and excluded rules of a binding: each listed rule passes the given check,
-   * each excluded one is registered and not listed, and no enabled listed rule requires an excluded
-   * one.
-   */
-  static void requireSelectable(
-      RuleCatalog catalog,
-      Set<Class<?>> listed,
-      Set<Class<?>> excluded,
-      Consumer<Class<?>> requireListable) {
-    listed.forEach(requireListable);
-    for (var ruleClass : excluded) {
-      catalog.registered(ruleClass);
-      if (listed.contains(ruleClass)) {
-        throw new IllegalArgumentException(
-            ruleClass.getTypeName() + " is both listed and excluded");
-      }
-    }
-    var problems = new ArrayList<String>();
-    for (var ruleClass : listed) {
-      if (catalog.isDisabled(ruleClass)) {
-        continue;
-      }
-      var required = catalog.excludedRequirement(ruleClass, excluded);
-      if (required != null) {
-        problems.add(
-            "'"
-                + catalog.registered(ruleClass).id()
-                + "' requires '"
-                + catalog.registered(required).id()
-                + "'");
-      }
-    }
-    if (!problems.isEmpty()) {
-      throw new IllegalArgumentException(
-          "listed rules require excluded rules, directly or through other rules: "
-              + String.join("; ", problems)
-              + "; list other rules, or stop excluding what they require");
+          selection.build(
+              catalog,
+              wrapped,
+              ruleClass -> catalog.requireListable(ruleClass, inputType, wrapped)),
+          selection.mode(muster));
     }
   }
 }
