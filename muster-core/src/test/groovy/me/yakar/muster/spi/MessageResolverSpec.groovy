@@ -15,15 +15,11 @@
  */
 package me.yakar.muster.spi
 
-import java.util.concurrent.Callable
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.logging.Handler
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.util.logging.Level
 import java.util.logging.LogRecord
-import java.util.logging.Logger
+import me.yakar.muster.LogCapture
 import me.yakar.muster.rule.RuleContext
 import spock.lang.Specification
 
@@ -39,30 +35,11 @@ class MessageResolverSpec extends Specification {
   }
   def resolver = MessageResolver.ofTemplates(templates)
 
-  // Thread-safe, since the logger may publish from the threads of a concurrent test.
-  List<LogRecord> logged = new CopyOnWriteArrayList<>()
-  Logger log = Logger.getLogger('me.yakar.muster')
-  Level level
-  Handler handler = new Handler() {
-    void publish(LogRecord record) {
-      logged << record
-    }
-
-    void flush() {}
-
-    void close() {}
-  }
-
-  def setup() {
-    level = log.level
-    log.level = Level.ALL
-    handler.level = Level.ALL
-    log.addHandler(handler)
-  }
+  LogCapture capture = new LogCapture(Level.ALL)
+  List<LogRecord> logged = capture.records
 
   def cleanup() {
-    log.removeHandler(handler)
-    log.level = level
+    capture.close()
   }
 
   def 'fills the template for the locale with the client arguments'() {
@@ -223,12 +200,9 @@ class MessageResolverSpec extends Specification {
       'en'   : 'The name Atlas is taken',
       'und'  : 'The name Atlas is taken',
     ]
-    def threads = 16
-    def start = new CountDownLatch(1)
-    def pool = Executors.newFixedThreadPool(threads)
-    def task = {
-      ->
-      start.await()
+
+    when:
+    def mismatches = concurrently {
       def wrong = []
       200.times {
         expected.each { tag, message ->
@@ -239,18 +213,12 @@ class MessageResolverSpec extends Specification {
         }
       }
       wrong
-    } as Callable<List<String>>
-
-    when:
-    def futures = (1..threads).collect { pool.submit(task) }
-    start.countDown()
-    def mismatches = futures.collectMany { it.get(1, TimeUnit.MINUTES) }
+    }.flatten()
 
     then:
     mismatches.isEmpty()
 
     cleanup:
-    pool.shutdownNow()
     Locale.setDefault(defaultLocale)
     ResourceBundle.clearCache()
   }
