@@ -25,7 +25,7 @@ spotless {
   java {
     target("muster-examples/*/src/*/java/**/*.java")
     googleJavaFormat(libs.findVersion("google-java-format").get().requiredVersion)
-    licenseHeaderFile(licenseHeader, "(package|import|module|open|@)")
+    licenseHeaderFile(licenseHeader, "(package|import)")
   }
   kotlinGradle {
     target(
