@@ -25,22 +25,19 @@ import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
 
 /**
- * The rules a collection is checked against, in one call: rules that check each element and rules
- * that check the whole collection, such as a limit on its size. They are the rules this binding
- * lists and, for elements that are {@link RuleTarget}s, the rules that bind to their class by type,
- * less the excluded ones. Get one from {@link Muster#collectionBinding}.
+ * The rules a collection is checked against, in one call: rules of each element and rules of the
+ * whole collection, such as a limit on its size. They are the rules this binding lists and, for
+ * elements that are {@link RuleTarget}s, the rules that bind to their class by type, less the
+ * excluded ones. Get one from {@link Muster#collectionBinding}.
  *
  * <p>A rule checks the whole collection if its input type is one that a list is, such as {@code
- * List<E>} or {@code Collection<E>}, and its elements accept those of the collection; Muster passes
- * it a copy of the collection as a list. Any other rule checks each element, as {@link
- * RuleChain#checkAll} describes. A rule of the whole collection checks it once every element passed
- * the rules it requires; its violations name no element. A rule that such a rule requires, and that
- * checks each element, such as one of {@code Object} input, checks every element first, and the
- * rule of the whole collection checks it only if every element passed.
+ * List<E>} or {@code Collection<E>}, and its elements accept those of the collection: it gets a
+ * copy of the collection as a list, once every element passed the rules it requires, and its
+ * violations name no element. Any other rule checks each element, as {@link RuleChain#checkAll}
+ * describes.
  *
- * <p>The listed rules run first, in the order they are listed; the rules bound by type follow, of
- * both kinds together, each after the rules it requires, in the order of their ids. Collection
- * bindings are thread-safe.
+ * <p>The listed rules run first, in the order they are listed; the rules bound by type follow, each
+ * after the rules it requires, in the order of their ids. Collection bindings are thread-safe.
  *
  * @param <E> the type of the elements
  */
@@ -73,12 +70,12 @@ public final class CollectionBinding<E> {
   }
 
   /**
-   * Checks a collection against the rules of this binding, in its {@linkplain #mode() mode}. One
-   * violation rejects the whole call; a violation about an element names its position in its
-   * target, as in {@code [3].name}. An empty collection passes without running a rule.
+   * Checks a collection against the rules of this binding, in its {@linkplain #mode() mode}. Any
+   * violation rejects the whole call, and the target of a violation about an element starts with
+   * its position, as in {@code [3].name}. An empty collection passes without running a rule.
    *
-   * @param inputs the inputs: rule targets of one class, since rules bind to that class, or none a
-   *     rule target; rules see an unmodifiable copy, taken when the check starts
+   * @param inputs the collection: rule targets of one class, since rules bind to that class, or
+   *     none a rule target; rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code inputs} or an element is {@code null}
    * @throws IllegalArgumentException if the elements are rule targets of different classes, or rule

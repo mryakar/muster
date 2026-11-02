@@ -52,7 +52,7 @@ import org.jspecify.annotations.Nullable;
  *     .build();
  *
  * RuleChain<CreateVehicle> create =
- *     muster.chain(CreateVehicle.class, VehicleNameUnique.class, VehiclePlateFormat.class);
+ *     muster.chain(CreateVehicle.class, VehiclePlateFormat.class, VehicleNameUnique.class);
  * create.check(command); // throws BusinessRuleViolationException if a rule is violated
  * }
  *
@@ -201,11 +201,12 @@ public final class Muster {
    * the rules that {@link #check(RuleTarget)} would run for the class of its elements, and the
    * rules that check whole collections of that class, as {@link CollectionBinding} describes. Each
    * rule of the elements checks those that passed the rules it requires, at once if it overrides
-   * {@link BusinessRule#checkAll}; one violation rejects the whole call, and a violation about an
-   * element names its position in its target, as in {@code [3].name}. An empty collection passes.
+   * {@link BusinessRule#checkAll}. Any violation rejects the whole call, and the target of a
+   * violation about an element starts with its position, as in {@code [3].name}. An empty
+   * collection passes.
    *
-   * @param inputs the inputs, all of one class; rules see an unmodifiable copy, taken when the
-   *     check starts
+   * @param inputs the collection, whose elements are all of one class; rules see an unmodifiable
+   *     copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes
@@ -217,7 +218,7 @@ public final class Muster {
   /**
    * Checks the elements of a collection as {@link #checkAll(Collection)} does, in the given mode.
    *
-   * @param inputs the inputs, all of one class
+   * @param inputs the collection, whose elements are all of one class
    * @param mode the mode of this check
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
@@ -487,8 +488,7 @@ public final class Muster {
     /**
      * Adds a listener, which observes every check of the {@code Muster}: when a check starts and
      * ends, and when each of its rules starts and ends. Listeners are told that a check or a rule
-     * starts in the order they are added, and that it ends in the reverse order. Without a
-     * listener, a check pays one null check.
+     * starts in the order they are added, and that it ends in the reverse order.
      *
      * @param listener the listener; it must be thread-safe
      * @return this builder

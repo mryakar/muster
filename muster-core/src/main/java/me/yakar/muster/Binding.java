@@ -70,12 +70,12 @@ public final class Binding<I> {
   /**
    * Checks the elements of a collection against the rules of this binding, in its {@linkplain
    * #mode() mode}. Each rule checks the elements that passed the rules it requires, at once if it
-   * overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}; one violated element rejects the
-   * whole call, and violations name the position of their element in their target, as in {@code
+   * overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}. Any violation rejects the whole
+   * call, and the target of a violation about an element starts with its position, as in {@code
    * [3].name}. An empty collection passes. The rules check each element; a {@link
    * CollectionBinding} also checks rules of the whole collection.
    *
-   * @param inputs the inputs: rule targets of one class, or none a rule target; rules see an
+   * @param inputs the collection: rule targets of one class, or none a rule target; rules see an
    *     unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}

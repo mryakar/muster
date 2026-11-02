@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 /**
- * Checking business rules: the entry point and the exception it throws.
+ * Checking business rules: {@code Muster}, the chains and bindings it creates, how far a check
+ * goes, and the exception a check throws.
  *
  * <p>Unless a parameter is {@code @Nullable}, passing {@code null} throws a {@link
  * NullPointerException}.

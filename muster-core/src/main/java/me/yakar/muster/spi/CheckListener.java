@@ -26,23 +26,22 @@ import org.jspecify.annotations.Nullable;
 /**
  * Observes the checks of a {@code Muster}: when a check starts and ends, and when each of its rules
  * starts and ends, with its outcome and how long it took. Register one with {@link
- * me.yakar.muster.Muster.Builder#listener}, for example to time the rules or to trace a check.
+ * me.yakar.muster.Muster.Builder#listener}.
  *
- * <p>Muster tells a listener on the thread that checks, in the order things happen: {@link
- * #checkStarted} once, then for each rule of the chain, in the order the rules run, {@link
- * Observer#ruleStarted} and {@link Observer#ruleEnded}, then {@link Observer#checkEnded}. Listeners
- * are told that a check or a rule starts in the order they are added, and that it ends in the
- * reverse order, so that what their observers open nests. Each check gets an {@link Observer} of
- * its own, so a listener keeps no state to tell one check from another. The listener itself is
+ * <p>Muster tells a listener on the thread that checks: {@link #checkStarted} once, then for each
+ * rule, in the order the rules run, {@link Observer#ruleStarted} and {@link Observer#ruleEnded},
+ * then {@link Observer#checkEnded}. Each check gets an {@link Observer} of its own; the listener is
  * shared by every check and must be thread-safe. A check of an empty collection runs no rule, and a
  * listener is not told of it.
  *
- * <p>A listener that throws stops the check, as a rule that throws does. If the check is ending
- * with an exception already, that exception propagates and the listener's is added to it as
- * suppressed. An observer told that a check or a rule started is told that it ended, also when
- * another listener throws; if a listener throws from {@link #checkStarted}, the observers that
- * other listeners returned are told that the check ended with its exception. Without a listener, a
- * check pays one null check.
+ * <p>Listeners are told that a check or a rule starts in the order they are added, and that it ends
+ * in the reverse order, so that what their observers open nests. An observer told that a check or a
+ * rule started is told that it ended, also when another listener throws.
+ *
+ * <p>A listener that throws stops the check, as a rule that throws does; if the check is already
+ * ending with an exception, the listener's is added to it as suppressed. If a listener throws from
+ * {@link #checkStarted}, the observers that other listeners returned are told that the check ended
+ * with its exception.
  */
 @FunctionalInterface
 public interface CheckListener {

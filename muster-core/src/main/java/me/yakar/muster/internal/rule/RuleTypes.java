@@ -30,7 +30,10 @@ import java.util.Map;
 import me.yakar.muster.rule.BusinessRule;
 import org.jspecify.annotations.Nullable;
 
-/** Reads the input type of a rule from its class declaration. */
+/**
+ * Reads the input type of a rule, and the element type of the collections it checks, from its class
+ * declaration.
+ */
 final class RuleTypes {
 
   private RuleTypes() {}
