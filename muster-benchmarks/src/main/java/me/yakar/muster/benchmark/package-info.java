@@ -15,7 +15,7 @@
  */
 /**
  * JMH benchmarks of what Muster adds to a call, with and without Spring, against the same rules
- * called by hand; and {@link ResultsChart}, which publishes their results to docs/benchmarks.
+ * called by hand.
  */
 @NullMarked
 package me.yakar.muster.benchmark;
