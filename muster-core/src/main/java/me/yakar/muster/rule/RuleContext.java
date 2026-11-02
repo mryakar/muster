@@ -213,7 +213,8 @@ public sealed class RuleContext {
    * @return a builder for the violation
    */
   public Violation.Builder violation() {
-    return new Violation.Builder(ruleId, position());
+    // A constant position, so that escape analysis can remove the builder of a single check.
+    return new Violation.Builder(ruleId, NONE);
   }
 
   /**
@@ -226,7 +227,7 @@ public sealed class RuleContext {
    *     format characters, or unpaired surrogates
    */
   public Violation.Builder violation(String code) {
-    return new Violation.Builder(ruleId, code, position());
+    return new Violation.Builder(ruleId, code, NONE);
   }
 
   /**
@@ -370,6 +371,16 @@ public sealed class RuleContext {
       super(ruleId, caller, locale);
       this.positions = positions;
       this.element = element;
+    }
+
+    @Override
+    public Violation.Builder violation() {
+      return new Violation.Builder(ruleId(), element);
+    }
+
+    @Override
+    public Violation.Builder violation(String code) {
+      return new Violation.Builder(ruleId(), code, element);
     }
   }
 }

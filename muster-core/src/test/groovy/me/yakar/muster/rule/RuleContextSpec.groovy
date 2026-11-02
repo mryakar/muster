@@ -129,6 +129,19 @@ class RuleContextSpec extends Specification {
     RuleContext.builder('request.owner-only').caller(amo).build().violation('request.not-owner').build().ruleId() == 'request.owner-only'
   }
 
+  def 'violations of #what name #target, with the code of the rule or their own'() {
+    expect:
+    context.violation().target('name').build().target() == Optional.of(target)
+    context.violation('task.late').target('name').build().target() == Optional.of(target)
+
+    where:
+    what                        | context || target
+    'a single check'            | RuleContext.forRule('task.ready') || 'name'
+    'a collection'              | RuleContext.builder('task.ready').positions(1, 3).build() || 'name'
+    'an element'                | RuleContext.forRule('task.ready').element(2) || '[2].name'
+    'an element with positions' | RuleContext.builder('task.ready').positions(1, 3).build().element(1) || '[3].name'
+  }
+
   def 'a context rejects a null #name'() {
     when:
     RuleContext.builder('task.ready')."$name"(null)
