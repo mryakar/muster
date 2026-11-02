@@ -65,7 +65,7 @@ public record RuleDefinition(
    * @param elementClass the class of the elements
    * @return whether the rule checks such collections
    */
-  public boolean checksCollectionsOf(Class<?> elementClass) {
+  boolean checksCollectionsOf(Class<?> elementClass) {
     return elementType != null
         && inputType.isAssignableFrom(List.class)
         && elementType.isAssignableFrom(elementClass);
