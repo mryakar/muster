@@ -18,6 +18,7 @@ package me.yakar.muster.spring
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import me.yakar.muster.spring.fixture.integration.IntegrationTestApplication
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort

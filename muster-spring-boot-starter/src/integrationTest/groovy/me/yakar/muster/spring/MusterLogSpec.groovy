@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring
 
+import me.yakar.muster.spring.fixture.integration.IntegrationTestApplication
 import org.springframework.boot.WebApplicationType
 import org.springframework.boot.builder.SpringApplicationBuilder
 import spock.lang.Specification

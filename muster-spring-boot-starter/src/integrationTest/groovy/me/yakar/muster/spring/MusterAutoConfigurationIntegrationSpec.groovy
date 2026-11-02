@@ -17,6 +17,8 @@ package me.yakar.muster.spring
 
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Muster
+import me.yakar.muster.spring.fixture.integration.IntegrationTestApplication
+import me.yakar.muster.spring.fixture.integration.SaveVehicle
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.simple.JdbcClient

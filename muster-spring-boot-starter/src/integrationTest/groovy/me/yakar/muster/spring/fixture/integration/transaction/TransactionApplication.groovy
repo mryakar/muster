@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring
+package me.yakar.muster.spring.fixture.integration.transaction
 
 import java.util.concurrent.CopyOnWriteArrayList
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.spring.Rules
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /** A call to probe. */
@@ -33,5 +37,21 @@ class TransactionProbe implements BusinessRule<ProbeCall> {
   RuleResult check(ProbeCall input, RuleContext ctx) {
     IN_TRANSACTION << TransactionSynchronizationManager.actualTransactionActive
     RuleResult.passed()
+  }
+}
+
+/** A service whose rule runs in its transaction. */
+class ProbedService {
+  @Transactional
+  @Rules(TransactionProbe)
+  void call(ProbeCall call) {}
+}
+
+/** An application with Spring Boot's auto-configuration, a database included, and nothing else. */
+@EnableAutoConfiguration
+class TransactionApplication {
+  @Bean
+  ProbedService probedService() {
+    new ProbedService()
   }
 }
