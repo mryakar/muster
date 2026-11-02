@@ -62,7 +62,7 @@ public final class MusterEndpoint {
     }
     return new Report(
         muster.mode(),
-        List.copyOf(muster.disabledRules()),
+        List.copyOf(muster.disabledRuleIds()),
         Collections.unmodifiableList(methods),
         byName(muster.boundRuleIds()),
         byName(muster.collectionRuleIds()));

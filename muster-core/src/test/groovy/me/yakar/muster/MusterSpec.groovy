@@ -232,11 +232,11 @@ class MusterSpec extends EngineSpecification {
 
   def 'Muster tells the ids of the disabled rules, in their order, as a set that cannot be changed'() {
     given:
-    def disabled = Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique', 'vehicle.code-format').build().disabledRules()
+    def disabled = Muster.builder().rules(new NameUnique(), new CodeFormat()).disable('vehicle.name-unique', 'vehicle.code-format').build().disabledRuleIds()
 
     expect:
     disabled.toList() == ['vehicle.code-format', 'vehicle.name-unique']
-    Muster.builder().rules(new NameUnique()).build().disabledRules().isEmpty()
+    Muster.builder().rules(new NameUnique()).build().disabledRuleIds().isEmpty()
 
     when:
     disabled.clear()
