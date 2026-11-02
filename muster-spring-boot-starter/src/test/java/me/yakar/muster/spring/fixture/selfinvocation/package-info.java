@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** Services that call their advised methods on {@code this}, and services that do not. */
+/**
+ * Services that call their advised methods on {@code this}, and services that do not. Written in
+ * Java: the scanner reads the bytecode javac writes, and Groovy compiles calls to dynamic call
+ * sites, which it does not see.
+ */
 @NullMarked
 package me.yakar.muster.spring.fixture.selfinvocation;
 

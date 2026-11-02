@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/** A base in another package, whose package-private method no subclass overrides. */
+/**
+ * A base in another package, whose package-private method no subclass overrides. Written in Java,
+ * as the services that extend it are.
+ */
 @NullMarked
 package me.yakar.muster.spring.fixture.selfinvocation.other;
 
