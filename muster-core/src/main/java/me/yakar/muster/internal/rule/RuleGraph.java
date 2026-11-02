@@ -135,7 +135,7 @@ public final class RuleGraph {
    * @param lookup the definition of a required rule
    * @return the first wanted rule, or {@code null} if the rule requires none
    */
-  public static @Nullable Class<?> firstRequired(
+  static @Nullable Class<?> firstRequired(
       RuleDefinition rule, Predicate<Class<?>> wanted, Function<Class<?>, RuleDefinition> lookup) {
     return firstRequired(rule, wanted, lookup, new HashSet<>());
   }
@@ -194,8 +194,7 @@ public final class RuleGraph {
    * @param listed the classes of the listed rules, in the order they are listed
    * @return the rules in order
    */
-  public static List<RuleDefinition> order(
-      Collection<RuleDefinition> rules, List<Class<?>> listed) {
+  static List<RuleDefinition> order(Collection<RuleDefinition> rules, List<Class<?>> listed) {
     if (listed.isEmpty()) {
       return byIdAfterRequired(rules, Set.of());
     }

@@ -145,7 +145,7 @@ public final class RuleCatalog {
    * @param ruleClasses the registered rules
    * @return the enabled rules, by class
    */
-  public LinkedHashMap<Class<?>, PreparedRule> enabled(Collection<Class<?>> ruleClasses) {
+  LinkedHashMap<Class<?>, PreparedRule> enabled(Collection<Class<?>> ruleClasses) {
     var enabled = new LinkedHashMap<Class<?>, PreparedRule>();
     for (var ruleClass : ruleClasses) {
       if (!disabled.contains(ruleClass)) {
@@ -161,7 +161,7 @@ public final class RuleCatalog {
    * @param type the class
    * @return the rules
    */
-  public List<PreparedRule> accepting(Class<?> type) {
+  List<PreparedRule> accepting(Class<?> type) {
     return rules.values().stream()
         .filter(
             rule ->
@@ -176,7 +176,7 @@ public final class RuleCatalog {
    * @param elementClass the class of the elements
    * @return the rules
    */
-  public List<PreparedRule> checkingCollectionsOf(Class<?> elementClass) {
+  List<PreparedRule> checkingCollectionsOf(Class<?> elementClass) {
     return rules.values().stream()
         .filter(
             rule ->
