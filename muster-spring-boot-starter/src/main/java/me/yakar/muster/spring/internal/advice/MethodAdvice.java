@@ -44,6 +44,10 @@ record MethodAdvice(
     List<Class<? extends BusinessRule<?>>> excluded,
     @Nullable TransactionGuard transaction) {
 
+  @SuppressWarnings("unchecked")
+  private static final Class<? extends BusinessRule<?>>[] NO_RULES =
+      (Class<? extends BusinessRule<?>>[]) new Class<?>[0];
+
   /**
    * Prepares the advice of the advised methods of a class, each mapped from every method that a
    * proxy may call for it: the method of the class, a bridge, or a method of an interface or a base
@@ -92,52 +96,39 @@ record MethodAdvice(
     var annotation = AdvisedMethods.rules(method);
     AdvisedMethods.requireCheckable(method, annotation, label);
     var transaction = transactions == null ? null : transactions.forMethod(method, targetClass);
-    var listed =
-        annotation == null
-            ? List.<Class<? extends BusinessRule<?>>>of()
-            : List.of(annotation.value());
-    var excluded =
-        annotation == null
-            ? List.<Class<? extends BusinessRule<?>>>of()
-            : List.of(annotation.exclude());
+    var listed = annotation == null ? NO_RULES : annotation.value();
+    var excluded = annotation == null ? NO_RULES : annotation.exclude();
+    var mode = annotation == null || annotation.mode().length == 0 ? null : annotation.mode()[0];
     var parameterType = method.getParameterTypes()[0];
-    if (!Collection.class.isAssignableFrom(parameterType)) {
-      var builder = muster.binding((Class<Object>) parameterType).name(label);
-      if (annotation != null) {
-        builder.rules(annotation.value()).exclude(annotation.exclude());
-        if (annotation.mode().length == 1) {
-          builder.mode(annotation.mode()[0]);
-        }
+    Bound bound;
+    if (Collection.class.isAssignableFrom(parameterType)) {
+      var elementType = AdvisedMethods.elementType(method, 0, targetClass);
+      if (elementType == null) {
+        throw new IllegalStateException(
+            label
+                + " takes a collection whose element type is not known, so Muster cannot tell"
+                + " which rules check its elements; name it, as in List<CreateVehicle>");
       }
-      return new MethodAdvice(
-          label,
-          targetClass,
-          new Bound.OfInput(parameterType, builder.build()),
-          listed,
-          excluded,
-          transaction);
-    }
-    var elementType = AdvisedMethods.elementType(method, 0, targetClass);
-    if (elementType == null) {
-      throw new IllegalStateException(
-          label
-              + " takes a collection whose element type is not known, so Muster cannot tell"
-              + " which rules check its elements; name it, as in List<CreateVehicle>");
-    }
-    var builder = muster.collectionBinding((Class<Object>) elementType).name(label);
-    if (annotation != null) {
-      builder.rules(annotation.value()).exclude(annotation.exclude());
-      if (annotation.mode().length == 1) {
-        builder.mode(annotation.mode()[0]);
+      var builder =
+          muster
+              .collectionBinding((Class<Object>) elementType)
+              .name(label)
+              .rules(listed)
+              .exclude(excluded);
+      if (mode != null) {
+        builder.mode(mode);
       }
+      bound = new Bound.OfElements(elementType, builder.build());
+    } else {
+      var builder =
+          muster.binding((Class<Object>) parameterType).name(label).rules(listed).exclude(excluded);
+      if (mode != null) {
+        builder.mode(mode);
+      }
+      bound = new Bound.OfInput(parameterType, builder.build());
     }
     return new MethodAdvice(
-        label,
-        targetClass,
-        new Bound.OfElements(elementType, builder.build()),
-        listed,
-        excluded,
-        transaction);
+        label, targetClass, bound, List.of(listed), List.of(excluded), transaction);
   }
 
   void check(@Nullable Object input) {
