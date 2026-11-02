@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.DoubleUnaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -74,12 +75,6 @@ final class CheckCostChart {
           new Series("chain", "RuleChain.check", "", Theme::chain),
           new Series("direct", "By hand (baseline)", "2 4", Theme::direct));
 
-  /** Maps a value to a coordinate of the chart. */
-  @FunctionalInterface
-  private interface Scale {
-    double at(double value);
-  }
-
   private CheckCostChart() {}
 
   /** Returns the chart in each theme, by the name of its file. */
@@ -117,8 +112,9 @@ final class CheckCostChart {
     var top = Math.ceil(maxScore / step) * step;
     var plotWidth = WIDTH - LEFT - RIGHT;
     var plotHeight = HEIGHT - TOP - BOTTOM;
-    var x = (Scale) value -> LEFT + value / maxRules * plotWidth;
-    var y = (Scale) value -> TOP + plotHeight - value / top * plotHeight;
+    // Each maps a value to a coordinate of the chart.
+    DoubleUnaryOperator x = value -> LEFT + value / maxRules * plotWidth;
+    DoubleUnaryOperator y = value -> TOP + plotHeight - value / top * plotHeight;
 
     var svg = new StringBuilder();
     svg.append(
@@ -132,7 +128,7 @@ final class CheckCostChart {
         .append("</desc>\n");
 
     for (var tick = 0.0; tick <= top; tick += step) {
-      var tickY = y.at(tick);
+      var tickY = y.applyAsDouble(tick);
       svg.append(
           format(
               "  <line x1=\"%d\" y1=\"%.1f\" x2=\"%d\" y2=\"%.1f\" stroke=\"%s\"/>\n",
@@ -148,7 +144,7 @@ final class CheckCostChart {
           format(
               "  <text x=\"%.1f\" y=\"%d\" fill=\"%s\" font-size=\"12\""
                   + " text-anchor=\"middle\">%d</text>\n",
-              x.at(rules), TOP + plotHeight + 20, theme.muted(), rules));
+              x.applyAsDouble(rules), TOP + plotHeight + 20, theme.muted(), rules));
     }
     svg.append(
         format(
@@ -165,7 +161,9 @@ final class CheckCostChart {
       var points = new StringBuilder();
       scores
           .get(series.benchmark())
-          .forEach((rules, ns) -> points.append(format("%.1f,%.1f ", x.at(rules), y.at(ns))));
+          .forEach(
+              (rules, ns) ->
+                  points.append(format("%.1f,%.1f ", x.applyAsDouble(rules), y.applyAsDouble(ns))));
       svg.append(
           format(
               "  <polyline points=\"%s\" fill=\"none\" stroke=\"%s\" stroke-width=\"2\""
@@ -181,7 +179,10 @@ final class CheckCostChart {
                       format(
                           "  <circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"%s\" stroke=\"%s\""
                               + " stroke-width=\"2\"/>\n",
-                          x.at(rules), y.at(ns), series.color().apply(theme), theme.surface())));
+                          x.applyAsDouble(rules),
+                          y.applyAsDouble(ns),
+                          series.color().apply(theme),
+                          theme.surface())));
     }
 
     // Each line is named at its end, with its last value; labels that would overlap move apart.
@@ -189,7 +190,7 @@ final class CheckCostChart {
         SERIES.stream()
             .mapToDouble(series -> scores.get(series.benchmark()).lastEntry().getValue())
             .toArray();
-    var labelYs = spread(Arrays.stream(last).map(y::at).toArray());
+    var labelYs = spread(Arrays.stream(last).map(y).toArray());
     for (var i = 0; i < SERIES.size(); i++) {
       var series = SERIES.get(i);
       svg.append(
