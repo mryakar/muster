@@ -1,0 +1,69 @@
+= Muster
+:description: Business rules for layered Java applications, checked before the service method runs: inside the transaction, outside the service code.
+
+Does your request pass muster?
+
+Service methods tend to start with a wall of checks: does this record exist, is that name already taken, is the task in the right state.
+Muster moves each of those checks into its own rule class.
+With the Spring Boot starter, rules run before the first line of the service method, inside its transaction, so adding a rule never means editing the service, and a violated rule reaches the client as problem details in its language.
+
+Format checks on a single field, such as blank, negative or malformed, stay with Jakarta Bean Validation.
+Muster is for rules that need the database and the context of the operation.
+
+== Status
+
+Muster is in early development, and its API will change until 1.0.0.
+The latest release is {muster-version}, with the core and the Spring Boot starter.
+The https://github.com/mryakar/muster/blob/main/ROADMAP.md[roadmap] says what follows.
+
+This site is being written.
+Until its guides are in, the https://github.com/mryakar/muster#readme[README] says how to use Muster, with and without Spring.
+
+== Installation
+
+Muster is on Maven Central.
+Import the BOM, which keeps the versions of the Muster modules in line, and add the Spring Boot starter, or the core alone without Spring, without a version.
+
+Gradle:
+
+[source,kotlin,subs="+attributes"]
+----
+dependencies {
+  implementation(platform("me.yakar.muster:muster-bom:{muster-version}"))
+  implementation("me.yakar.muster:muster-spring-boot-starter") // or muster-core without Spring
+}
+----
+
+Maven:
+
+[source,xml,subs="+attributes"]
+----
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>me.yakar.muster</groupId>
+      <artifactId>muster-bom</artifactId>
+      <version>{muster-version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <dependency>
+    <groupId>me.yakar.muster</groupId>
+    <artifactId>muster-spring-boot-starter</artifactId> <!-- or muster-core without Spring -->
+  </dependency>
+</dependencies>
+----
+
+Muster needs Java 21 or later, and the starter Spring Boot 4.0.8 or later.
+The core is the Java module `me.yakar.muster`; used without Maven or Gradle, it also needs `org.jspecify:jspecify` to compile.
+Releases are signed; https://github.com/mryakar/muster/blob/main/SECURITY.md#verifying-a-release[SECURITY.md] says how to verify them.
+
+== Where to go
+
+* https://github.com/mryakar/muster[The repository] holds the code, the issues and the example applications.
+* https://github.com/mryakar/muster/blob/main/CHANGELOG.md[The changelog] says what each release changed.
+* https://github.com/mryakar/muster/blob/main/docs/benchmarks/README.md[The benchmarks] give what Muster adds to a call and the budget a change is held to.

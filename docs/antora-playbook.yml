@@ -1,0 +1,33 @@
+# Builds the documentation site from this repository: the pages under docs/ of the main branch and
+# of each release tag from v0.4.0 on. The main branch is the prerelease called next; a tag vX.Y.Z
+# is the version X.Y.Z. Once a release is tagged, the newest release is served under current and
+# the prerelease under next, so that links to them survive the next release; until then the
+# prerelease, being the only version, is served under current. Every code sample is included from
+# muster-examples, which the build compiles, through the examples directory of the module.
+antora:
+  extensions:
+    - require: '@antora/lunr-extension'
+site:
+  title: Muster
+  url: https://muster.yakar.me
+  start_page: muster::index.adoc
+content:
+  sources:
+    - url: ..
+      branches: HEAD
+      # The earlier releases have no docs/; pre-release tags are left out.
+      tags: [v*, '!v*-*', '!v0.1.*', '!v0.2.*', '!v0.3.*']
+      start_path: docs
+      version:
+        v(?<version>+({0..9}).+({0..9}).+({0..9})): $<version>
+        '*': next
+urls:
+  latest_version_segment: current
+  latest_prerelease_version_segment: next
+ui:
+  bundle:
+    url: ./ui/ui-bundle.zip
+  # The default UI's header, with its placeholder menu replaced by links to the repository.
+  supplemental_files: ./supplemental-ui
+output:
+  dir: build/site

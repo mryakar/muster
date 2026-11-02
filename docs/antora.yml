@@ -1,0 +1,12 @@
+# The documentation component. Its version comes from the playbook: the tag of a release, or next
+# for the main branch. The main branch is a prerelease; the release commit drops the prerelease key
+# and the snapshot commit that follows it puts it back.
+name: muster
+title: Muster
+prerelease: true
+nav:
+  - modules/ROOT/nav.adoc
+asciidoc:
+  attributes:
+    # The latest release, for the installation snippets; the release commit moves it.
+    muster-version: 0.3.0
