@@ -15,8 +15,7 @@
  */
 /**
  * The application's {@code Muster}: its rule beans, their switches, and where rules learn the
- * caller, the locale and the messages. Not part of the API: anything in this package may change in
- * any release.
+ * caller and the locale. Not part of the API: anything in this package may change in any release.
  */
 @NullMarked
 package me.yakar.muster.spring.internal.engine;

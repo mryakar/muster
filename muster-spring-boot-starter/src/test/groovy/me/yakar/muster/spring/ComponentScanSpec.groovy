@@ -19,7 +19,7 @@ import me.yakar.muster.Muster
 import me.yakar.muster.spring.internal.actuator.ActuatorConfiguration
 import me.yakar.muster.spring.internal.advice.AdviceConfiguration
 import me.yakar.muster.spring.internal.engine.EngineConfiguration
-import me.yakar.muster.spring.internal.engine.MessagesConfiguration
+import me.yakar.muster.spring.internal.message.MessagesConfiguration
 import me.yakar.muster.spring.internal.observation.ObservationConfiguration
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter
