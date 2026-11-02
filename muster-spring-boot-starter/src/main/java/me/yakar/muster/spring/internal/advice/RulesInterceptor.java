@@ -63,7 +63,10 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
 
   private final Object lock = new Object();
 
-  /** The classes the pointcut advises. Guarded by {@link #lock}. */
+  /**
+   * The classes the pointcut advises that no pass has gone over yet; a pass removes a class whether
+   * it prepares it or fails on it. Guarded by {@link #lock}.
+   */
   private final Set<Class<?>> noted = new LinkedHashSet<>();
 
   private final AdviceTable table;
@@ -108,8 +111,17 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
       noted.add(targetClass);
       prepare = started;
     }
-    if (prepare) {
+    // The pass of another thread may fail on the class and drop it before this thread's pass
+    // runs, so this thread prepares it until it is prepared or a pass here fails on it. A class
+    // that the thread of a running pass notes joins that pass.
+    while (prepare && resolving.get() == null) {
       prepareNoted();
+      synchronized (lock) {
+        prepare = !preparing && !table.contains(targetClass);
+        if (prepare) {
+          noted.add(targetClass);
+        }
+      }
     }
   }
 
@@ -155,11 +167,19 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
           for (var targetClass : unprepared) {
-            var advice = adviceOf(muster, resolved, targetClass);
-            var found =
-                selfInvocation == SelfInvocationMode.OFF
-                    ? List.<SelfInvocation>of()
-                    : SelfInvocationScanner.find(targetClass, labels(advice));
+            Map<Method, MethodAdvice> advice;
+            List<SelfInvocation> found;
+            // A class that fails is noted again when a bean of it is created, and fails again; the
+            // classes noted after it do not fail with it.
+            try {
+              advice = adviceOf(muster, resolved, targetClass);
+              found =
+                  selfInvocation == SelfInvocationMode.OFF
+                      ? List.of()
+                      : SelfInvocationScanner.find(targetClass, labels(advice));
+            } finally {
+              noted.remove(targetClass);
+            }
             selfInvocations.addAll(found);
             // A class whose calls fail the pass stays unprepared, so that creating a bean of it
             // later fails again.
@@ -226,9 +246,13 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
         .toList();
   }
 
-  /** Returns the noted classes that are not prepared yet. Called under {@link #lock}. */
+  /**
+   * Returns the noted classes that are not prepared yet, and drops those that another pass prepared
+   * since they were noted. Called under {@link #lock}.
+   */
   private List<Class<?>> unprepared() {
-    return noted.stream().filter(targetClass -> !table.contains(targetClass)).toList();
+    noted.removeIf(table::contains);
+    return List.copyOf(noted);
   }
 
   /**
