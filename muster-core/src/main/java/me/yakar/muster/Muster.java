@@ -326,7 +326,7 @@ public final class Muster {
 
   /** Adds a rule class to those seen so far, and rejects it if it is among them already. */
   static void requireDistinct(Set<Class<?>> seen, Class<?> ruleClass, String listing) {
-    if (!seen.add(requireNonNull(ruleClass, "rule class"))) {
+    if (!seen.add(requireNonNull(ruleClass, "ruleClass"))) {
       throw new IllegalArgumentException(ruleClass.getTypeName() + " is " + listing + " twice");
     }
   }
@@ -380,7 +380,7 @@ public final class Muster {
         RuleFactory factory, Class<? extends BusinessRule<?>>... ruleClasses) {
       requireNonNull(factory, "factory");
       for (var ruleClass : ruleClasses) {
-        requireNonNull(ruleClass, "rule class");
+        requireNonNull(ruleClass, "ruleClass");
         register(ruleClass, () -> create(factory, ruleClass));
       }
       return this;

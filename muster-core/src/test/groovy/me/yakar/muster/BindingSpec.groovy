@@ -340,8 +340,8 @@ class BindingSpec extends EngineSpecification {
     where:
     what         | configure
     'inputType'  | { it.binding(null) }
-    'rule class' | { it.binding(VehicleFields).rules(FieldsListed, null) }
-    'rule class' | { it.binding(VehicleFields).exclude(FieldsListed, null) }
+    'ruleClass'  | { it.binding(VehicleFields).rules(FieldsListed, null) }
+    'ruleClass'  | { it.binding(VehicleFields).exclude(FieldsListed, null) }
     'mode'       | { it.binding(VehicleFields).mode(null) }
     'name'       | { it.binding(VehicleFields).name(null) }
   }

@@ -57,7 +57,7 @@ public final class RuleCatalog {
    * @throws IllegalArgumentException if the rule is not registered
    */
   public PreparedRule registered(Class<?> ruleClass) {
-    requireNonNull(ruleClass, "rule class");
+    requireNonNull(ruleClass, "ruleClass");
     var rule = rules.get(ruleClass);
     if (rule == null) {
       throw new IllegalArgumentException(ruleClass.getTypeName() + " is not registered");
