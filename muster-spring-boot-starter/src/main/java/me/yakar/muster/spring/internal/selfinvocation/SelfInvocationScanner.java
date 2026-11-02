@@ -35,7 +35,6 @@ import org.springframework.asm.Opcodes;
 import org.springframework.asm.SpringAsmInfo;
 import org.springframework.asm.Type;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.FileCopyUtils;
 
 /**
  * Scans the bytecode of an advised class for calls of its advised methods on {@code this}, which
@@ -140,7 +139,10 @@ public final class SelfInvocationScanner {
             "Muster cannot find the class file of " + type.getName() + ", so it is not scanned");
         return null;
       }
-      var reader = new ClassReader(FileCopyUtils.copyToByteArray(in));
+      ClassReader reader;
+      try (in) {
+        reader = new ClassReader(in.readAllBytes());
+      }
       if (reader.readShort(6) < Opcodes.V1_7) {
         LOGGER.log(
             DEBUG,
