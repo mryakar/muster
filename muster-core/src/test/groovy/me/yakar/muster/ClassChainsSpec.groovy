@@ -15,20 +15,24 @@
  */
 package me.yakar.muster
 
+import static me.yakar.muster.Concurrency.concurrently
+
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.logging.Level
 import me.yakar.muster.internal.rule.ChainPlan.Selection
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.rule.RuleTarget
-import spock.lang.Specification
 
 /** The chains of the classes checked so far, as Muster and bindings keep them. */
-class ClassChainsSpec extends Specification {
+class ClassChainsSpec extends EngineSpecification {
+
+  static record Target() implements RuleTarget {}
 
   @Rule(id = 'target.any')
   static class AnyTarget implements BusinessRule<RuleTarget> {
@@ -39,59 +43,83 @@ class ClassChainsSpec extends Specification {
 
   def muster = Muster.builder().rules(new AnyTarget()).build()
 
-  def 'reading a bound class takes no lock, even while another class in its bucket is being bound'() {
+  def 'reading a bound class takes no lock, even while its bucket of the map is locked'() {
     given: 'three classes in one bucket of the map, the first two of them bound'
     def (first, second, third) = sameBucket(3)
-    def binding = new CountDownLatch(1)
-    def release = new CountDownLatch(1)
-    def chains = new ClassChains({ type ->
-      if (type == third) {
-        binding.countDown()
-        release.await()
-      }
-      muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST)
-    })
+    def chains = new ClassChains({ type -> muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST) })
     chains.of(first)
     def bound = chains.of(second)
+    def locked = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
     def pool = Executors.newFixedThreadPool(2)
 
-    when: 'one thread binds the third class'
-    def binder = pool.submit { chains.of(third) }
-    assert binding.await(1, TimeUnit.MINUTES)
-
-    and: 'another thread waits on the bucket for the second class, as computeIfAbsent does'
+    when: 'one thread holds the lock of the bucket, as computeIfAbsent does while it computes'
     def map = ClassChains.getDeclaredField('chains').with {
       accessible = true
       get(chains) as ConcurrentMap
     }
-    def waiting = Thread.start {
-      map.computeIfAbsent(second) {
-        throw new AssertionError()
+    def locking = pool.submit {
+      map.computeIfAbsent(third) {
+        locked.countDown()
+        release.await()
+        chains.of(first)
       }
     }
-    awaitBlockedInComputeIfAbsent(waiting)
+    assert locked.await(1, TimeUnit.MINUTES)
 
     then: 'the second class is read all the same'
     pool.submit { chains.of(second) }.get(1, TimeUnit.MINUTES).is(bound)
 
     cleanup:
     release.countDown()
-    binder?.get(1, TimeUnit.MINUTES)
-    waiting?.join(TimeUnit.MINUTES.toMillis(1))
+    locking?.get(1, TimeUnit.MINUTES)
     pool.shutdownNow()
   }
 
-  /**
-   * Waits until a thread is blocked on a lock inside computeIfAbsent. If the classes were not in one
-   * bucket, it would finish instead, and the test would not show what it means to.
-   */
-  private static void awaitBlockedInComputeIfAbsent(Thread thread) {
-    def deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(1)
-    while (!(thread.state == Thread.State.BLOCKED && thread.stackTrace*.methodName.contains('computeIfAbsent'))) {
-      assert thread.alive: 'the classes are not in one bucket'
-      assert System.nanoTime() <deadline
-      Thread.sleep(1)
-    }
+  def 'binding a class takes no lock: a class of the same bucket is bound while another is being bound'() {
+    given:
+    def (slow, quick) = sameBucket(2)
+    def binding = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
+    def chains = new ClassChains({ type ->
+      if (type == slow) {
+        binding.countDown()
+        release.await()
+      }
+      muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST)
+    })
+    def pool = Executors.newFixedThreadPool(2)
+
+    when:
+    def binder = pool.submit { chains.of(slow) }
+    assert binding.await(1, TimeUnit.MINUTES)
+
+    then:
+    pool.submit { chains.of(quick) }.get(1, TimeUnit.MINUTES) != null
+
+    cleanup:
+    release.countDown()
+    binder?.get(1, TimeUnit.MINUTES)
+    pool.shutdownNow()
+  }
+
+  def 'threads that bind one class at once all use the chain put first, whose plan alone is logged'() {
+    given:
+    log.level = Level.FINE
+    def both = new CountDownLatch(2)
+    def chains = new ClassChains({ type ->
+      both.countDown()
+      assert both.await(1, TimeUnit.MINUTES)
+      muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST)
+    })
+
+    when:
+    def seen = concurrently(2) { chains.of(Target) }
+
+    then:
+    seen[0].is(seen[1])
+    chains.of(Target).is(seen[0])
+    logged*.message == ["Rules bound to ${Target.typeName}: [target.any]".toString()]
   }
 
   /**

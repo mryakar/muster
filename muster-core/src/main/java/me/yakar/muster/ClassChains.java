@@ -16,7 +16,6 @@
 package me.yakar.muster;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -36,8 +35,7 @@ import org.jspecify.annotations.Nullable;
  */
 final class ClassChains {
 
-  // A check reads with get, which takes no lock; computeIfAbsent locks the bucket of a class that
-  // is not the first in it, even when the class is already bound.
+  // A check reads with get, which takes no lock.
   private final ConcurrentMap<Class<?>, RuleChain<Object>> chains = new ConcurrentHashMap<>();
 
   private final Function<Class<?>, Bound> binder;
@@ -87,22 +85,19 @@ final class ClassChains {
   }
 
   /**
-   * Binds a class, unless another thread has bound it meanwhile. Only the thread that binds it
-   * logs, and only once the chain is in the map: computeIfAbsent holds the lock of the bucket while
-   * it binds, and a logging backend runs code of the application.
+   * Binds a class. Binding changes nothing until its plan is logged, so threads that check a new
+   * class at once may each bind it: the first to put its chain in the map logs the plan, and every
+   * thread uses that chain. No lock is held while a class is bound or logged, since a logging
+   * backend runs code of the application.
    */
   private RuleChain<Object> bind(Class<?> type) {
-    var bound = new ArrayList<Bound>(1);
-    var chain =
-        chains.computeIfAbsent(
-            type,
-            key -> {
-              var made = binder.apply(key);
-              bound.add(made);
-              return made.chain();
-            });
-    bound.forEach(made -> made.plan().log());
-    return chain;
+    var made = binder.apply(type);
+    var bound = chains.putIfAbsent(type, made.chain());
+    if (bound != null) {
+      return bound;
+    }
+    made.plan().log();
+    return made.chain();
   }
 
   /**
