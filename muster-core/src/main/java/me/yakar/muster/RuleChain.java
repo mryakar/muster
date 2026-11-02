@@ -258,74 +258,13 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      if (step.whole()) {
-        var violations = violations(rule, rule.instance().check(inputs, ctx), NO_ELEMENT);
-        if (violations == null) {
-          Arrays.fill(passed[i], true);
-          if (observed != null) {
-            observed.rulePassed();
-          }
-          continue;
-        }
-        if (observed != null) {
-          observed.ruleFailed(violations);
-        }
-        if (mode == CheckMode.FAIL_FAST) {
-          throw new BusinessRuleViolationException(violations);
-        }
-        found = add(found, violations);
-        continue;
-      }
-      if (!rule.checksAll()) {
-        if (rule.firstOneByOne()) {
-          LOGGER.log(
-              System.Logger.Level.WARNING,
-              "Rule '"
-                  + rule.id()
-                  + "' checks the elements of a collection one by one, since it does not"
-                  + " override checkAll; override it to check them at once, or call"
-                  + " BusinessRule.super.checkAll from it to keep checking them one by one");
-        }
-        // The violations the rule finds in collect-all mode follow this many in the list.
-        var before = found == null ? 0 : found.size();
-        for (var position : eligible) {
-          var violations =
-              violations(
-                  rule,
-                  rule.instance().check(inputs.get(position), ctx.element(position)),
-                  position);
-          if (violations == null) {
-            passed[i][position] = true;
-          } else if (mode == CheckMode.FAIL_FAST) {
-            if (observed != null) {
-              observed.ruleFailed(violations);
-            }
-            throw new BusinessRuleViolationException(violations);
-          } else {
-            found = add(found, violations);
-          }
-        }
-        if (observed != null) {
-          endedOneByOne(observed, found, before);
-        }
-        continue;
-      }
-      // The positions also tell the context how many inputs there are, so that it rejects an index
-      // past them.
       var violations =
-          violations(
-              rule,
-              rule.instance()
-                  .checkAll(
-                      eligible.length == size
-                          ? inputs
-                          : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
-                      ctx.toBuilder().positions(eligible).build()),
-              NO_ELEMENT);
+          step.whole()
+              ? checkWhole(rule, inputs, ctx, passed[i])
+              : rule.checksAll()
+                  ? checkAtOnce(rule, inputs, ctx, eligible, passed[i])
+                  : checkOneByOne(rule, inputs, ctx, eligible, passed[i], mode);
       if (violations == null) {
-        for (var position : eligible) {
-          passed[i][position] = true;
-        }
         if (observed != null) {
           observed.rulePassed();
         }
@@ -337,7 +276,6 @@ public final class RuleChain<I> {
       if (mode == CheckMode.FAIL_FAST) {
         throw new BusinessRuleViolationException(violations);
       }
-      markPassed(passed[i], eligible, violations);
       found = add(found, violations);
     }
     if (found != null) {
@@ -346,16 +284,85 @@ public final class RuleChain<I> {
   }
 
   /**
-   * Tells the observer how a rule that checked the elements one by one, in collect-all mode, ended:
-   * with the violations found since it started, or none.
+   * Checks a collection with a rule of the whole collection, and marks every element as passed if
+   * it passed.
+   *
+   * @return the violations, or {@code null} if the rule passed
    */
-  private static void endedOneByOne(
-      ObservedCheck observed, @Nullable ArrayList<Violation> found, int before) {
-    if (found == null || found.size() == before) {
-      observed.rulePassed();
-    } else {
-      observed.ruleFailed(List.copyOf(found.subList(before, found.size())));
+  private static @Nullable List<Violation> checkWhole(
+      PreparedRule rule, List<?> inputs, RuleContext ctx, boolean[] passed) {
+    var violations = violations(rule, rule.instance().check(inputs, ctx), NO_ELEMENT);
+    if (violations == null) {
+      Arrays.fill(passed, true);
     }
+    return violations;
+  }
+
+  /**
+   * Checks the eligible elements with a rule that checks them at once, and marks those it passed.
+   *
+   * @return the violations, or {@code null} if the rule passed
+   */
+  private static @Nullable List<Violation> checkAtOnce(
+      PreparedRule rule, List<?> inputs, RuleContext ctx, int[] eligible, boolean[] passed) {
+    // The positions also tell the context how many inputs there are, so that it rejects an index
+    // past them.
+    var violations =
+        violations(
+            rule,
+            rule.instance()
+                .checkAll(
+                    eligible.length == inputs.size()
+                        ? inputs
+                        : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
+                    ctx.toBuilder().positions(eligible).build()),
+            NO_ELEMENT);
+    if (violations == null) {
+      for (var position : eligible) {
+        passed[position] = true;
+      }
+    } else {
+      markPassed(passed, eligible, violations);
+    }
+    return violations;
+  }
+
+  /**
+   * Checks the eligible elements one by one with a rule that does not override {@code checkAll},
+   * and marks those it passed. In fail-fast mode it stops at the first violated element.
+   *
+   * @return the violations, in the order of the elements, or {@code null} if the rule passed
+   */
+  private static @Nullable List<Violation> checkOneByOne(
+      PreparedRule rule,
+      List<?> inputs,
+      RuleContext ctx,
+      int[] eligible,
+      boolean[] passed,
+      CheckMode mode) {
+    if (rule.firstOneByOne()) {
+      LOGGER.log(
+          System.Logger.Level.WARNING,
+          "Rule '"
+              + rule.id()
+              + "' checks the elements of a collection one by one, since it does not"
+              + " override checkAll; override it to check them at once, or call"
+              + " BusinessRule.super.checkAll from it to keep checking them one by one");
+    }
+    ArrayList<Violation> found = null;
+    for (var position : eligible) {
+      var violations =
+          violations(
+              rule, rule.instance().check(inputs.get(position), ctx.element(position)), position);
+      if (violations == null) {
+        passed[position] = true;
+      } else if (mode == CheckMode.FAIL_FAST) {
+        return violations;
+      } else {
+        found = add(found, violations);
+      }
+    }
+    return found;
   }
 
   /**
