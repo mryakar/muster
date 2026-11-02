@@ -15,14 +15,20 @@
  */
 package me.yakar.muster;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
 
 /**
  * The listeners registered with a {@code Muster}, told in the order they were registered, as one.
  * The list is copied when the {@code Muster} is built and never changed, so checks share it.
+ *
+ * <p>Every observer that was told that a check or a rule started is told that it ended, also when
+ * another listener or observer throws: the first exception propagates, and those thrown after it
+ * are added to it as suppressed.
  */
 final class CheckListeners implements CheckListener {
 
@@ -44,11 +50,24 @@ final class CheckListeners implements CheckListener {
     };
   }
 
+  /**
+   * Asks every listener for its observer. If one throws, the observers returned before it are told
+   * that the check ended with that exception.
+   */
   @Override
   public @Nullable Observer checkStarted(Check check) {
     List<Observer> observers = null;
     for (var listener : listeners) {
-      var observer = listener.checkStarted(check);
+      Observer observer;
+      try {
+        observer = listener.checkStarted(check);
+      } catch (Throwable e) {
+        if (observers != null) {
+          var end = new CheckEnd(Outcome.ERROR, Duration.ZERO, List.of(), e);
+          tellEnd(observers, 0, observers.size(), Observer::checkEnded, end, e, e);
+        }
+        throw e;
+      }
       if (observer != null) {
         if (observers == null) {
           observers = new ArrayList<>(listeners.size());
@@ -61,28 +80,73 @@ final class CheckListeners implements CheckListener {
         : observers.size() == 1 ? observers.getFirst() : new Observers(observers);
   }
 
-  /** The observers of one check, told in the order of their listeners. */
+  /**
+   * Tells every observer that a rule or the check ended, then throws the first exception one of
+   * them threw, with those thrown after it suppressed on it.
+   */
+  private static <E> void tellEveryEnd(
+      List<Observer> observers, BiConsumer<Observer, E> event, E end, @Nullable Throwable told) {
+    for (var i = 0; i < observers.size(); i++) {
+      try {
+        event.accept(observers.get(i), end);
+      } catch (Throwable e) {
+        tellEnd(observers, i + 1, observers.size(), event, end, e, told);
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Tells the observers from one index to another, that one excluded, that a rule or the check
+   * ended. What one throws is suppressed on the exception that propagates, unless it is the
+   * exception the end tells of, which propagates anyway.
+   */
+  private static <E> void tellEnd(
+      List<Observer> observers,
+      int from,
+      int to,
+      BiConsumer<Observer, E> event,
+      E end,
+      Throwable propagating,
+      @Nullable Throwable told) {
+    for (var i = from; i < to; i++) {
+      try {
+        event.accept(observers.get(i), end);
+      } catch (Throwable fromObserver) {
+        if (fromObserver != told) {
+          ObservedCheck.suppress(propagating, fromObserver);
+        }
+      }
+    }
+  }
+
+  /**
+   * The observers of one check, told in the order of their listeners. If one throws when a rule
+   * starts, those told before it are told that the rule ended with that exception.
+   */
   private record Observers(List<Observer> observers) implements Observer {
 
     @Override
     public void ruleStarted(String ruleId) {
-      for (var observer : observers) {
-        observer.ruleStarted(ruleId);
+      for (var i = 0; i < observers.size(); i++) {
+        try {
+          observers.get(i).ruleStarted(ruleId);
+        } catch (Throwable e) {
+          var end = new RuleEnd(ruleId, Outcome.ERROR, Duration.ZERO, List.of(), e);
+          tellEnd(observers, 0, i, Observer::ruleEnded, end, e, e);
+          throw e;
+        }
       }
     }
 
     @Override
     public void ruleEnded(RuleEnd end) {
-      for (var observer : observers) {
-        observer.ruleEnded(end);
-      }
+      tellEveryEnd(observers, Observer::ruleEnded, end, end.error());
     }
 
     @Override
     public void checkEnded(CheckEnd end) {
-      for (var observer : observers) {
-        observer.checkEnded(end);
-      }
+      tellEveryEnd(observers, Observer::checkEnded, end, end.error());
     }
   }
 }

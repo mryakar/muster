@@ -37,8 +37,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A listener that throws stops the check, as a rule that throws does. If the check is ending
  * with an exception already, that exception propagates and the listener's is added to it as
- * suppressed. An observer that another listener returned for a check that a listener refused to
- * start is told nothing more. Without a listener, a check pays one null check.
+ * suppressed. An observer told that a check or a rule started is told that it ended, also when
+ * another listener throws; if a listener throws from {@link #checkStarted}, the observers that
+ * other listeners returned are told that the check ended with its exception. Without a listener, a
+ * check pays one null check.
  */
 @FunctionalInterface
 public interface CheckListener {
