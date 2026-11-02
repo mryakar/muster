@@ -216,6 +216,11 @@ final class BenchmarkResults {
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(className + " is no benchmark of this module", e);
     }
+    // Only a listed class is checked for a full run, so another is not published.
+    if (!BENCHMARKS.contains(benchmark)) {
+      throw new IllegalArgumentException(
+          className + " is not listed in BenchmarkResults.BENCHMARKS");
+    }
     if (benchmark.getAnnotation(Fork.class).value() % 2 == 0) {
       throw new IllegalStateException(
           benchmark.getSimpleName()
