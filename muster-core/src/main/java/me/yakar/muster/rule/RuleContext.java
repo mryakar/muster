@@ -302,9 +302,9 @@ public sealed class RuleContext {
     /**
      * Sets the positions, in the checked collection, of the inputs that {@link
      * BusinessRule#checkAll} receives, by their index in its list: {@link RuleContext#element(int)
-     * element(i)} is then about the element at {@code positions[i]}. Muster sets them when it
-     * leaves out elements that failed a rule this rule requires; use it to test such a call. The
-     * context built is not about an element.
+     * element(i)} is then about the element at {@code positions[i]}, and rejects an index past
+     * them. Muster sets them on every call of {@code checkAll}; use it to test a rule on part of a
+     * collection. The context built is not about an element.
      *
      * @param positions the positions, in ascending order
      * @return this builder

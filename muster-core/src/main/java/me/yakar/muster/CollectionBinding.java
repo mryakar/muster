@@ -227,8 +227,8 @@ public final class CollectionBinding<E> {
     }
 
     /**
-     * Names the binding in logs, for example after the method it guards. Unless set, the name is "a
-     * collection of" the element type.
+     * Names the binding in logs, in its description and for listeners, for example after the method
+     * it guards. Unless set, the name is the element type.
      *
      * @param name the name
      * @return this builder

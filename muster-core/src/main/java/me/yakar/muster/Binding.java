@@ -241,8 +241,8 @@ public final class Binding<I> {
     }
 
     /**
-     * Names the binding in logs, for example after the method it guards. Unless set, the name is
-     * the input type.
+     * Names the binding in logs, in its description and for listeners, for example after the method
+     * it guards. Unless set, the name is the input type.
      *
      * @param name the name
      * @return this builder
