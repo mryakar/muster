@@ -214,10 +214,7 @@ public final class RuleChain<I> {
     if (inputs.isEmpty()) {
       return;
     }
-    var observed =
-        listener == null
-            ? null
-            : ObservedCheck.start(listener, name, inputType, mode, true, inputs.size());
+    var observed = observe(mode, true, inputs.size());
     try {
       runEach(inputs, mode, observed);
     } catch (Throwable e) {
@@ -254,11 +251,7 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      var context = rule.context().toBuilder().locale(callLocale);
-      if (callCaller != null) {
-        context.caller(callCaller);
-      }
-      var ctx = context.build();
+      var ctx = context(rule, callLocale, callCaller);
       if (!rule.instance().appliesTo(ctx)) {
         if (observed != null) {
           observed.ruleSkipped();
@@ -367,22 +360,23 @@ public final class RuleChain<I> {
 
   /**
    * Returns the violations of a result, or {@code null} if it passed, after checking that they are
-   * the rule's own. The position tells which element a null result was returned for, if any; the
-   * message is built only then, so that a check of each element allocates nothing for it.
+   * the rule's own. The position tells which element a null result was returned for, if any. Small
+   * enough to be inlined; what a failure needs is in the methods it calls.
    */
   private static @Nullable List<Violation> violations(
       PreparedRule rule, RuleResult result, int position) {
+    if (result instanceof RuleResult.Failed failed) {
+      return requireOwn(rule, failed.violations());
+    }
     if (result == null) {
-      throw new NullPointerException(
-          "rule '"
-              + rule.id()
-              + "' returned null"
-              + (position == NO_ELEMENT ? "" : " for the element at [" + position + "]"));
+      throw nullResult(rule, position);
     }
-    if (!(result instanceof RuleResult.Failed failed)) {
-      return null;
-    }
-    for (var violation : failed.violations()) {
+    return null;
+  }
+
+  /** Returns the violations a rule reported, after checking that they are its own. */
+  private static List<Violation> requireOwn(PreparedRule rule, List<Violation> violations) {
+    for (var violation : violations) {
       if (!violation.ruleId().equals(rule.id())) {
         throw new IllegalStateException(
             "rule '"
@@ -392,7 +386,38 @@ public final class RuleChain<I> {
                 + "'; build violations from the RuleContext the rule receives");
       }
     }
-    return failed.violations();
+    return violations;
+  }
+
+  /**
+   * The exception for a rule that returned null, for an element or not. The message is built only
+   * then, so that a check of each element allocates nothing for it.
+   */
+  private static NullPointerException nullResult(PreparedRule rule, int position) {
+    return new NullPointerException(
+        "rule '"
+            + rule.id()
+            + "' returned null"
+            + (position == NO_ELEMENT ? "" : " for the element at [" + position + "]"));
+  }
+
+  /**
+   * Returns the context of a rule for one call: the one prepared with the rule, so that the rule id
+   * is not checked again, with the locale and the caller of the call.
+   */
+  private static RuleContext context(PreparedRule rule, Locale locale, @Nullable Principal caller) {
+    var context = rule.context().toBuilder().locale(locale);
+    if (caller != null) {
+      context.caller(caller);
+    }
+    return context.build();
+  }
+
+  /** Tells the listener, if there is one, that a check starts. */
+  private @Nullable ObservedCheck observe(CheckMode mode, boolean collection, int size) {
+    return listener == null
+        ? null
+        : ObservedCheck.start(listener, name, inputType, mode, collection, size);
   }
 
   private static ArrayList<Violation> add(
@@ -465,76 +490,14 @@ public final class RuleChain<I> {
 
   /**
    * Checks an input that the caller knows to be of the chain's type, in the given mode, and tells
-   * the listener about it. One loop, so that the JIT compiles the check as a whole; without a
-   * listener it pays one null check, and the loop tests a local that is null.
+   * the listener about it; without a listener it pays one null check. Small, so that the JIT
+   * inlines it into its caller, which then catches the exception it throws without unwinding a
+   * frame.
    */
   void run(Object input, CheckMode mode) {
-    var observed =
-        listener == null ? null : ObservedCheck.start(listener, name, inputType, mode, false, 1);
+    var observed = observe(mode, false, 1);
     try {
-      var callCaller = caller.get();
-      var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
-      // Created on the first failure, so that a passing check allocates no list.
-      ArrayList<Violation> found = null;
-      var passed = new boolean[steps.size()];
-      for (var i = 0; i < steps.size(); i++) {
-        var step = steps.get(i);
-        var rule = step.rule();
-        if (observed != null) {
-          observed.ruleStarted(rule);
-        }
-        if (!allPassed(step.requires(), passed)) {
-          if (observed != null) {
-            observed.ruleSkipped();
-          }
-          continue;
-        }
-        // From the context prepared with the rule, so that the rule id is not checked again.
-        var context = rule.context().toBuilder().locale(callLocale);
-        if (callCaller != null) {
-          context.caller(callCaller);
-        }
-        var ctx = context.build();
-        if (!rule.instance().appliesTo(ctx)) {
-          if (observed != null) {
-            observed.ruleSkipped();
-          }
-          continue;
-        }
-        var result = rule.instance().check(input, ctx);
-        if (result == null) {
-          throw new NullPointerException("rule '" + rule.id() + "' returned null");
-        }
-        if (result instanceof RuleResult.Failed failed) {
-          var violations = failed.violations();
-          for (var violation : violations) {
-            if (!violation.ruleId().equals(rule.id())) {
-              throw new IllegalStateException(
-                  "rule '"
-                      + rule.id()
-                      + "' reported a violation of rule '"
-                      + violation.ruleId()
-                      + "'; build violations from the RuleContext the rule receives");
-            }
-          }
-          if (observed != null) {
-            observed.ruleFailed(violations);
-          }
-          if (mode == CheckMode.FAIL_FAST) {
-            // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
-            throw new BusinessRuleViolationException(violations);
-          }
-          if (found == null) {
-            found = new ArrayList<>();
-          }
-          found.addAll(violations);
-        } else {
-          passed[i] = true;
-          if (observed != null) {
-            observed.rulePassed();
-          }
-        }
-      }
+      var found = checkRules(input, mode, observed);
       if (found != null) {
         throw new BusinessRuleViolationException(found);
       }
@@ -547,6 +510,81 @@ public final class RuleChain<I> {
     if (observed != null) {
       observed.passed();
     }
+  }
+
+  /**
+   * Runs the rules of a single check, one loop, so that the JIT compiles the loop as a whole, and
+   * returns the violations they found, or {@code null}. The loop tests a local observer that is
+   * null without a listener. It stays one method that is too large to be inlined, and so checks
+   * results and builds contexts itself rather than through the helpers of the collection check: the
+   * loop runs faster per rule compiled on its own than inlined into the callers of {@link #run}.
+   */
+  private @Nullable List<Violation> checkRules(
+      Object input, CheckMode mode, @Nullable ObservedCheck observed) {
+    var callCaller = caller.get();
+    var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
+    // Created on the first failure, so that a passing check allocates no list.
+    ArrayList<Violation> found = null;
+    var passed = new boolean[steps.size()];
+    for (var i = 0; i < steps.size(); i++) {
+      var step = steps.get(i);
+      var rule = step.rule();
+      if (observed != null) {
+        observed.ruleStarted(rule);
+      }
+      if (!allPassed(step.requires(), passed)) {
+        if (observed != null) {
+          observed.ruleSkipped();
+        }
+        continue;
+      }
+      // From the context prepared with the rule, so that the rule id is not checked again.
+      var context = rule.context().toBuilder().locale(callLocale);
+      if (callCaller != null) {
+        context.caller(callCaller);
+      }
+      var ctx = context.build();
+      if (!rule.instance().appliesTo(ctx)) {
+        if (observed != null) {
+          observed.ruleSkipped();
+        }
+        continue;
+      }
+      var result = rule.instance().check(input, ctx);
+      if (result == null) {
+        throw new NullPointerException("rule '" + rule.id() + "' returned null");
+      }
+      if (result instanceof RuleResult.Failed failed) {
+        var violations = failed.violations();
+        for (var violation : violations) {
+          if (!violation.ruleId().equals(rule.id())) {
+            throw new IllegalStateException(
+                "rule '"
+                    + rule.id()
+                    + "' reported a violation of rule '"
+                    + violation.ruleId()
+                    + "'; build violations from the RuleContext the rule receives");
+          }
+        }
+        if (observed != null) {
+          observed.ruleFailed(violations);
+        }
+        if (mode == CheckMode.FAIL_FAST) {
+          // Nothing was found before; the exception keeps the rule's unmodifiable list as it is.
+          return violations;
+        }
+        if (found == null) {
+          found = new ArrayList<>();
+        }
+        found.addAll(violations);
+      } else {
+        passed[i] = true;
+        if (observed != null) {
+          observed.rulePassed();
+        }
+      }
+    }
+    return found;
   }
 
   @Override
