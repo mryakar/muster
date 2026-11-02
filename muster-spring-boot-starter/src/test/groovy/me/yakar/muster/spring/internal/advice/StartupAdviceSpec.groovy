@@ -156,17 +156,13 @@ class StartupAdviceSpec extends Specification {
           -> new SeedingInput(vehicle: new SaveVehicle(name))
         })
         .run { context ->
-          if (passes) {
-            assert context.startupFailure == null
-          } else {
-            assert getMostSpecificCause(context.startupFailure) instanceof BusinessRuleViolationException
-          }
+          assert context.startupFailure?.with { getMostSpecificCause(it).class } == failure
         }
 
     where:
-    name || passes
-    'Boreas' || true
-    'Atlas' || false
+    name || failure
+    'Boreas' || null
+    'Atlas' || BusinessRuleViolationException
   }
 
   def 'with lazy initialization, a rule may depend on an advised service'() {

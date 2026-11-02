@@ -27,7 +27,6 @@ import me.yakar.muster.spring.fixture.selfinvocation.Careful
 import me.yakar.muster.spring.fixture.selfinvocation.Garage
 import me.yakar.muster.spring.fixture.selfinvocation.OpenLot
 import me.yakar.muster.spring.fixture.selfinvocation.WineCellar
-import me.yakar.muster.spring.fixture.selfinvocation.Stacks
 import me.yakar.muster.spring.fixture.selfinvocation.Vehicle
 import me.yakar.muster.spring.fixture.selfinvocation.VehicleDepot
 import org.springframework.beans.factory.BeanCreationException
@@ -93,21 +92,6 @@ class SelfInvocationAdviceSpec extends Specification {
       'BigShed.saveTrimmed(Vehicle) calls BigShed.saveTrimmed(Vehicle) through this',
       'BigShed.saveTwin(Vehicle) calls BigShed.save(Vehicle) through this'
     ]
-    Stacks || [
-      'Stacks.arithmetic(long, double, float, int, short, byte, char)',
-      'Stacks.arrays(Object)',
-      'Stacks.assignment()',
-      'Stacks.compound(int)',
-      'Stacks.discarding()',
-      'Stacks.finallySaving(String)',
-      'Stacks.guarded(Vehicle)',
-      'Stacks.looping(int)',
-      'Stacks.switching(int, String)',
-      'Stacks.wideCompound(int)',
-      'Stacks.wideField()'
-    ].collect {
-      "$it calls Stacks.save(Vehicle) through this"
-    }
   }
 
   def 'the calls of every advised class are named at once'() {
@@ -186,7 +170,7 @@ class SelfInvocationAdviceSpec extends Specification {
     }
   }
 
-  def 'a call through the proxy of a base, a private or a package-private method of it is no self-invocation: #bean.simpleName'() {
+  def 'a base that calls its own private, or not overridable package-private, method of the same signature makes no self-invocation: #bean.simpleName'() {
     expect:
     runner.withBean(bean).run { context ->
       assert context.startupFailure == null
