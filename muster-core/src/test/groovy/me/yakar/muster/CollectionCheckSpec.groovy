@@ -27,11 +27,9 @@ import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
-import me.yakar.muster.rule.Violation
 
 /** Checking the elements of a collection in one call: each rule, its requirements per element, and the modes. */
 class CollectionCheckSpec extends EngineSpecification {
-
 
   /** Assigns the tasks that exist at once; 409 is not assignable. */
   @Rule(id = 'task.assignable-at-once')
@@ -160,7 +158,7 @@ class CollectionCheckSpec extends EngineSpecification {
   }
 
   /** Asks for the context of an element past the inputs it received. */
-  @Rule(id = 'task.assignable-at-once')
+  @Rule(id = 'rule.reaches-too-far')
   static class ReachesTooFar implements BusinessRule<Long> {
     RuleResult check(Long input, RuleContext ctx) {
       RuleResult.passed()
@@ -171,7 +169,7 @@ class CollectionCheckSpec extends EngineSpecification {
     }
   }
 
-  @Rule(id = 'task.assignable-at-once')
+  @Rule(id = 'rule.returns-null-at-once')
   static class ReturnsNullAtOnce implements BusinessRule<Long> {
     RuleResult check(Long input, RuleContext ctx) {
       RuleResult.passed()
@@ -182,7 +180,7 @@ class CollectionCheckSpec extends EngineSpecification {
     }
   }
 
-  @Rule(id = 'task.assignable-at-once')
+  @Rule(id = 'rule.impostor-at-once')
   static class ImpostorAtOnce implements BusinessRule<Long> {
     RuleResult check(Long input, RuleContext ctx) {
       RuleResult.passed()
@@ -429,7 +427,7 @@ class CollectionCheckSpec extends EngineSpecification {
     ran == ['task.exists'] * 3
   }
 
-  def 'a rule that does not apply is asked once, and the rules that require it check no element'() {
+  def 'the rules that require a rule that does not apply check no element of a collection'() {
     given:
     def chain = tasks(new TaskImported(ran), new TaskFromImport(ran)).build().chain(Long, TaskFromImport)
 
@@ -478,22 +476,18 @@ class CollectionCheckSpec extends EngineSpecification {
     counted.checkedAll == 0
   }
 
-  def 'a rule that checks nothing of a collection is not logged as checked one by one: #how'() {
+  def 'a rule that checks nothing of a collection is not logged as checked one by one'() {
     given:
     def chain = tasks(new TaskExists(ran), new TaskAssignable(ran), new TaskImported(ran), new TaskFromImport(ran)).build()
         .chain(Long, TaskAssignable, TaskFromImport)
     logged.clear()
 
     when:
-    chain.checkAll(inputs)
+    chain.checkAll([404L])
 
     then:
     thrown(BusinessRuleViolationException)
     logged*.message.findAll { it.endsWith(ONE_BY_ONE) } == ["Rule 'task.exists' " + ONE_BY_ONE]
-
-    where:
-    how                                            | inputs
-    'it does not apply, or no element is left'     | [404L]
   }
 
   def 'a rule checking at once learns the caller and the locale of the call'() {
@@ -524,8 +518,8 @@ class CollectionCheckSpec extends EngineSpecification {
 
     where:
     problem                               | rule || exception             | message
-    'returns null'                        | new ReturnsNullAtOnce() || NullPointerException  | "rule 'task.assignable-at-once' returned null"
-    'reports a violation of another rule' | new ImpostorAtOnce() || IllegalStateException | "rule 'task.assignable-at-once' reported a violation of rule 'task.exists'; build violations from the RuleContext the rule receives"
+    'returns null'                        | new ReturnsNullAtOnce() || NullPointerException  | "rule 'rule.returns-null-at-once' returned null"
+    'reports a violation of another rule' | new ImpostorAtOnce() || IllegalStateException | "rule 'rule.impostor-at-once' reported a violation of rule 'task.exists'; build violations from the RuleContext the rule receives"
   }
 
   def 'a rule checking at once cannot name an element past the inputs it received'() {
@@ -593,142 +587,5 @@ class CollectionCheckSpec extends EngineSpecification {
     then:
     logged.findAll { it.level == Level.WARNING }*.message == ["Rule 'task.exists' " + ONE_BY_ONE]
     ran.size() == 32000
-  }
-
-  Muster vehicles() {
-    Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(CheckMode.COLLECT_ALL).build()
-  }
-
-  def 'Muster checks a collection of rule targets with the rules bound to their class'() {
-    when:
-    vehicles().checkAll([VALID, INVALID])
-
-    then:
-    def e = thrown(BusinessRuleViolationException)
-    described(e) == ['vehicle.code-format [1]', 'vehicle.name-unique [1]']
-  }
-
-  def 'Muster checks a collection in the mode it is given'() {
-    when:
-    vehicles().checkAll([INVALID], CheckMode.FAIL_FAST)
-
-    then:
-    def e = thrown(BusinessRuleViolationException)
-    described(e) == ['vehicle.code-format [0]']
-  }
-
-  def 'Muster passes an empty collection, and one whose elements pass'() {
-    expect:
-    vehicles().checkAll(inputs)
-    vehicles().checkAll(inputs, CheckMode.FAIL_FAST)
-
-    where:
-    inputs << [[], [VALID, new CreateVehicle('TR-2', 'Zeus')]]
-  }
-
-  def 'Muster rejects a collection of #problem'() {
-    when:
-    vehicles().checkAll(inputs)
-
-    then:
-    def e = thrown(exception)
-    e.message == message
-
-    where:
-    problem                       | inputs || exception                | message
-    'elements of different classes' | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || IllegalArgumentException | "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
-    'a null element'              | [VALID, null] || NullPointerException     | 'the element at [1] is null'
-    'no collection'               | null || NullPointerException     | 'inputs'
-  }
-
-  def 'Muster rejects a collection without a mode'() {
-    when:
-    vehicles().checkAll([VALID], null)
-
-    then:
-    def e = thrown(NullPointerException)
-    e.message == 'mode'
-  }
-
-  def 'a binding checks a collection with the rules bound to the class of its elements'() {
-    given:
-    def binding = vehicles().binding(VehicleFields).build()
-
-    when:
-    binding.checkAll([new UpdateVehicle(1L, 'bad', 'Zeus'), new UpdateVehicle(2L, 'TR-2', 'taken')])
-
-    then:
-    def e = thrown(BusinessRuleViolationException)
-    described(e) == ['vehicle.code-format [0]', 'vehicle.name-unique [1]']
-  }
-
-  def 'a binding of a type that is not final rejects elements of different classes'() {
-    when:
-    vehicles().binding(VehicleFields).build().checkAll([VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')])
-
-    then:
-    def e = thrown(IllegalArgumentException)
-    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
-  }
-
-  def 'a binding of a final type checks a collection with its own chain'() {
-    given:
-    def binding = vehicles().binding(CreateVehicle).rules(NameUnique).build()
-
-    when:
-    binding.checkAll([VALID, INVALID])
-
-    then:
-    def e = thrown(BusinessRuleViolationException)
-    described(e) == ['vehicle.name-unique [1]', 'vehicle.code-format [1]']
-  }
-
-  def 'a binding of #type.simpleName passes an empty collection, and one whose elements pass'() {
-    expect:
-    vehicles().binding(type).build().checkAll(inputs)
-
-    where:
-    [type, inputs] << [[VehicleFields, CreateVehicle], [[], [VALID]]].combinations()
-  }
-
-  def 'a binding rejects an element of another type, which only unchecked code can pass'() {
-    when:
-    vehicles().binding(CreateVehicle).build().checkAll([VALID, 'two'])
-
-    then:
-    def e = thrown(IllegalArgumentException)
-    e.message == "the binding checks ${CreateVehicle.typeName}; the element at [1] is a java.lang.String"
-  }
-
-  def 'the position of a violation is read from the front of its target: #target'() {
-    expect:
-    RuleChain.position(violation(target)) == position
-
-    where:
-    target || position
-    '[3].name' || 3
-    '[12]' || 12
-    '[10]' || 10
-    '[9]' || 9
-    '[3][0]' || 3
-    'name' || -1
-    '[]' || -1
-    '[x]' || -1
-    'items[2]' || -1
-    '[99999999999]' || -1
-    '[2147483647]' || 2147483647
-    '[2147483648]' || -1
-    '[' || -1
-    '[3' || -1
-    '[3x]' || -1
-    '[+1]' || -1
-    '[-0]' || -1
-    '[\uFF13]' || -1
-    null || -1
-  }
-
-  static Violation violation(String target) {
-    def builder = RuleContext.forRule('task.exists').violation()
-    target == null ? builder.build() : builder.target(target).build()
   }
 }

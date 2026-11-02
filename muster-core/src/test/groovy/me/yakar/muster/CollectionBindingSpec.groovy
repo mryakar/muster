@@ -593,4 +593,55 @@ class CollectionBindingSpec extends EngineSpecification {
     then:
     targets.ruleIds() == [(CreateVehicle): ['vehicle.batch-limit', 'vehicle.code-format']]
   }
+
+  def 'Muster checks a collection of rule targets with the rules bound to their class'() {
+    when:
+    vehicles(new NameUnique(), new CodeFormat()).checkAll([VALID, INVALID])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [1]', 'vehicle.name-unique [1]']
+  }
+
+  def 'Muster checks a collection in the mode it is given'() {
+    when:
+    vehicles(new NameUnique(), new CodeFormat()).checkAll([INVALID], CheckMode.FAIL_FAST)
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [0]']
+  }
+
+  def 'Muster passes an empty collection, and one whose elements pass'() {
+    expect:
+    vehicles(new NameUnique(), new CodeFormat()).checkAll(inputs)
+    vehicles(new NameUnique(), new CodeFormat()).checkAll(inputs, CheckMode.FAIL_FAST)
+
+    where:
+    inputs << [[], [VALID, new CreateVehicle('TR-2', 'Zeus')]]
+  }
+
+  def 'Muster rejects a collection of #problem'() {
+    when:
+    vehicles(new NameUnique(), new CodeFormat()).checkAll(inputs)
+
+    then:
+    def e = thrown(exception)
+    e.message == message
+
+    where:
+    problem                       | inputs || exception                | message
+    'elements of different classes' | [VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')] || IllegalArgumentException | "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+    'a null element'              | [VALID, null] || NullPointerException     | 'the element at [1] is null'
+    'no collection'               | null || NullPointerException     | 'inputs'
+  }
+
+  def 'Muster rejects a collection without a mode'() {
+    when:
+    vehicles(new NameUnique(), new CodeFormat()).checkAll([VALID], null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'mode'
+  }
 }
