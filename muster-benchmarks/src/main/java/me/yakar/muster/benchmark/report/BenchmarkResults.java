@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.benchmark;
+package me.yakar.muster.benchmark.report;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,6 +28,12 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
+import me.yakar.muster.benchmark.BindingBenchmark;
+import me.yakar.muster.benchmark.CheckBenchmark;
+import me.yakar.muster.benchmark.CollectionBenchmark;
+import me.yakar.muster.benchmark.ListenerBenchmark;
+import me.yakar.muster.benchmark.StarterBenchmark;
+import me.yakar.muster.benchmark.ViolationBenchmark;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;

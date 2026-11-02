@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.benchmark;
+package me.yakar.muster.benchmark.report;
 
-import static me.yakar.muster.benchmark.BenchmarkResults.format;
+import static me.yakar.muster.benchmark.report.BenchmarkResults.format;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -26,7 +26,8 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import me.yakar.muster.benchmark.BenchmarkResults.Run;
+import me.yakar.muster.benchmark.CheckBenchmark;
+import me.yakar.muster.benchmark.report.BenchmarkResults.Run;
 
 /**
  * The line chart of {@link CheckBenchmark} that the README shows: the time of a passing check
