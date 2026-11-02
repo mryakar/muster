@@ -17,6 +17,7 @@ package me.yakar.muster.internal.rule;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -116,13 +118,52 @@ public final class RuleCatalog {
   }
 
   /**
-   * Returns whether a rule is switched off.
+   * Checks the listed and excluded rules of a binding: each listed rule passes the given check,
+   * each excluded one is registered and not listed, and no enabled listed rule requires an excluded
+   * one.
    *
-   * @param ruleClass the rule class
-   * @return whether it is disabled
+   * @param listed the listed rules
+   * @param excluded the excluded rules
+   * @param requireListable checks a listed rule, and throws if it cannot be listed
+   * @throws IllegalArgumentException if a rule fails one of the checks
    */
-  public boolean isDisabled(Class<?> ruleClass) {
-    return disabled.contains(ruleClass);
+  public void requireSelectable(
+      Set<Class<?>> listed, Set<Class<?>> excluded, Consumer<Class<?>> requireListable) {
+    listed.forEach(requireListable);
+    for (var ruleClass : excluded) {
+      registered(ruleClass);
+      if (listed.contains(ruleClass)) {
+        throw new IllegalArgumentException(
+            ruleClass.getTypeName() + " is both listed and excluded");
+      }
+    }
+    var problems = new ArrayList<String>();
+    for (var ruleClass : listed) {
+      if (disabled.contains(ruleClass)) {
+        continue;
+      }
+      var required = excludedRequirement(ruleClass, excluded);
+      if (required != null) {
+        problems.add(
+            "'" + registered(ruleClass).id() + "' requires '" + registered(required).id() + "'");
+      }
+    }
+    if (!problems.isEmpty()) {
+      throw new IllegalArgumentException(
+          "listed rules require excluded rules, directly or through other rules: "
+              + String.join("; ", problems)
+              + "; list other rules, or stop excluding what they require");
+    }
+  }
+
+  /**
+   * Returns the ids of registered rules, in the given order.
+   *
+   * @param ruleClasses the registered rules
+   * @return the ids
+   */
+  public List<String> ids(Collection<Class<?>> ruleClasses) {
+    return ruleClasses.stream().map(ruleClass -> registered(ruleClass).id()).toList();
   }
 
   /**
@@ -193,7 +234,7 @@ public final class RuleCatalog {
    * @param excluded the classes of the excluded rules
    * @return the first excluded rule found, or {@code null}
    */
-  public @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
+  @Nullable Class<?> excludedRequirement(Class<?> ruleClass, Set<Class<?>> excluded) {
     if (excluded.isEmpty()) {
       return null;
     }

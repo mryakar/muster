@@ -15,19 +15,14 @@
  */
 package me.yakar.muster;
 
-import static java.util.Objects.requireNonNull;
-
 import java.lang.reflect.Modifier;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import me.yakar.muster.internal.rule.ChainPlan;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The rules a collection is checked against, in one call: rules that check each element and rules
@@ -56,14 +51,11 @@ public final class CollectionBinding<E> {
   private final Selection selection;
   private final CheckMode mode;
 
-  /** The chain of the only class an element of a final type can have, or {@code null}. */
-  private final @Nullable RuleChain<Object> only;
-
   /**
-   * The chains of the classes of the rule targets checked so far, and, bound when the binding is
-   * built, the chain of the element type for other elements, for a type that is not final.
+   * The chains of the classes of the rule targets checked so far, and of the element type for other
+   * elements, bound when the binding is built; for a final element type, its one chain.
    */
-  private final ClassChains chains = new ClassChains(this::bind);
+  private final ClassChains chains;
 
   private CollectionBinding(
       Muster muster, Class<?> elementType, Selection selection, CheckMode mode) {
@@ -71,20 +63,12 @@ public final class CollectionBinding<E> {
     this.elementType = elementType;
     this.selection = selection;
     this.mode = mode;
-    if (Modifier.isFinal(elementType.getModifiers())) {
-      var bound = bind(elementType);
-      bound.plan().log();
-      this.only = bound.chain();
-    } else if (RuleTarget.class.isAssignableFrom(elementType)) {
+    this.chains = ClassChains.forType(elementType, this::bind);
+    if (!Modifier.isFinal(elementType.getModifiers())
+        && RuleTarget.class.isAssignableFrom(elementType)) {
       // The class of the elements is bound on their first check; planning the declared type now
       // fails at once for listed rules, and what they require, that cannot check its elements.
       ChainPlan.collection(muster.catalog(), elementType, selection);
-      this.only = null;
-    } else {
-      // The one chain of every collection of elements that are not rule targets; binding it now
-      // logs it.
-      this.only = null;
-      chains.of(elementType);
     }
   }
 
@@ -101,15 +85,10 @@ public final class CollectionBinding<E> {
    *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
   public void check(Collection<? extends E> inputs) {
-    var elements = RuleChain.elements(inputs, elementType, only == null, "binding");
-    if (elements.isEmpty()) {
-      return;
+    var elements = RuleChain.elements(inputs, elementType, true, "binding");
+    if (!elements.isEmpty()) {
+      chains.of(RuleChain.chainKey(elements.getFirst(), elementType)).runAll(elements, mode);
     }
-    var chain = only;
-    if (chain == null) {
-      chain = chains.of(RuleChain.chainKey(elements.getFirst(), elementType));
-    }
-    chain.runAll(elements, mode);
   }
 
   /**
@@ -131,7 +110,7 @@ public final class CollectionBinding<E> {
    * @return the ids by class, unmodifiable
    */
   public Map<Class<?>, List<String>> ruleIds() {
-    return only != null ? Map.of(elementType, only.ruleIds()) : chains.ruleIds();
+    return chains.ruleIds();
   }
 
   /**
@@ -142,20 +121,14 @@ public final class CollectionBinding<E> {
    */
   @Override
   public String toString() {
-    var catalog = muster.catalog();
     return "CollectionBinding[name="
         + selection.name()
         + ", elements="
         + elementType.getTypeName()
         + ", mode="
         + mode
-        + ", rules="
-        + selection.listed().stream().map(ruleClass -> catalog.registered(ruleClass).id()).toList()
-        + ", excluded="
-        + selection.excluded().stream()
-            .map(ruleClass -> catalog.registered(ruleClass).id())
-            .sorted()
-            .toList()
+        + ", "
+        + selection.describe(muster.catalog())
         + "]";
   }
 
@@ -173,10 +146,7 @@ public final class CollectionBinding<E> {
 
     private final Muster muster;
     private final Class<E> elementType;
-    private final Set<Class<?>> listed = new LinkedHashSet<>();
-    private final Set<Class<?>> excluded = new LinkedHashSet<>();
-    private @Nullable CheckMode mode;
-    private @Nullable String name;
+    private final SelectionBuilder selection = new SelectionBuilder();
 
     Builder(Muster muster, Class<E> elementType) {
       this.muster = muster;
@@ -194,7 +164,7 @@ public final class CollectionBinding<E> {
     @SafeVarargs
     public final Builder<E> rules(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        Muster.requireDistinct(listed, ruleClass, "listed");
+        selection.list(ruleClass);
       }
       return this;
     }
@@ -210,7 +180,7 @@ public final class CollectionBinding<E> {
     @SafeVarargs
     public final Builder<E> exclude(Class<? extends BusinessRule<?>>... ruleClasses) {
       for (var ruleClass : ruleClasses) {
-        Muster.requireDistinct(excluded, ruleClass, "excluded");
+        selection.exclude(ruleClass);
       }
       return this;
     }
@@ -222,7 +192,7 @@ public final class CollectionBinding<E> {
      * @return this builder
      */
     public Builder<E> mode(CheckMode mode) {
-      this.mode = requireNonNull(mode, "mode");
+      selection.mode(mode);
       return this;
     }
 
@@ -235,11 +205,7 @@ public final class CollectionBinding<E> {
      * @throws IllegalArgumentException if {@code name} is blank
      */
     public Builder<E> name(String name) {
-      requireNonNull(name, "name");
-      if (name.isBlank()) {
-        throw new IllegalArgumentException("name must not be blank");
-      }
-      this.name = name;
+      selection.name(name);
       return this;
     }
 
@@ -257,19 +223,14 @@ public final class CollectionBinding<E> {
     public CollectionBinding<E> build() {
       var catalog = muster.catalog();
       var wrapped = Muster.wrap(elementType);
-      Binding.requireSelectable(
-          catalog,
-          listed,
-          excluded,
-          ruleClass -> catalog.requireListableInCollection(ruleClass, elementType, wrapped));
       return new CollectionBinding<>(
           muster,
           wrapped,
-          new Selection(
-              List.copyOf(listed),
-              Set.copyOf(excluded),
-              name == null ? wrapped.getTypeName() : name),
-          mode == null ? muster.mode() : mode);
+          selection.build(
+              catalog,
+              wrapped,
+              ruleClass -> catalog.requireListableInCollection(ruleClass, elementType, wrapped)),
+          selection.mode(muster));
     }
   }
 }
