@@ -16,6 +16,7 @@
 package me.yakar.muster.spring.internal.actuator
 
 import static me.yakar.muster.spring.Concurrency.concurrently
+import static me.yakar.muster.spring.Outcomes.failure
 
 import me.yakar.muster.CheckMode
 import me.yakar.muster.Muster
@@ -160,11 +161,9 @@ class MusterEndpointSpec extends Specification {
         report.types(),
         report.collections(),
         report.methods()[0].ruleIds()
-      ].each {
-        try {
-          it.clear()
-          assert false
-        } catch (UnsupportedOperationException expected) {
+      ].each { collection ->
+        failure(UnsupportedOperationException) {
+          collection.clear()
         }
       }
     }

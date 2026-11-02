@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Outcomes.failure
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
 import java.util.logging.Level
@@ -163,12 +164,10 @@ class SelfInvocationAdviceSpec extends Specification {
     runner.withUserConfiguration(LazyBeans).withBean(Garage).run { context ->
       assert context.startupFailure == null
       2.times {
-        try {
+        def e = failure(BeanCreationException) {
           context.getBean(Garage)
-          assert false
-        } catch (BeanCreationException e) {
-          assert getMostSpecificCause(e).message == FOUND + GARAGE.join('; ') + REMEDY
         }
+        assert getMostSpecificCause(e).message == FOUND + GARAGE.join('; ') + REMEDY
       }
     }
   }
@@ -177,12 +176,10 @@ class SelfInvocationAdviceSpec extends Specification {
     expect:
     runner.withUserConfiguration(LazyBeans).withBean(Garage).withBean(Careful).run { context ->
       assert context.startupFailure == null
-      try {
+      def e = failure(BeanCreationException) {
         context.getBean(Garage)
-        assert false
-      } catch (BeanCreationException e) {
-        assert getMostSpecificCause(e).message == FOUND + GARAGE.join('; ') + REMEDY
       }
+      assert getMostSpecificCause(e).message == FOUND + GARAGE.join('; ') + REMEDY
       def careful = context.getBean(Careful)
       careful.register('Boreas')
       assert careful.saved()*.name() == ['Boreas']

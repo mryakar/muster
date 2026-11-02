@@ -16,6 +16,7 @@
 package me.yakar.muster.spring.internal.observation
 
 import static me.yakar.muster.spring.Concurrency.concurrently
+import static me.yakar.muster.spring.Outcomes.failure
 
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistry
@@ -149,12 +150,10 @@ class ObservationSpec extends Specification {
     expect:
     runner.run { context ->
       def registry = context.getBean(TestObservationRegistry)
-      try {
+      def e = failure(BusinessRuleViolationException) {
         context.getBean(ShipmentService).create(new Shipment('bad code'))
-        assert false
-      } catch (BusinessRuleViolationException expected) {
-        assert expected.violations()*.ruleId() == ['shipment.code-format']
       }
+      assert e.violations()*.ruleId() == ['shipment.code-format']
       def observed = observed(registry)
       assert observed*.contextualName == ['ShipmentService.create(Shipment)', 'shipment.code-format']
       assert observed*.tags.outcome == ['failed', 'failed']
@@ -167,12 +166,10 @@ class ObservationSpec extends Specification {
     expect:
     runner.withPropertyValues('muster.mode=collect-all').run { context ->
       def registry = context.getBean(TestObservationRegistry)
-      try {
+      def e = failure(BusinessRuleViolationException) {
         context.getBean(ShipmentService).create(new Shipment('bad code'))
-        assert false
-      } catch (BusinessRuleViolationException expected) {
-        assert expected.violations()*.ruleId() == ['shipment.code-format']
       }
+      assert e.violations()*.ruleId() == ['shipment.code-format']
       assert observed(registry)*.tags.outcome == ['failed', 'failed', 'skipped', 'skipped', 'passed']
     }
   }
@@ -181,12 +178,9 @@ class ObservationSpec extends Specification {
     expect:
     runner.run { context ->
       def registry = context.getBean(TestObservationRegistry)
-      try {
+      assert failure(IllegalStateException) {
         context.getBean(ShipmentService).create(new Shipment('BOOM'))
-        assert false
-      } catch (IllegalStateException expected) {
-        assert expected.is(CodeFree.FAILURE)
-      }
+      }.is(CodeFree.FAILURE)
       def observed = observed(registry)
       assert observed*.contextualName == ['ShipmentService.create(Shipment)', 'shipment.code-format', 'shipment.code-free']
       assert observed*.tags.outcome == ['error', 'passed', 'error']

@@ -16,6 +16,7 @@
 package me.yakar.muster.spring.internal.advice
 
 import static me.yakar.muster.spring.Concurrency.concurrently
+import static me.yakar.muster.spring.Outcomes.failure
 
 import jakarta.validation.ConstraintViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
@@ -143,12 +144,9 @@ class ValidationAdviceSpec extends Specification {
     expect:
     runner.withUserConfiguration(Prototype).run { context ->
       def failures = concurrently {
-        try {
+        failure(ConstraintViolationException) {
           context.getBean('prototypeService', ValidatedService).create(' ')
-          null
-        } catch (ConstraintViolationException e) {
-          e.class
-        }
+        }.class
       }
       assert failures == [ConstraintViolationException] * 16
       assert Steps.NOTED == ['constraint'] * 16

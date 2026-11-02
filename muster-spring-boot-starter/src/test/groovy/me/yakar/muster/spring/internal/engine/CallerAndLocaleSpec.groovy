@@ -16,6 +16,7 @@
 package me.yakar.muster.spring.internal.engine
 
 import static me.yakar.muster.spring.Concurrency.concurrently
+import static me.yakar.muster.spring.Outcomes.failure
 
 import java.security.Principal
 import java.util.function.Supplier
@@ -115,12 +116,9 @@ class CallerAndLocaleSpec extends Specification {
   }
 
   static Map<String, Object> reported(Muster muster) {
-    try {
+    failure(BusinessRuleViolationException) {
       muster.check(new Call('anything'))
-      throw new AssertionError('the call passed')
-    } catch (BusinessRuleViolationException e) {
-      e.violations().first().clientArgs()
-    }
+    }.violations().first().clientArgs()
   }
 
   static UsernamePasswordAuthenticationToken user(String name) {
