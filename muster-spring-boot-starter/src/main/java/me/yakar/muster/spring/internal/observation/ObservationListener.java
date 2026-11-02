@@ -58,7 +58,7 @@ final class ObservationListener implements CheckListener {
             .lowCardinalityKeyValue("name", check.name());
     // A no-op observation, as when a predicate of the registry leaves muster.check out, is not
     // worth an observer: nothing of the check is observed.
-    return observation.isNoop() ? null : new ObservedCheck(registry, observation.start());
+    return observation.isNoop() ? null : new CheckObservations(registry, observation.start());
   }
 
   private static Map<Outcome, KeyValue> outcomes() {
@@ -70,7 +70,7 @@ final class ObservationListener implements CheckListener {
   }
 
   /** The observations of one check: the check's own, in scope, and the rule that runs. */
-  private static final class ObservedCheck implements Observer {
+  private static final class CheckObservations implements Observer {
 
     private final ObservationRegistry registry;
     private final Observation check;
@@ -78,7 +78,7 @@ final class ObservationListener implements CheckListener {
     private @Nullable Observation rule;
     private Observation.@Nullable Scope ruleScope;
 
-    ObservedCheck(ObservationRegistry registry, Observation check) {
+    CheckObservations(ObservationRegistry registry, Observation check) {
       this.registry = registry;
       this.check = check;
       this.checkScope = check.openScope();
