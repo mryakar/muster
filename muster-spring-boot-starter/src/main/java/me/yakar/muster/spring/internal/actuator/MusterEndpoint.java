@@ -33,8 +33,9 @@ import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
  * The actuator endpoint {@code muster}: the rules of every advised method, with the chains bound so
  * far and the rules in the order they run, the rules that the configuration switches off, and the
  * chains bound by type so far. It reads what Muster has prepared and binds nothing itself: a class
- * that is not prepared yet, such as that of a lazy bean not called so far, is not listed, and the
- * chain of a class checked for the first time is listed from then on.
+ * that is not prepared yet, such as that of a lazy bean not called so far, is not listed. The chain
+ * of an input type that is final or not a rule target is listed from startup, and the chain of the
+ * class of a rule target from its first check.
  */
 @Endpoint(id = "muster")
 public final class MusterEndpoint {
@@ -107,8 +108,8 @@ public final class MusterEndpoint {
      *     what runs
      * @param excluded the ids of the rules the method excludes, as it lists them
      * @param ruleIds the ids of the rules of the chains bound so far, by class, each in the order
-     *     they run: one chain, bound at startup, for a final input type or for elements that are
-     *     not rule targets; otherwise the chain of each class checked so far
+     *     they run: the chain of the input type, bound at startup, for a type that is final or not
+     *     a rule target, and the chain of the class of each rule target checked so far
      */
     public record Method(
         String method,
