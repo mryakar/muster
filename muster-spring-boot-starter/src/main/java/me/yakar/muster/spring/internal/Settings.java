@@ -69,9 +69,8 @@ public final class Settings {
    * @throws IllegalStateException if {@code muster.mode} is set to an empty value
    */
   public static CheckMode mode(Environment environment) {
-    var binder = Binder.get(environment);
-    requireValue(binder, MODE, "fail-fast or collect-all");
-    return binder.bind(MODE, Bindable.of(CheckMode.class)).orElse(CheckMode.FAIL_FAST);
+    return value(
+        environment, MODE, CheckMode.class, CheckMode.FAIL_FAST, "fail-fast or collect-all");
   }
 
   /**
@@ -140,7 +139,7 @@ public final class Settings {
    * @throws IllegalStateException if {@code muster.transaction.reorder-advisor} is set to nothing
    */
   public static boolean reorderTransactionAdvisor(Environment environment) {
-    return flag(environment, REORDER_TRANSACTION_ADVISOR);
+    return value(environment, REORDER_TRANSACTION_ADVISOR, Boolean.class, true, "true or false");
   }
 
   /**
@@ -149,7 +148,7 @@ public final class Settings {
    * @throws IllegalStateException if {@code muster.validation.reorder-advisor} is set to nothing
    */
   public static boolean reorderValidationAdvisor(Environment environment) {
-    return flag(environment, REORDER_VALIDATION_ADVISOR);
+    return value(environment, REORDER_VALIDATION_ADVISOR, Boolean.class, true, "true or false");
   }
 
   /**
@@ -159,11 +158,8 @@ public final class Settings {
    *     or to a status that is not a client error
    */
   public static int mixedStatus(Environment environment) {
-    var binder = Binder.get(environment);
     var values = "a status code from 400 to 499";
-    requireValue(binder, MIXED_STATUS, values);
-    int status =
-        binder.bind(MIXED_STATUS, Bindable.of(Integer.class)).orElse(UNPROCESSABLE_CONTENT);
+    int status = value(environment, MIXED_STATUS, Integer.class, UNPROCESSABLE_CONTENT, values);
     if (status < 400 || status > 499) {
       throw new IllegalStateException(
           MIXED_STATUS
@@ -182,11 +178,12 @@ public final class Settings {
    * @throws IllegalStateException if {@code muster.self-invocation} is set to nothing
    */
   public static SelfInvocationMode selfInvocation(Environment environment) {
-    var binder = Binder.get(environment);
-    requireValue(binder, SELF_INVOCATION, "fail, warn or off");
-    return binder
-        .bind(SELF_INVOCATION, Bindable.of(SelfInvocationMode.class))
-        .orElse(SelfInvocationMode.FAIL);
+    return value(
+        environment,
+        SELF_INVOCATION,
+        SelfInvocationMode.class,
+        SelfInvocationMode.FAIL,
+        "fail, warn or off");
   }
 
   /** Returns whether proxies extend the class of their target, as in Spring Boot by default. */
@@ -196,11 +193,21 @@ public final class Settings {
         .orElse(true);
   }
 
-  /** Returns a flag that is on unless the configuration sets it to {@code false}. */
-  private static boolean flag(Environment environment, ConfigurationPropertyName key) {
+  /**
+   * Returns the value of a key, or the fallback if the key is not set.
+   *
+   * @param values the values the key takes, for the error
+   * @throws IllegalStateException if the key is set to nothing
+   */
+  private static <T> T value(
+      Environment environment,
+      ConfigurationPropertyName key,
+      Class<T> type,
+      T fallback,
+      String values) {
     var binder = Binder.get(environment);
-    requireValue(binder, key, "true or false");
-    return binder.bind(key, Bindable.of(Boolean.class)).orElse(true);
+    requireValue(binder, key, values);
+    return binder.bind(key, Bindable.of(type)).orElse(fallback);
   }
 
   private static boolean inRules(ConfigurationPropertyName name) {
