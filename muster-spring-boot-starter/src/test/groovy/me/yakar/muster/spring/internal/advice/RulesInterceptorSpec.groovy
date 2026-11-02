@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.Rules
 import me.yakar.muster.spring.fixture.advice.SaveVehicle
+import me.yakar.muster.spring.fixture.advice.UnregisteredRule
 import me.yakar.muster.spring.fixture.advice.VehicleComponent
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import org.aopalliance.intercept.MethodInvocation
@@ -153,5 +154,99 @@ class RulesInterceptorSpec extends Specification {
     noted
     [VehicleComponent, OtherComponent, LaterComponent].every { table.contains(it) }
     resolved == 1
+  }
+
+  def 'a class that fails while another thread prepares it fails on its own thread too: #first.simpleName noted first'() {
+    given: 'Muster of the next pass is got only once released, so that pass waits before the lock'
+    def blockNext = false
+    def entered = new CountDownLatch(1)
+    def release = new CountDownLatch(1)
+    def table = new AdviceTable()
+    def racing = new RulesInterceptor(
+        table,
+        [getObject: { Object[] args ->
+            if (blockNext) {
+              blockNext = false
+              entered.countDown()
+              assert release.await(1, TimeUnit.MINUTES)
+            }
+            muster
+          }] as ObjectProvider,
+        [getIfAvailable: { Object[] args ->
+            null
+          }] as ObjectProvider,
+        SelfInvocationMode.FAIL)
+    racing.afterSingletonsInstantiated()
+    def expected = attempt {
+      interceptor.afterSingletonsInstantiated()
+      interceptor.note(UnregisteredRule)
+    }.get(1, TimeUnit.MINUTES)
+    assert expected instanceof IllegalArgumentException
+
+    when: 'the second class is noted, and its pass runs, while the pass of the first waits'
+    blockNext = true
+    def waiting = attempt { racing.note(first) }
+    assert entered.await(1, TimeUnit.MINUTES)
+    def passed = attempt { racing.note(second) }.get(1, TimeUnit.MINUTES)
+    release.countDown()
+    def released = waiting.get(1, TimeUnit.MINUTES)
+    def outcomes = [(first): released, (second): passed]
+
+    then: 'the failing class fails on the thread that noted it, with its own error'
+    outcomes[UnregisteredRule].getClass() == expected.getClass()
+    outcomes[UnregisteredRule].message == expected.message
+
+    and: 'the thread of the other class fails only if its pass met the failing class'
+    outcomes[OtherComponent]?.message == (otherMeetsFailure ? expected.message : null)
+
+    and: 'the other class is prepared, and noting it again passes'
+    table.contains(OtherComponent)
+    !table.contains(UnregisteredRule)
+    attempt { racing.note(OtherComponent) }.get(1, TimeUnit.MINUTES) == null
+
+    where:
+    first            | second || otherMeetsFailure
+    UnregisteredRule | OtherComponent || true
+    OtherComponent   | UnregisteredRule || false
+  }
+
+  /** Runs the call on a new thread; the future gets what it threw, or null. */
+  private static CompletableFuture<Throwable> attempt(Closure<?> call) {
+    def future = new CompletableFuture<Throwable>()
+    Thread.start {
+      try {
+        def result = call()
+        future.complete(result instanceof Throwable ? result : null)
+      } catch (Throwable e) {
+        future.complete(e)
+      }
+    }
+    future
+  }
+
+  def 'a class that fails to prepare fails every time it is noted, and the classes noted after it are prepared'() {
+    given:
+    def table = interceptor.@table
+    interceptor.afterSingletonsInstantiated()
+
+    when:
+    interceptor.note(UnregisteredRule)
+
+    then:
+    def first = thrown(IllegalArgumentException)
+
+    when:
+    interceptor.note(OtherComponent)
+
+    then:
+    table.contains(OtherComponent)
+
+    when:
+    interceptor.note(UnregisteredRule)
+
+    then:
+    def again = thrown(IllegalArgumentException)
+    again.message == first.message
+    !table.contains(UnregisteredRule)
   }
 }

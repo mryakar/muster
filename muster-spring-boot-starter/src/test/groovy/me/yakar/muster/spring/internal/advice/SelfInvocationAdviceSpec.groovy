@@ -173,6 +173,22 @@ class SelfInvocationAdviceSpec extends Specification {
     }
   }
 
+  def 'a bean created after the application started is prepared when a bean refused before it has calls through this'() {
+    expect:
+    runner.withUserConfiguration(LazyBeans).withBean(Garage).withBean(Careful).run { context ->
+      assert context.startupFailure == null
+      try {
+        context.getBean(Garage)
+        assert false
+      } catch (BeanCreationException e) {
+        assert getMostSpecificCause(e).message == FOUND + GARAGE.join('; ') + REMEDY
+      }
+      def careful = context.getBean(Careful)
+      careful.register('Boreas')
+      assert careful.saved()*.name() == ['Boreas']
+    }
+  }
+
   def 'a call through the proxy of a base, a private or a package-private method of it is no self-invocation: #bean.simpleName'() {
     expect:
     runner.withBean(bean).run { context ->
