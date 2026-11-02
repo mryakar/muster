@@ -16,7 +16,10 @@
 package me.yakar.muster.spring.internal.advice;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import me.yakar.muster.Binding;
@@ -26,6 +29,8 @@ import me.yakar.muster.Muster;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * The advice of one method: the binding that checks its input, the rules the method lists and
@@ -38,6 +43,38 @@ record MethodAdvice(
     List<Class<? extends BusinessRule<?>>> listed,
     List<Class<? extends BusinessRule<?>>> excluded,
     @Nullable TransactionGuard transaction) {
+
+  /**
+   * Prepares the advice of the advised methods of a class, each mapped from every method that a
+   * proxy may call for it: the method of the class, a bridge, or a method of an interface or a base
+   * class.
+   *
+   * @throws IllegalStateException if an advised method cannot be checked, see {@link #of}
+   */
+  static Map<Method, MethodAdvice> ofClass(
+      Muster muster, TransactionGuard.@Nullable Resolved transactions, Class<?> targetClass) {
+    var candidates = new LinkedHashSet<Method>();
+    if (!Proxy.isProxyClass(targetClass)) {
+      candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
+    }
+    for (var type : ClassUtils.getAllInterfacesForClassAsSet(targetClass)) {
+      candidates.addAll(List.of(type.getMethods()));
+    }
+    var bySpecific = new HashMap<Method, MethodAdvice>();
+    var advice = new HashMap<Method, MethodAdvice>();
+    for (var method : candidates) {
+      var specific = AdvisedMethods.advised(method, targetClass);
+      if (specific != null) {
+        var methodAdvice = bySpecific.get(specific);
+        if (methodAdvice == null) {
+          methodAdvice = MethodAdvice.of(muster, transactions, specific, targetClass);
+          bySpecific.put(specific, methodAdvice);
+        }
+        advice.put(method, methodAdvice);
+      }
+    }
+    return Map.copyOf(advice);
+  }
 
   /**
    * Prepares the advice of a method.

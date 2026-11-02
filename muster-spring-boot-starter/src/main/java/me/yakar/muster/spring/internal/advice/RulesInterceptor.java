@@ -15,18 +15,13 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
-import static java.lang.System.Logger.Level.WARNING;
-import static java.util.Comparator.comparing;
-
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import me.yakar.muster.Muster;
 import me.yakar.muster.spring.internal.selfinvocation.SelfInvocation;
 import me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode;
@@ -36,8 +31,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * Checks the input of an advised method against its rules, then calls the method.
@@ -54,8 +47,6 @@ import org.springframework.util.ReflectionUtils;
  * reads the {@link AdviceTable table} without a lock: two map lookups.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
-
-  private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
   private final ObjectProvider<Muster> muster;
   private final ObjectProvider<TransactionGuard> transactions;
@@ -151,7 +142,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
             // A class that fails is noted again when a bean of it is created, and fails again; the
             // classes noted after it do not fail with it.
             try {
-              advice = adviceOf(muster, resolved, targetClass);
+              advice = MethodAdvice.ofClass(muster, resolved, targetClass);
               found =
                   selfInvocation == SelfInvocationMode.OFF
                       ? List.of()
@@ -166,9 +157,9 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
               table.put(targetClass, advice);
             }
           }
-          requireNone(selfInvocations);
+          selfInvocation.requireNone(selfInvocations);
         }
-        warn(selfInvocations);
+        selfInvocation.warn(selfInvocations);
         checkOrder = guard != null && !orderChecked && !table.isEmpty();
         orderChecked |= checkOrder;
       }
@@ -188,79 +179,12 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
   }
 
   /**
-   * Fails on the calls of advised methods on {@code this} found so far, naming them all in the
-   * order of their callers, if the configuration says so.
-   *
-   * @throws IllegalStateException in {@link SelfInvocationMode#FAIL} mode, if any was found
-   */
-  private void requireNone(List<SelfInvocation> selfInvocations) {
-    if (selfInvocation == SelfInvocationMode.FAIL && !selfInvocations.isEmpty()) {
-      throw new IllegalStateException(
-          "Muster found calls of advised methods through this, which pass no proxy and check no"
-              + " rules: "
-              + sorted(selfInvocations).stream()
-                  .map(Object::toString)
-                  .collect(Collectors.joining("; "))
-              + ". Call the method through its bean: inject the bean itself, with @Lazy or an"
-              + " ObjectProvider, or move the method to another bean; or set"
-              + " muster.self-invocation=warn to log such calls instead");
-    }
-  }
-
-  /**
-   * Warns of each call of an advised method on {@code this} found in a pass, in the order of their
-   * callers.
-   */
-  private static void warn(List<SelfInvocation> selfInvocations) {
-    for (var found : sorted(selfInvocations)) {
-      LOGGER.log(
-          WARNING,
-          found + ", which passes no proxy and checks no rules; call the method through its bean");
-    }
-  }
-
-  private static List<SelfInvocation> sorted(List<SelfInvocation> selfInvocations) {
-    return selfInvocations.stream()
-        .sorted(comparing(SelfInvocation::caller).thenComparing(SelfInvocation::callee))
-        .toList();
-  }
-
-  /**
    * Returns the noted classes that are not prepared yet, and drops those that another pass prepared
    * since they were noted. Called under {@link #lock}.
    */
   private List<Class<?>> unprepared() {
     noted.removeIf(table::contains);
     return List.copyOf(noted);
-  }
-
-  /**
-   * Maps every method that a proxy may call for an advised method of the class to the advice of the
-   * method that the call runs.
-   */
-  private static Map<Method, MethodAdvice> adviceOf(
-      Muster muster, TransactionGuard.@Nullable Resolved transactions, Class<?> targetClass) {
-    var candidates = new LinkedHashSet<Method>();
-    if (!Proxy.isProxyClass(targetClass)) {
-      candidates.addAll(List.of(ReflectionUtils.getAllDeclaredMethods(targetClass)));
-    }
-    for (var type : ClassUtils.getAllInterfacesForClassAsSet(targetClass)) {
-      candidates.addAll(List.of(type.getMethods()));
-    }
-    var bySpecific = new HashMap<Method, MethodAdvice>();
-    var advice = new HashMap<Method, MethodAdvice>();
-    for (var method : candidates) {
-      var specific = AdvisedMethods.advised(method, targetClass);
-      if (specific != null) {
-        var methodAdvice = bySpecific.get(specific);
-        if (methodAdvice == null) {
-          methodAdvice = MethodAdvice.of(muster, transactions, specific, targetClass);
-          bySpecific.put(specific, methodAdvice);
-        }
-        advice.put(method, methodAdvice);
-      }
-    }
-    return Map.copyOf(advice);
   }
 
   @Override
