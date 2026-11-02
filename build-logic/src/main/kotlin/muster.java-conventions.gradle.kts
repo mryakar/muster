@@ -99,7 +99,6 @@ tasks.check { dependsOn(tasks.jacocoTestCoverageVerification) }
 pitest {
   pitestVersion = version("pitest")
   junit5PluginVersion = version("pitest-junit5-plugin")
-  targetClasses = setOf("me.yakar.muster.*")
   threads = Runtime.getRuntime().availableProcessors()
   outputFormats = setOf("HTML")
   timestampedReports = false
