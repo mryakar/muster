@@ -22,6 +22,7 @@ import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
 import me.yakar.muster.spring.fixture.transaction.TransactionProbe
 import me.yakar.muster.spring.fixture.transaction.TransactionalService
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
+import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.support.RootBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
@@ -76,6 +77,40 @@ class TransactionAdviceSpec extends Specification {
     @Bean
     PlatformTransactionManager transactionManager() {
       new FakeTransactionManager()
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableTransactionManagement(order = Ordered.LOWEST_PRECEDENCE)
+  static class TransactionsWithLowestOrder {
+    @Bean
+    PlatformTransactionManager transactionManager() {
+      new FakeTransactionManager()
+    }
+  }
+
+  /** A post-processor of the application that needs the service, so the service is created early. */
+  @Configuration(proxyBeanMethods = false)
+  static class EarlyService {
+    @Bean
+    static BeanPostProcessor needsService(TransactionalService service) {
+      new BeanPostProcessor() {}
+    }
+  }
+
+  /** A priority-ordered post-processor that needs the transaction advisor, so it is created early. */
+  @Configuration(proxyBeanMethods = false)
+  static class EarlyTransactionAdvisor {
+    @Bean
+    static NeedsTransactionAdvisor needsTransactionAdvisor(BeanFactoryTransactionAttributeSourceAdvisor advisor) {
+      new NeedsTransactionAdvisor()
+    }
+  }
+
+  static class NeedsTransactionAdvisor implements BeanPostProcessor, PriorityOrdered {
+    @Override
+    int getOrder() {
+      Ordered.HIGHEST_PRECEDENCE
     }
   }
 
@@ -149,6 +184,22 @@ class TransactionAdviceSpec extends Specification {
     'plain' || false
   }
 
+  def 'the transaction advice moves one step ahead however the application is configured: #configurations.simpleName'() {
+    expect:
+    runner.withUserConfiguration(configurations as Class[]).run { context ->
+      context.getBean(TransactionalService).required('call')
+      assert TransactionProbe.IN_TRANSACTION == [true]
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == Ordered.LOWEST_PRECEDENCE - 1
+    }
+
+    where:
+    configurations << [
+      [Transactions, EarlyService],
+      [Transactions, EarlyTransactionAdvisor],
+      [TransactionsWithLowestOrder]
+    ]
+  }
+
   def 'a method that requires a transaction fails when its rules run with none active'() {
     when:
     runner.withUserConfiguration(TransactionsWithoutSynchronization).run { context ->
@@ -204,6 +255,15 @@ class TransactionAdviceSpec extends Specification {
   def 'an order the application gives the transaction advice is left alone'() {
     expect:
     runner.withUserConfiguration(TransactionsWithOrder).run { context ->
+      assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == 0
+      context.getBean(TransactionalService).required('call')
+      assert TransactionProbe.IN_TRANSACTION == [true]
+    }
+  }
+
+  def 'with the reordering switched off, an order the application gives still works'() {
+    expect:
+    runner.withUserConfiguration(TransactionsWithOrder).withPropertyValues('muster.transaction.reorder-advisor=false').run { context ->
       assert context.getBean(BeanFactoryTransactionAttributeSourceAdvisor).order == 0
       context.getBean(TransactionalService).required('call')
       assert TransactionProbe.IN_TRANSACTION == [true]
