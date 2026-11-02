@@ -34,14 +34,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import org.springframework.boot.Banner;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.support.GenericApplicationContext;
 
 /**
  * What a check listener adds to {@code muster.check(target)}, with Muster as the starter builds it:
@@ -78,21 +74,7 @@ public class ListenerBenchmark {
           case "observation" -> new Class<?>[] {Application.class, Observations.class};
           default -> throw new IllegalArgumentException("unknown listener: " + listener);
         };
-    context =
-        new SpringApplicationBuilder(sources)
-            .web(WebApplicationType.NONE)
-            .bannerMode(Banner.Mode.OFF)
-            .logStartupInfo(false)
-            // With no rules, Muster warns that none binds to the input; here that is intended.
-            .properties("logging.level.root=warn", "logging.level.me.yakar.muster=error")
-            .initializers(
-                applicationContext ->
-                    Rules.first(rules)
-                        .forEach(
-                            rule ->
-                                ((GenericApplicationContext) applicationContext)
-                                    .registerBean(ruleClass(rule), () -> rule)))
-            .run();
+    context = Applications.start(rules, sources);
     muster = context.getBean(Muster.class);
     order = new Order(0);
   }
@@ -107,11 +89,6 @@ public class ListenerBenchmark {
   @Benchmark
   public void target() {
     muster.check(order);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Class<Rules.IndexedRule> ruleClass(Rules.IndexedRule rule) {
-    return (Class<Rules.IndexedRule>) rule.getClass();
   }
 
   /** The application: Muster's auto-configuration. */
