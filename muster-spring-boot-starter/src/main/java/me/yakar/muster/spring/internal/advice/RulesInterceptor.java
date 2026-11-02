@@ -132,8 +132,8 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
       var muster = this.muster.getObject();
       guard = transactions.getIfAvailable();
       var resolved = guard == null ? null : guard.resolve();
+      var selfInvocations = new ArrayList<SelfInvocation>();
       synchronized (lock) {
-        var selfInvocations = new ArrayList<SelfInvocation>();
         // Preparing a class may note another, so the pass goes over a copy until none is left.
         for (var unprepared = unprepared(); !unprepared.isEmpty(); unprepared = unprepared()) {
           for (var targetClass : unprepared) {
@@ -159,10 +159,11 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
           }
           selfInvocation.requireNone(selfInvocations);
         }
-        selfInvocation.warn(selfInvocations);
         checkOrder = guard != null && !orderChecked && !table.isEmpty();
         orderChecked |= checkOrder;
       }
+      // Logged without the lock, so that a slow log does not hold up the threads that need it.
+      selfInvocation.warn(selfInvocations);
     } finally {
       inPass.remove();
     }
