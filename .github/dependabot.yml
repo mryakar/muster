@@ -37,3 +37,16 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: weekly
+    # Versions younger than two weeks are left alone; security updates are not held back.
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      npm:
+        patterns: ["*"]
