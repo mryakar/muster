@@ -120,7 +120,7 @@ final class ObservedCheck {
    * suppressed on it already: the observer may throw the exception it was told of, or one instance
    * every time, and an exception cannot suppress itself.
    */
-  private static void suppress(Throwable exception, Throwable fromObserver) {
+  static void suppress(Throwable exception, Throwable fromObserver) {
     if (fromObserver == exception) {
       return;
     }
