@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring.fixture.web
+package me.yakar.muster.spring.fixture.problem
 
 import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.rule.Violation

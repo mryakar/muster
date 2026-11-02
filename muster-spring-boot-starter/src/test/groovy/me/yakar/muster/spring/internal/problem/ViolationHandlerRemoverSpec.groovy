@@ -15,8 +15,8 @@
  */
 package me.yakar.muster.spring.internal.problem
 
-import me.yakar.muster.spring.fixture.web.CatchAllAdvice
-import me.yakar.muster.spring.fixture.web.NamingAdvice
+import me.yakar.muster.spring.fixture.problem.CatchAllAdvice
+import me.yakar.muster.spring.fixture.problem.NamingAdvice
 import org.springframework.beans.factory.support.DefaultListableBeanFactory
 import org.springframework.beans.factory.support.RootBeanDefinition
 import org.springframework.beans.factory.support.StaticListableBeanFactory
