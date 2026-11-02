@@ -66,10 +66,12 @@ When the Gradle wrapper moves to a version that bundles another Groovy, which th
 files in the `lib` directory of the distribution name, put that version in the rule. When you add or
 update a dependency, update the file with the tasks that resolve it, and review what changed.
 `--refresh-dependencies` makes Gradle read parent and BOM POMs again, which it would otherwise take
-from its cache without recording them:
+from its cache without recording them. The build resolves the oldest Spring Boot the starter
+supports; the second command records the newest, which CI tests the starter against:
 
 ```bash
 ./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks build pitest publishToMavenLocal
+./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks :muster-spring-boot-starter:check -PspringBootVersion=latest
 ```
 
 The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`, and
