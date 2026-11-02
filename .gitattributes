@@ -2,3 +2,6 @@
 *.bat text eol=crlf
 *.jar binary
 *.ser binary
+# Written by the jmhReport task.
+docs/benchmarks/results.* linguist-generated
+docs/benchmarks/*.svg linguist-generated
