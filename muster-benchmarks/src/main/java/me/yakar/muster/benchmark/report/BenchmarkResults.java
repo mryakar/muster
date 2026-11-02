@@ -54,7 +54,7 @@ import tools.jackson.databind.JsonNode;
  */
 final class BenchmarkResults {
 
-  /** How far from the median a fork may be before the published results leave it out: 10%. */
+  /** How far from the median a fork may be before the published range leaves it out: 10%. */
   private static final double OUTLIER = 0.10;
 
   /** Every benchmark class; a full run holds all of them. */
