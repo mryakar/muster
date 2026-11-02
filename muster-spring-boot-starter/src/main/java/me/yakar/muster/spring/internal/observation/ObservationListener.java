@@ -17,9 +17,12 @@ package me.yakar.muster.spring.internal.observation;
 
 import static java.util.Objects.requireNonNull;
 
+import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
 
@@ -38,6 +41,9 @@ final class ObservationListener implements CheckListener {
   static final String CHECK = "muster.check";
   static final String RULE = "muster.rule";
 
+  /** The tag of each outcome, made once rather than at every stop. Never changed. */
+  private static final Map<Outcome, KeyValue> OUTCOMES = outcomes();
+
   private final ObservationRegistry registry;
 
   ObservationListener(ObservationRegistry registry) {
@@ -53,6 +59,14 @@ final class ObservationListener implements CheckListener {
     // A no-op observation, as when a predicate of the registry leaves muster.check out, is not
     // worth an observer: nothing of the check is observed.
     return observation.isNoop() ? null : new ObservedCheck(registry, observation.start());
+  }
+
+  private static Map<Outcome, KeyValue> outcomes() {
+    var outcomes = new EnumMap<Outcome, KeyValue>(Outcome.class);
+    for (var outcome : Outcome.values()) {
+      outcomes.put(outcome, KeyValue.of("outcome", outcome.name().toLowerCase(Locale.ROOT)));
+    }
+    return outcomes;
   }
 
   /** The observations of one check: the check's own, in scope, and the rule that runs. */
@@ -103,7 +117,7 @@ final class ObservationListener implements CheckListener {
         Observation.Scope scope,
         Outcome outcome,
         @Nullable Throwable error) {
-      observation.lowCardinalityKeyValue("outcome", outcome.name().toLowerCase(Locale.ROOT));
+      observation.lowCardinalityKeyValue(OUTCOMES.get(outcome));
       if (error != null) {
         observation.error(error);
       }
