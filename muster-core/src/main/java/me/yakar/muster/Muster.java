@@ -73,7 +73,7 @@ public final class Muster {
   private final @Nullable CheckListener listener;
 
   /** The ids of the disabled rules, in the order of the ids. */
-  private final SortedSet<String> disabledRules;
+  private final SortedSet<String> disabledRuleIds;
 
   /** The chains for rule targets, by the class of the input. */
   private final ClassChains targets = new ClassChains(this::bind);
@@ -92,7 +92,7 @@ public final class Muster {
     this.locale = locale;
     this.mode = mode;
     this.listener = listener;
-    this.disabledRules = catalog.disabledIds();
+    this.disabledRuleIds = catalog.disabledIds();
   }
 
   /**
@@ -232,8 +232,8 @@ public final class Muster {
    *
    * @return the ids, unmodifiable
    */
-  public Set<String> disabledRules() {
-    return disabledRules;
+  public Set<String> disabledRuleIds() {
+    return disabledRuleIds;
   }
 
   /**

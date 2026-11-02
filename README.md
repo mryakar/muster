@@ -345,9 +345,9 @@ What the starter does for you is up to you:
   `disable`. `build()` fails if an id is unknown or an enabled rule requires a disabled one.
 - **Seeing the rules:** `chain.ruleIds()` tells the rules of a chain in the order they run;
   `binding.ruleIds()`, `collectionBinding.ruleIds()`, `muster.boundRuleIds()` and
-  `muster.collectionRuleIds()` those of the chains bound so far, by class; `muster.disabledRules()`
-  the rules switched off. None binds on being asked. Muster also logs each chain at DEBUG when it
-  binds it.
+  `muster.collectionRuleIds()` those of the chains bound so far, by class;
+  `muster.disabledRuleIds()` the rules switched off. None binds on being asked. Muster also logs
+  each chain at DEBUG when it binds it.
 - **Transactions:** check as the first step inside the transaction of the operation, so that a rule
   reads the data that the operation then changes.
 - **Messages:** `MessageResolver.ofResourceBundles(locale -> ResourceBundle.getBundle("com.example.messages", locale))`
