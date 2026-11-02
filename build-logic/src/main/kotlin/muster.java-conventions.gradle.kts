@@ -60,13 +60,15 @@ testing {
   }
 }
 
-// Code is compiled for Java 21; -PtestJavaVersion runs the tests on a newer JVM.
-val testJavaVersion = providers.gradleProperty("testJavaVersion").map(String::toInt).orElse(21)
+// Tests run on the Java the code is compiled for; -PtestJavaVersion runs them on a newer JVM.
+val testJavaVersion =
+  providers
+    .gradleProperty("testJavaVersion")
+    .map { JavaLanguageVersion.of(it) }
+    .orElse(java.toolchain.languageVersion)
 
 tasks.withType<Test>().configureEach {
-  javaLauncher = javaToolchains.launcherFor {
-    languageVersion = testJavaVersion.map(JavaLanguageVersion::of)
-  }
+  javaLauncher = javaToolchains.launcherFor { languageVersion = testJavaVersion }
 }
 
 jacoco { toolVersion = version("jacoco") }
