@@ -101,19 +101,22 @@ class StartupAdviceSpec extends Specification {
    */
   @Rule(id = 'startup.slow')
   static class SlowRule implements BusinessRule<SaveVehicle> {
-    static volatile Thread caller
-
     SlowRule(VehicleService service, ObjectProvider<VehicleComponent> component) {
-      caller = Thread.startDaemon('advised-caller') {
+      def caller = Thread.startDaemon('advised-caller') {
         service.save(new SaveVehicle('Boreas'))
       }
       // The caller prepares the service and waits for Spring to finish this rule.
+      def waiting = {
+        caller.state == Thread.State.WAITING && caller.stackTrace.any {
+          it.methodName == 'prepareNoted'
+        }
+      }
       def deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
-      while (!(caller.state == Thread.State.WAITING && caller.stackTrace.any {
-            it.methodName == 'prepareNoted'
-          })
-          && caller.alive && System.nanoTime() <deadline) {
+      while (!waiting() && caller.alive && System.nanoTime() <deadline) {
         Thread.onSpinWait()
+      }
+      if (!waiting()) {
+        throw new IllegalStateException('the caller did not wait in prepareNoted')
       }
       component.getObject()
     }
