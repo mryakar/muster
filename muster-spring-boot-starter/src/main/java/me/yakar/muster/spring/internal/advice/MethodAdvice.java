@@ -23,7 +23,6 @@ import me.yakar.muster.Binding;
 import me.yakar.muster.CheckMode;
 import me.yakar.muster.CollectionBinding;
 import me.yakar.muster.Muster;
-import me.yakar.muster.RuleChain;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
@@ -121,7 +120,7 @@ record MethodAdvice(
         bound.mode(),
         ids(listed),
         ids(excluded),
-        bound.chains());
+        bound.ruleIds());
   }
 
   /** The ids of rule classes, which Muster has checked are registered. */
@@ -144,8 +143,8 @@ record MethodAdvice(
     /** Returns the mode of the check. */
     CheckMode mode();
 
-    /** Returns the chains bound so far, as the binding reports them. */
-    Map<Class<?>, RuleChain<?>> chains();
+    /** Returns the ids of the rules of the chains bound so far, as the binding reports them. */
+    Map<Class<?>, List<String>> ruleIds();
 
     /** A binding of the input itself. */
     record OfInput(Class<?> inputType, Binding<Object> binding) implements Bound {
@@ -161,8 +160,8 @@ record MethodAdvice(
       }
 
       @Override
-      public Map<Class<?>, RuleChain<?>> chains() {
-        return binding.chains();
+      public Map<Class<?>, List<String>> ruleIds() {
+        return binding.ruleIds();
       }
     }
 
@@ -181,8 +180,8 @@ record MethodAdvice(
       }
 
       @Override
-      public Map<Class<?>, RuleChain<?>> chains() {
-        return binding.chains();
+      public Map<Class<?>, List<String>> ruleIds() {
+        return binding.ruleIds();
       }
     }
   }

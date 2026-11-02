@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import me.yakar.muster.CheckMode;
 import me.yakar.muster.Muster;
-import me.yakar.muster.RuleChain;
 import me.yakar.muster.spring.internal.advice.AdviceTable;
 import me.yakar.muster.spring.internal.advice.AdvisedMethod;
 import org.springframework.beans.factory.ObjectProvider;
@@ -65,15 +64,15 @@ public final class MusterEndpoint {
         muster.mode(),
         List.copyOf(muster.disabledRules()),
         Collections.unmodifiableList(methods),
-        ruleIds(muster.chains()),
-        ruleIds(muster.collectionChains()));
+        byName(muster.boundRuleIds()),
+        byName(muster.collectionRuleIds()));
   }
 
-  /** Maps the chains by the names of their classes to the ids of their rules. */
-  private static Map<String, List<String>> ruleIds(Map<Class<?>, RuleChain<?>> chains) {
-    var ids = new LinkedHashMap<String, List<String>>();
-    chains.forEach((type, chain) -> ids.put(type.getTypeName(), chain.ruleIds()));
-    return Collections.unmodifiableMap(ids);
+  /** Keys the ids of the rules by the names of their classes, in the same order. */
+  private static Map<String, List<String>> byName(Map<Class<?>, List<String>> ruleIds) {
+    var byName = new LinkedHashMap<String, List<String>>();
+    ruleIds.forEach((type, ids) -> byName.put(type.getTypeName(), ids));
+    return Collections.unmodifiableMap(byName);
   }
 
   /**
@@ -104,12 +103,12 @@ public final class MusterEndpoint {
      * @param input the type of the input, or of the elements of the collection the method takes
      * @param collection whether the method takes a collection
      * @param mode the mode of the check
-     * @param rules the ids of the rules the method lists, as it lists them; the chains tell what
-     *     runs
+     * @param rules the ids of the rules the method lists, as it lists them; {@code ruleIds} tells
+     *     what runs
      * @param excluded the ids of the rules the method excludes, as it lists them
-     * @param chains the chains bound so far, by class, each the ids of its rules in the order they
-     *     run: for an input type that is final, the one chain bound at startup; for another type,
-     *     the chain of each class checked so far
+     * @param ruleIds the ids of the rules of the chains bound so far, by class, each in the order
+     *     they run: one chain, bound at startup, for a final input type or for elements that are
+     *     not rule targets; otherwise the chain of each class checked so far
      */
     public record Method(
         String method,
@@ -119,7 +118,7 @@ public final class MusterEndpoint {
         CheckMode mode,
         List<String> rules,
         List<String> excluded,
-        Map<String, List<String>> chains) {
+        Map<String, List<String>> ruleIds) {
 
       static Method of(AdvisedMethod advised) {
         return new Method(
@@ -130,7 +129,7 @@ public final class MusterEndpoint {
             advised.mode(),
             advised.rules(),
             advised.excluded(),
-            ruleIds(advised.chains()));
+            byName(advised.ruleIds()));
       }
     }
   }

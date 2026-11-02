@@ -237,25 +237,25 @@ public final class Muster {
   }
 
   /**
-   * Returns the chains that {@link #check(RuleTarget)} bound by type so far, by class in the order
-   * of their names, each with the {@linkplain RuleChain#ruleIds() ids of its rules}. The map is a
+   * Returns the ids of the rules of the chains that {@link #check(RuleTarget)} bound by type so
+   * far, by class in the order of their names, each list in the order the rules run. The map is a
    * copy, taken now, that later checks do not change.
    *
-   * @return the chains, unmodifiable
+   * @return the ids by class, unmodifiable
    */
-  public Map<Class<?>, RuleChain<?>> chains() {
-    return targets.resolved();
+  public Map<Class<?>, List<String>> boundRuleIds() {
+    return targets.ruleIds();
   }
 
   /**
-   * Returns the chains that {@link #checkAll(Collection)} bound by type so far, by class of the
-   * elements in the order of their names, each with the {@linkplain RuleChain#ruleIds() ids of its
-   * rules}. The map is a copy, taken now, that later checks do not change.
+   * Returns the ids of the rules of the chains that {@link #checkAll(Collection)} bound by type so
+   * far, by class of the elements in the order of their names, each list in the order the rules
+   * run. The map is a copy, taken now, that later checks do not change.
    *
-   * @return the chains, unmodifiable
+   * @return the ids by class, unmodifiable
    */
-  public Map<Class<?>, RuleChain<?>> collectionChains() {
-    return collections.resolved();
+  public Map<Class<?>, List<String>> collectionRuleIds() {
+    return collections.ruleIds();
   }
 
   private void runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {

@@ -18,6 +18,7 @@ package me.yakar.muster;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,12 +69,12 @@ final class ClassChains {
   }
 
   /**
-   * Returns the chains bound so far, by class in the order of their names: a copy, taken now, that
-   * a class bound later does not change.
+   * Returns the ids of the rules of the chains bound so far, by class in the order of their names:
+   * a copy, taken now, that a class bound later does not change.
    */
-  Map<Class<?>, RuleChain<?>> resolved() {
-    var sorted = new TreeMap<Class<?>, RuleChain<?>>(Comparator.comparing(Class::getTypeName));
-    sorted.putAll(chains);
+  Map<Class<?>, List<String>> ruleIds() {
+    var sorted = new TreeMap<Class<?>, List<String>>(Comparator.comparing(Class::getTypeName));
+    chains.forEach((type, chain) -> sorted.put(type, chain.ruleIds()));
     return Collections.unmodifiableMap(sorted);
   }
 
