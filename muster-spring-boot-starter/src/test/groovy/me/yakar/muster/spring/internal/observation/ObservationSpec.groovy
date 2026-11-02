@@ -26,6 +26,7 @@ import me.yakar.muster.Muster
 import me.yakar.muster.spi.CheckListener
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.call.ReportsCall
+import me.yakar.muster.spring.fixture.observation.CodeFormat
 import me.yakar.muster.spring.fixture.observation.CodeFree
 import me.yakar.muster.spring.fixture.observation.Shipment
 import me.yakar.muster.spring.fixture.observation.ShipmentService
@@ -79,6 +80,36 @@ class ObservationSpec extends Specification {
     CheckListener.Observer checkStarted(CheckListener.Check check) {
       STARTED << [name, registry.currentObservation?.context?.name]
       null
+    }
+  }
+
+  /** Throws at one event of a check: when it starts, when a rule ends, or when it ends; its own observer. */
+  static class Throwing implements CheckListener, CheckListener.Observer {
+    final String event
+    final IllegalStateException failure
+
+    Throwing(String event) {
+      this.event = event
+      this.failure = new IllegalStateException("listener down at $event")
+    }
+
+    CheckListener.Observer checkStarted(CheckListener.Check check) {
+      fail('checkStarted')
+      this
+    }
+
+    void ruleEnded(CheckListener.RuleEnd end) {
+      fail('ruleEnded')
+    }
+
+    void checkEnded(CheckListener.CheckEnd end) {
+      fail('checkEnded')
+    }
+
+    private void fail(String at) {
+      if (event == at) {
+        throw failure
+      }
     }
   }
 
@@ -190,6 +221,66 @@ class ObservationSpec extends Specification {
     }
   }
 
+  def 'a listener told after the starter\'s that throws when a check ends leaves the observations stopped and out of scope'() {
+    given:
+    def registry = TestObservationRegistry.create()
+    def throwing = new Throwing('checkEnded')
+    def muster = toldAfterTheStarter(registry, throwing)
+
+    when:
+    muster.check(new Shipment('OK'))
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.is(throwing.failure)
+    def observed = observed(registry)
+    observed*.contextualName == [Shipment.name, 'shipment.code-format', 'shipment.code-free']
+    observed*.tags.outcome == ['passed', 'passed', 'passed']
+    observed*.error == [null] * 3
+    observed*.stopped == [true] * 3
+    registry.currentObservation == null
+  }
+
+  def 'a listener told after the starter\'s that throws when a rule ends leaves the observations stopped, the check\'s with its error'() {
+    given:
+    def registry = TestObservationRegistry.create()
+    def throwing = new Throwing('ruleEnded')
+    def muster = toldAfterTheStarter(registry, throwing)
+
+    when:
+    muster.check(new Shipment('OK'))
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.is(throwing.failure)
+    def observed = observed(registry)
+    observed*.contextualName == [Shipment.name, 'shipment.code-format']
+    observed*.tags.outcome == ['error', 'passed']
+    observed*.error == [throwing.failure, null]
+    observed*.stopped == [true] * 2
+    registry.currentObservation == null
+  }
+
+  def 'a listener told after the starter\'s that throws when a check starts leaves the check\'s observation stopped with its error'() {
+    given:
+    def registry = TestObservationRegistry.create()
+    def throwing = new Throwing('checkStarted')
+    def muster = toldAfterTheStarter(registry, throwing)
+
+    when:
+    muster.check(new Shipment('OK'))
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.is(throwing.failure)
+    def observed = observed(registry)
+    observed*.contextualName == [Shipment.name]
+    observed*.tags.outcome == ['error']
+    observed*.error == [throwing.failure]
+    observed*.stopped == [true]
+    registry.currentObservation == null
+  }
+
   def 'a registry whose predicate leaves muster.check out observes nothing of a check'() {
     expect:
     runner.run { context ->
@@ -256,6 +347,18 @@ class ObservationSpec extends Specification {
       assert byParent.values()*.size() == [4] * 16
       assert registry.contexts.every { it.observationStopped }
     }
+  }
+
+  /**
+   * A Muster whose checks are told to the starter's listener, then to another: an order the
+   * application's listener beans, which come before the starter's, cannot take.
+   */
+  private static Muster toldAfterTheStarter(ObservationRegistry registry, CheckListener other) {
+    Muster.builder()
+        .rules(new CodeFormat(), new CodeFree())
+        .listener(new ObservationListener(registry))
+        .listener(other)
+        .build()
   }
 
   /** The observations of a registry, in the order they started: name, contextual name, tags, parent, error, stopped. */
