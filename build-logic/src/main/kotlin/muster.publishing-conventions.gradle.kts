@@ -21,6 +21,9 @@ import org.cyclonedx.model.ExternalReference
 
 plugins { id("com.vanniktech.maven.publish") }
 
+// The repository's public address, not whatever remote the build machine's clone uses.
+val repository = "https://github.com/mryakar/muster"
+
 mavenPublishing {
   // Uploads only: a release becomes public when it is published in the Central Portal.
   publishToMavenCentral(automaticRelease = false)
@@ -33,7 +36,7 @@ mavenPublishing {
   pom {
     name = project.name
     description = provider { project.description }
-    url = "https://github.com/mryakar/muster"
+    url = repository
     inceptionYear = "2026"
     licenses {
       license {
@@ -50,13 +53,13 @@ mavenPublishing {
       }
     }
     scm {
-      url = "https://github.com/mryakar/muster"
-      connection = "scm:git:https://github.com/mryakar/muster.git"
+      url = repository
+      connection = "scm:git:$repository.git"
       developerConnection = "scm:git:ssh://git@github.com/mryakar/muster.git"
     }
     issueManagement {
       system = "GitHub"
-      url = "https://github.com/mryakar/muster/issues"
+      url = "$repository/issues"
     }
   }
 }
@@ -70,12 +73,11 @@ pluginManager.withPlugin("java-library") {
       projectType = Component.Type.LIBRARY
       // A random serial number would make every build's SBOM differ.
       includeBomSerialNumber = false
-      // The repository's public address, not whatever remote the build machine's clone uses.
       externalReferences =
         listOf(
           ExternalReference().apply {
             type = ExternalReference.Type.VCS
-            url = "https://github.com/mryakar/muster"
+            url = repository
           },
         )
       // The plugin adds a project_path qualifier, the module's path in this build, to the purls of
