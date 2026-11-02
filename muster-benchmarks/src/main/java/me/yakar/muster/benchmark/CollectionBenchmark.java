@@ -22,7 +22,6 @@ import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import me.yakar.muster.Muster;
 import me.yakar.muster.rule.BusinessRule;
-import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -68,7 +67,7 @@ public class CollectionBenchmark {
     // intended.
     MUSTER_LOGGER.setLevel(Level.SEVERE);
     selected = Rules.first(20);
-    contexts = selected.stream().map(rule -> RuleContext.forRule(id(rule))).toList();
+    contexts = selected.stream().map(rule -> RuleContext.forRule(rule.getClass())).toList();
     muster = Muster.builder().rules(selected.toArray(BusinessRule<?>[]::new)).build();
     orders = IntStream.range(0, elements).mapToObj(i -> new Order(0)).toList();
   }
@@ -100,9 +99,5 @@ public class CollectionBenchmark {
         blackhole.consume(selected.get(j).check(order, contexts.get(j)));
       }
     }
-  }
-
-  private static String id(Rules.IndexedRule rule) {
-    return rule.getClass().getAnnotation(Rule.class).id();
   }
 }
