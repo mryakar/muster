@@ -39,7 +39,7 @@ import org.springframework.util.ReflectionUtils;
 record MethodAdvice(
     String label,
     Class<?> targetClass,
-    Bound bound,
+    Checker checker,
     List<Class<? extends BusinessRule<?>>> listed,
     List<Class<? extends BusinessRule<?>>> excluded,
     @Nullable TransactionGuard transaction) {
@@ -100,7 +100,7 @@ record MethodAdvice(
     var excluded = annotation == null ? NO_RULES : annotation.exclude();
     var mode = annotation == null || annotation.mode().length == 0 ? null : annotation.mode()[0];
     var parameterType = method.getParameterTypes()[0];
-    Bound bound;
+    Checker checker;
     if (Collection.class.isAssignableFrom(parameterType)) {
       var elementType = RulesPointcut.elementType(method, 0, targetClass);
       if (elementType == null) {
@@ -118,24 +118,24 @@ record MethodAdvice(
       if (mode != null) {
         builder.mode(mode);
       }
-      bound = new Bound.OfElements(elementType, builder.build());
+      checker = new Checker.OfElements(elementType, builder.build());
     } else {
       var builder =
           muster.binding((Class<Object>) parameterType).name(label).rules(listed).exclude(excluded);
       if (mode != null) {
         builder.mode(mode);
       }
-      bound = new Bound.OfInput(parameterType, builder.build());
+      checker = new Checker.OfInput(parameterType, builder.build());
     }
     return new MethodAdvice(
-        label, targetClass, bound, List.of(listed), List.of(excluded), transaction);
+        label, targetClass, checker, List.of(listed), List.of(excluded), transaction);
   }
 
   void check(@Nullable Object input) {
     if (transaction != null) {
       transaction.requireTransaction(label);
     }
-    bound.check(input);
+    checker.check(input);
   }
 
   /** Describes this advice for the actuator endpoint. */
@@ -143,12 +143,12 @@ record MethodAdvice(
     return new AdvisedMethod(
         label,
         targetClass,
-        bound.inputType(),
-        bound instanceof Bound.OfElements,
-        bound.mode(),
+        checker.inputType(),
+        checker instanceof Checker.OfElements,
+        checker.mode(),
         ids(listed),
         ids(excluded),
-        bound.ruleIds());
+        checker.ruleIds());
   }
 
   /** The ids of rule classes, which Muster has checked are registered. */
@@ -160,7 +160,7 @@ record MethodAdvice(
    * What checks the input of an advised method: a binding of the input itself, or of the elements
    * of the collection it takes.
    */
-  sealed interface Bound {
+  sealed interface Checker {
 
     /** Checks the input of a call. */
     void check(@Nullable Object input);
@@ -175,7 +175,7 @@ record MethodAdvice(
     Map<Class<?>, List<String>> ruleIds();
 
     /** A binding of the input itself. */
-    record OfInput(Class<?> inputType, Binding<Object> binding) implements Bound {
+    record OfInput(Class<?> inputType, Binding<Object> binding) implements Checker {
 
       @Override
       public void check(@Nullable Object input) {
@@ -194,7 +194,7 @@ record MethodAdvice(
     }
 
     /** A binding of the elements of a collection, by their type. */
-    record OfElements(Class<?> inputType, CollectionBinding<Object> binding) implements Bound {
+    record OfElements(Class<?> inputType, CollectionBinding<Object> binding) implements Checker {
 
       @Override
       @SuppressWarnings("unchecked")
