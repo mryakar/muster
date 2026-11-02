@@ -7,7 +7,7 @@ transaction, outside your service code.
 
 ## Status
 
-Muster is in early development, and its API will change until 1.0.0. The latest release is 0.2.0,
+Muster is in early development, and its API will change until 1.0.0. The latest release is 0.3.0,
 with the core and the Spring Boot starter. The [roadmap](ROADMAP.md) says what follows.
 
 ## Why
@@ -30,7 +30,7 @@ Gradle:
 
 ```kotlin
 dependencies {
-  implementation(platform("me.yakar.muster:muster-bom:0.2.0"))
+  implementation(platform("me.yakar.muster:muster-bom:0.3.0"))
   implementation("me.yakar.muster:muster-spring-boot-starter") // or muster-core without Spring
 }
 ```
@@ -43,7 +43,7 @@ Maven:
     <dependency>
       <groupId>me.yakar.muster</groupId>
       <artifactId>muster-bom</artifactId>
-      <version>0.2.0</version>
+      <version>0.3.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>

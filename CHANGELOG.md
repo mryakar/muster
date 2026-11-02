@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-02
+
 ### Added
 
 - `Muster.checkAll`, `RuleChain.checkAll` and `Binding.checkAll` check the elements of a collection in one call; `Muster.checkAll` also runs the rules of the whole collection that bind to the class of its elements. Each rule checks the elements that passed the rules it requires, any violation rejects the whole call, and the target of a violation about an element starts with its position, as in `[3].name`. The rule targets among the elements must be of one class; a binding binds by type the rules of every rule target it checks.
@@ -89,6 +91,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call, also from many threads at once. `./gradlew jmh` runs them.
 - The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 100 ns over calling them by hand.
 
-[Unreleased]: https://github.com/mryakar/muster/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mryakar/muster/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mryakar/muster/releases/tag/v0.3.0
 [0.2.0]: https://github.com/mryakar/muster/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0
