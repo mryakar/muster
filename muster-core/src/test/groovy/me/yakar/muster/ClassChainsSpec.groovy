@@ -122,6 +122,19 @@ class ClassChainsSpec extends EngineSpecification {
     logged*.message == ["Rules bound to ${Target.typeName}: [target.any]".toString()]
   }
 
+  def 'the rule ids of classes of one name from different class loaders are told apart'() {
+    given:
+    def chains = new ClassChains({ type -> muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST) })
+    def classes = (1..2).collect {
+      new GroovyClassLoader(ClassChainsSpec.classLoader).parseClass("class Twin implements ${RuleTarget.name} {}")
+    }
+    classes.each { chains.of(it) }
+
+    expect:
+    chains.ruleIds().keySet()*.typeName == ['Twin', 'Twin']
+    chains.ruleIds().keySet() == classes as Set
+  }
+
   /**
    * Classes whose hashes fall into one bucket of a map of sixteen. It mirrors how ConcurrentHashMap
    * spreads hashes on JDK 21 and 25; the test checks that it still holds.
