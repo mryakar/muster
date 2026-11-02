@@ -15,12 +15,13 @@
  */
 package me.yakar.muster.spring
 
+import me.yakar.muster.spring.fixture.integration.transaction.ProbeCall
+import me.yakar.muster.spring.fixture.integration.transaction.ProbedService
+import me.yakar.muster.spring.fixture.integration.transaction.TransactionApplication
+import me.yakar.muster.spring.fixture.integration.transaction.TransactionProbe
 import org.springframework.boot.WebApplicationType
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.springframework.context.annotation.Bean
 import org.springframework.core.Ordered
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
@@ -50,7 +51,7 @@ class TransactionOrderSpec extends Specification {
 
   def 'rules run inside a JDBC transaction of the transaction auto-configuration, which moved one step ahead'() {
     given:
-    def context = new SpringApplicationBuilder(Application)
+    def context = new SpringApplicationBuilder(TransactionApplication)
         .web(WebApplicationType.NONE)
         .properties(
         "spring.datasource.url=${postgres.jdbcUrl}".toString(),
@@ -67,19 +68,5 @@ class TransactionOrderSpec extends Specification {
 
     cleanup:
     context?.close()
-  }
-
-  static class ProbedService {
-    @Transactional
-    @Rules(TransactionProbe)
-    void call(ProbeCall call) {}
-  }
-
-  @EnableAutoConfiguration
-  static class Application {
-    @Bean
-    ProbedService probedService() {
-      new ProbedService()
-    }
   }
 }
