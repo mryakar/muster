@@ -613,11 +613,13 @@ class CollectionCheckSpec extends EngineSpecification {
     logged.clear()
 
     when:
-    concurrently { chain.checkAll([1L, 2L]) }
+    concurrently {
+      1000.times { chain.checkAll([1L, 2L]) }
+    }
 
     then:
     logged.findAll { it.level == Level.WARNING }*.message == ["Rule 'task.exists' " + ONE_BY_ONE]
-    ran.size() == 32
+    ran.size() == 32000
   }
 
   Muster vehicles() {
