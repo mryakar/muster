@@ -120,6 +120,7 @@ public final class MusterEndpoint {
         List<String> excluded,
         Map<String, List<String>> ruleIds) {
 
+      /** Describes an advised method with the names of its classes. */
       static Method of(AdvisedMethod advised) {
         return new Method(
             advised.label(),

@@ -131,6 +131,7 @@ record MethodAdvice(
         label, targetClass, checker, List.of(listed), List.of(excluded), transaction);
   }
 
+  /** Checks the input of a call: that its transaction is active, if it needs one, and its rules. */
   void check(@Nullable Object input) {
     if (transaction != null) {
       transaction.requireTransaction(label);

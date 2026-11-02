@@ -38,7 +38,10 @@ import org.jspecify.annotations.Nullable;
  */
 final class ObservationListener implements CheckListener {
 
+  /** The name of the observation of a check. */
   static final String CHECK = "muster.check";
+
+  /** The name of the observation of a rule. */
   static final String RULE = "muster.rule";
 
   /** The tag of each outcome, made once rather than at every stop. Never changed. */
@@ -86,7 +89,6 @@ final class ObservationListener implements CheckListener {
 
     @Override
     public void ruleStarted(String ruleId) {
-      // The open scope of the check makes it the parent already; said anyway, for the reader.
       rule =
           Observation.createNotStarted(RULE, registry)
               .parentObservation(check)
