@@ -55,17 +55,6 @@ public sealed class RuleContext {
     this.locale = locale;
   }
 
-  private static RuleContext of(
-      String ruleId,
-      @Nullable Principal caller,
-      Locale locale,
-      int @Nullable [] positions,
-      int element) {
-    return positions == null && element == NONE
-        ? new RuleContext(ruleId, caller, locale)
-        : new Positioned(ruleId, caller, locale, positions, element);
-  }
-
   /**
    * Creates a context for the rule with the given id, with no caller and the root locale. Use it to
    * test a rule on its own.
@@ -332,7 +321,9 @@ public sealed class RuleContext {
      * @return the context
      */
     public RuleContext build() {
-      return of(ruleId, caller, locale, positions, element);
+      return positions == null && element == NONE
+          ? new RuleContext(ruleId, caller, locale)
+          : new Positioned(ruleId, caller, locale, positions, element);
     }
   }
 

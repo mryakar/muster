@@ -280,17 +280,8 @@ public final class Muster {
    */
   ClassChains.Bound bindCollection(
       Class<?> elementClass, Selection selection, CheckMode chainMode) {
-    var plan = ChainPlan.collection(catalog, elementClass, selection);
-    return new ClassChains.Bound(
-        new RuleChain<>(
-            name(selection, elementClass),
-            elementClass,
-            plan.steps(),
-            caller,
-            locale,
-            chainMode,
-            listener),
-        plan);
+    return bound(
+        ChainPlan.collection(catalog, elementClass, selection), selection, elementClass, chainMode);
   }
 
   /**
@@ -298,17 +289,19 @@ public final class Muster {
    * it by type. The caller logs the plan.
    */
   ClassChains.Bound bind(Class<?> type, Selection selection, CheckMode chainMode) {
-    var plan = ChainPlan.bound(catalog, type, selection);
-    return new ClassChains.Bound(
-        new RuleChain<>(
-            name(selection, type), type, plan.steps(), caller, locale, chainMode, listener),
-        plan);
+    return bound(ChainPlan.bound(catalog, type, selection), selection, type, chainMode);
   }
 
-  /** The name a listener is given for a check: the binding's, or else the name of the type. */
-  private static String name(Selection selection, Class<?> type) {
-    var name = selection.name();
-    return name == null ? type.getTypeName() : name;
+  /**
+   * Makes the chain of a plan, which a listener is told is of the binding's name, or else of the
+   * name of the type.
+   */
+  private ClassChains.Bound bound(
+      ChainPlan plan, Selection selection, Class<?> type, CheckMode chainMode) {
+    return new ClassChains.Bound(
+        new RuleChain<>(
+            selection.nameOr(type), type, plan.steps(), caller, locale, chainMode, listener),
+        plan);
   }
 
   /** The rules registered with this {@code Muster}. */
