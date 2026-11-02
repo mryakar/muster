@@ -156,7 +156,7 @@ public final class Violation implements Serializable {
    * @return the severity
    */
   public Severity severity() {
-    // Every violation rejects the call until non-blocking ones exist.
+    // Every violation rejects the call.
     return Severity.ERROR;
   }
 

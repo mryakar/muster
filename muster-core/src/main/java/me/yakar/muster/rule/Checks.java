@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import me.yakar.muster.internal.rule.RuleIds;
 
-/** Argument checks shared by the core types. */
+/** Argument checks shared by the violation and the context of a rule. */
 final class Checks {
 
   private Checks() {}

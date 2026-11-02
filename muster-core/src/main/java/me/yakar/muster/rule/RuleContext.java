@@ -33,8 +33,8 @@ import org.jspecify.annotations.Nullable;
  * violation carries the id of the rule that reported it. Contexts are immutable and thread-safe.
  *
  * <p>A rule that checks a collection at once, in {@link BusinessRule#checkAll}, gets the context of
- * the collection; {@link #element(int)} gives the context of one of its elements, whose violations
- * name the position of the element in their target.
+ * the collection; {@link #element(int)} gives the context of one of its elements: the target of its
+ * violations starts with the position of the element.
  *
  * <p>The context holds what differs from call to call. What stays the same, such as a {@link
  * java.time.Clock} or a repository, is a dependency of the rule: take it in the constructor, and a

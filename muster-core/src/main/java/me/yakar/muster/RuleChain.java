@@ -44,10 +44,6 @@ import org.jspecify.annotations.Nullable;
  * same on every call, and in {@link CheckMode#FAIL_FAST} mode, which stops at the first violated
  * rule, it decides which violation is reported, so list cheap rules first.
  *
- * <p>{@link #checkAll} checks the elements of a collection in one call: each rule checks all of
- * them, at once if it overrides {@link me.yakar.muster.rule.BusinessRule#checkAll}, and a rule that
- * requires another checks the elements that passed it.
- *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
  * gives it its own, and tells the {@link CheckListener listeners} of that {@code Muster} about
  * every check. Chains are immutable and thread-safe.
@@ -127,14 +123,15 @@ public final class RuleChain<I> {
 
   /**
    * Checks the elements of a collection against the rules that apply to the call, in the mode of
-   * this chain. Each rule checks the elements that passed the rules it requires; one violated
-   * element rejects the whole call. Violations come rule by rule, in the order of the rules, and
+   * this chain. Each rule checks the elements that passed the rules it requires. Any violation
+   * rejects the whole call, and the target of a violation about an element starts with its
+   * position, as in {@code [3].name}. Violations come rule by rule, in the order of the rules, and
    * within a rule as it reports them; a rule that does not override {@code checkAll} reports them
    * in the order of the elements. In {@link CheckMode#FAIL_FAST} mode, the check stops at the first
    * violated rule, and a rule that does not override {@code checkAll} at its first violated
    * element. An empty collection passes without running a rule.
    *
-   * @param inputs the inputs; rules see an unmodifiable copy, taken when the check starts
+   * @param inputs the collection; rules see an unmodifiable copy, taken when the check starts
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if an element is not of the chain's type, which only unchecked
