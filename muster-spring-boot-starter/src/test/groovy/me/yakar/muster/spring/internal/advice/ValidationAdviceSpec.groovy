@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.Concurrency.concurrently
+
 import jakarta.validation.ConstraintViolationException
 import me.yakar.muster.spring.MusterAutoConfiguration
 import me.yakar.muster.spring.fixture.transaction.FakeTransactionManager
@@ -31,6 +33,7 @@ import org.springframework.boot.validation.autoconfigure.ValidationAutoConfigura
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Role
+import org.springframework.context.annotation.Scope
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor
@@ -92,6 +95,15 @@ class ValidationAdviceSpec extends Specification {
     }
   }
 
+  @Configuration(proxyBeanMethods = false)
+  static class Prototype {
+    @Bean
+    @Scope('prototype')
+    ValidatedService prototypeService() {
+      new ValidatedService()
+    }
+  }
+
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration, ValidationAutoConfiguration))
   .withUserConfiguration(Application)
@@ -124,6 +136,22 @@ class ValidationAdviceSpec extends Specification {
     runner.withUserConfiguration(Transactions).run { context ->
       context.getBean(ValidatedService).createInTransaction('Atlas')
       assert Steps.NOTED == ['constraint', 'rule in transaction']
+    }
+  }
+
+  def 'beans created after the start on many threads at once check the constraints before the rules'() {
+    expect:
+    runner.withUserConfiguration(Prototype).run { context ->
+      def failures = concurrently {
+        try {
+          context.getBean('prototypeService', ValidatedService).create(' ')
+          null
+        } catch (ConstraintViolationException e) {
+          e.class
+        }
+      }
+      assert failures == [ConstraintViolationException] * 16
+      assert Steps.NOTED == ['constraint'] * 16
     }
   }
 

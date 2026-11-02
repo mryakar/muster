@@ -44,10 +44,10 @@ final class ValidationOrdering implements BeanPostProcessor, EnvironmentAware {
   private static final String TRANSACTION_ADVISOR =
       "org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor";
 
-  private boolean enabled;
-
   // Set through Aware rather than injected: resolving a parameter of the bean method by type would
-  // create factory beans early to learn what they make.
+  // create factory beans early to learn what they make. Read by every thread that creates a bean.
+  private volatile boolean enabled;
+
   @Override
   public void setEnvironment(Environment environment) {
     enabled = Settings.reorderValidationAdvisor(environment);
