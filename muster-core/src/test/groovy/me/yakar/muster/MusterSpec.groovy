@@ -223,7 +223,7 @@ class MusterSpec extends EngineSpecification {
     message      | configure
     'rule'       | { it.rules((BusinessRule) null) }
     'factory'    | { it.rules((RuleFactory) null, NameUnique) }
-    'rule class' | { it.rules(NEVER_CALLED, (Class) null) }
+    'ruleClass'  | { it.rules(NEVER_CALLED, (Class) null) }
     'caller'     | { it.caller(null) }
     'locale'     | { it.locale(null) }
     'id'         | { it.disable('task.exists', null) }

@@ -429,7 +429,7 @@ class RuleChainSpec extends EngineSpecification {
     where:
     inputType     | ruleClasses || message
     null          | [NameUnique] || 'inputType'
-    CreateVehicle | [NameUnique, null] || 'rule class'
+    CreateVehicle | [NameUnique, null] || 'ruleClass'
   }
 
   def 'a locale supplier that returns null fails the check'() {
