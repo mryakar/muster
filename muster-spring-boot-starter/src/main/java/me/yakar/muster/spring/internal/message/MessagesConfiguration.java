@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.yakar.muster.spring.internal.engine;
+package me.yakar.muster.spring.internal.message;
 
 import me.yakar.muster.spi.MessageResolver;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
