@@ -73,11 +73,7 @@ public final class ChainPlan {
    * @return the plan
    */
   public static ChainPlan bound(RuleCatalog catalog, Class<?> type, Selection selection) {
-    var name = selection.name();
-    var label =
-        name == null || name.equals(type.getTypeName())
-            ? type.getTypeName()
-            : name + " (" + type.getTypeName() + ")";
+    var label = label(selection, type, type.getTypeName());
     var included = catalog.enabled(selection.listed());
     var listedOrder = List.copyOf(included.keySet());
     var notes = new ArrayList<String>();
@@ -101,12 +97,7 @@ public final class ChainPlan {
    */
   public static ChainPlan collection(
       RuleCatalog catalog, Class<?> elementClass, Selection selection) {
-    var collection = "a collection of " + elementClass.getTypeName();
-    var name = selection.name();
-    var label =
-        name == null || name.equals(elementClass.getTypeName())
-            ? collection
-            : name + " (" + collection + ")";
+    var label = label(selection, elementClass, "a collection of " + elementClass.getTypeName());
     var included = catalog.enabled(selection.listed());
     var listedOrder = List.copyOf(included.keySet());
     var notes = new ArrayList<String>();
@@ -117,6 +108,15 @@ public final class ChainPlan {
     }
     var steps = compose(catalog, label, included, listedOrder, notes, elementClass);
     return new ChainPlan(label, steps, notes, true);
+  }
+
+  /**
+   * Names a chain in logs: what it checks, after the name of its binding if that is not the name of
+   * the type.
+   */
+  private static String label(Selection selection, Class<?> type, String what) {
+    var name = selection.nameOr(type);
+    return name.equals(type.getTypeName()) ? what : name + " (" + what + ")";
   }
 
   /**
@@ -260,6 +260,16 @@ public final class ChainPlan {
 
     /** No listed and no excluded rules, as for {@code Muster.check}. */
     public static final Selection NONE = new Selection(List.of(), Set.of(), null);
+
+    /**
+     * Returns the name of the binding, or else the name of a type.
+     *
+     * @param type the type
+     * @return the name
+     */
+    public String nameOr(Class<?> type) {
+      return name == null ? type.getTypeName() : name;
+    }
 
     /**
      * Describes the listed rules, in their order, and the excluded ones, in the order of their ids,
