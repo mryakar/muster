@@ -119,15 +119,18 @@ public final class Settings {
    * Fails if the configuration sets {@code muster.rules} or {@code muster.mode}, which configure
    * only the {@code Muster} that the starter builds, while the application defines its own.
    *
-   * @throws IllegalStateException if either is set, naming the keys
+   * @param beanName the name of the application's {@code Muster} bean
+   * @throws IllegalStateException if either is set, naming the keys and the bean
    */
-  public static void requireNoneForOwnMuster(Environment environment) {
+  public static void requireNoneForOwnMuster(Environment environment, String beanName) {
     var keys = setKeys(environment, name -> MODE.equals(name) || inRules(name));
     if (!keys.isEmpty()) {
       throw new IllegalStateException(
           String.join(", ", keys)
               + " configure only the Muster that the starter builds, but the application defines"
-              + " a Muster bean of its own; remove these properties, or that bean");
+              + " the Muster bean '"
+              + beanName
+              + "' of its own; remove these properties, or that bean");
     }
   }
 

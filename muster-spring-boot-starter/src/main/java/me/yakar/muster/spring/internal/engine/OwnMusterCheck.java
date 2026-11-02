@@ -50,7 +50,7 @@ final class OwnMusterCheck implements BeanFactoryPostProcessor, EnvironmentAware
   public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
     for (var name : beanFactory.getBeanNamesForType(Muster.class, true, false)) {
       if (!builtByStarter(beanFactory, name)) {
-        Settings.requireNoneForOwnMuster(requireNonNull(environment));
+        Settings.requireNoneForOwnMuster(requireNonNull(environment), name);
         return;
       }
     }

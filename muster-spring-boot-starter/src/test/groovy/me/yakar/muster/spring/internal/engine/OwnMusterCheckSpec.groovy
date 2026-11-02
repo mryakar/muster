@@ -72,40 +72,43 @@ class OwnMusterCheckSpec extends Specification {
   def runner = new ApplicationContextRunner()
   .withConfiguration(AutoConfigurations.of(MusterAutoConfiguration))
 
-  static String message(String keys) {
-    "$keys configure only the Muster that the starter builds, but the application defines a Muster bean of its own; remove these properties, or that bean"
+  static String message(String keys, String bean) {
+    "$keys configure only the Muster that the starter builds, but the application defines the Muster bean '$bean' of its own; remove these properties, or that bean"
   }
 
   def 'with a Muster of its own, the application does not start if it configures the one built here: #properties'() {
     expect:
     runner.withUserConfiguration(own).withPropertyValues(properties as String[]).run { context ->
-      assert getMostSpecificCause(context.startupFailure).message == message(keys)
+      assert getMostSpecificCause(context.startupFailure).message == message(keys, bean)
     }
 
     where:
-    own                  | properties || keys
-    OwnMuster            | ['muster.mode=collect-all'] || 'muster.mode'
-    OwnMuster            | ['muster.rules=false'] || 'muster.rules'
-    OwnMusterOfOtherName | ['muster.rules.vehicle.name-unique.enabled=false', 'muster.mode=fail-fast'] || 'muster.mode, muster.rules.vehicle.name-unique.enabled'
-    Outer                | ['muster.mode=collect-all'] || 'muster.mode'
-    MusterFactory        | ['muster.mode=collect-all'] || 'muster.mode'
+    own                  | properties || keys | bean
+    OwnMuster            | ['muster.mode=collect-all'] || 'muster.mode' | 'muster'
+    OwnMuster            | ['muster.rules=false'] || 'muster.rules' | 'muster'
+    OwnMusterOfOtherName | ['muster.rules.vehicle.name-unique.enabled=false', 'muster.mode=fail-fast'] || 'muster.mode, muster.rules.vehicle.name-unique.enabled' | 'ownMuster'
+    Outer                | ['muster.mode=collect-all'] || 'muster.mode' | 'muster'
+    MusterFactory        | ['muster.mode=collect-all'] || 'muster.mode' | 'ownMusterCheckSpec.MusterFactory'
   }
 
   def 'an environment variable configures the Muster built here too'() {
     expect:
     withEnvironmentVariables(runner.withUserConfiguration(OwnMuster), [MUSTER_MODE: 'collect-all']).run { context ->
-      assert getMostSpecificCause(context.startupFailure).message == message('muster.mode')
+      assert getMostSpecificCause(context.startupFailure).message == message('muster.mode', 'muster')
     }
   }
 
   def 'a Muster that the application registers without a bean method is its own: #how'() {
     expect:
     registered(runner, how).withPropertyValues('muster.mode=collect-all').run { context ->
-      assert getMostSpecificCause(context.startupFailure).message == message('muster.mode')
+      assert getMostSpecificCause(context.startupFailure).message == message('muster.mode', bean)
     }
 
     where:
-    how << ['as a singleton', 'with a bean supplier', 'with a plain definition']
+    how || bean
+    'as a singleton' || 'ownMuster'
+    'with a bean supplier' || 'muster'
+    'with a plain definition' || 'ownMuster'
   }
 
   static ApplicationContextRunner registered(ApplicationContextRunner runner, String how) {
