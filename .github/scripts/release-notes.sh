@@ -16,6 +16,7 @@
 #
 # Prints the CHANGELOG.md section of a version, without its heading, as release notes.
 set -euo pipefail
+cd "$(dirname "$0")/../.."
 
 version="${1:?usage: release-notes.sh <version>}"
 awk -v heading="## [$version]" '
