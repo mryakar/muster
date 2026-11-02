@@ -17,8 +17,8 @@ package me.yakar.muster.spring.internal.problem
 
 import me.yakar.muster.Muster
 import me.yakar.muster.rule.Category
-import me.yakar.muster.spring.fixture.web.VehicleController
-import me.yakar.muster.spring.fixture.web.Violations
+import me.yakar.muster.spring.fixture.problem.VehicleController
+import me.yakar.muster.spring.fixture.problem.Violations
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringBootConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
