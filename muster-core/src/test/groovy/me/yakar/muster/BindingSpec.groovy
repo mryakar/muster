@@ -541,4 +541,58 @@ class BindingSpec extends EngineSpecification {
     seen.every { it in [[CreateVehicle], [UpdateVehicle], [CreateVehicle, UpdateVehicle]] }
     binding.ruleIds().keySet().toList() == [CreateVehicle, UpdateVehicle]
   }
+
+  Muster vehicles() {
+    Muster.builder().rules(new NameUnique(), new CodeFormat()).mode(CheckMode.COLLECT_ALL).build()
+  }
+
+  def 'checkAll of a binding checks the elements with the rules bound to their class'() {
+    given:
+    def binding = vehicles().binding(VehicleFields).build()
+
+    when:
+    binding.checkAll([new UpdateVehicle(1L, 'bad', 'Zeus'), new UpdateVehicle(2L, 'TR-2', 'taken')])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.code-format [0]', 'vehicle.name-unique [1]']
+  }
+
+  def 'checkAll of a binding of a rule target that is not final rejects elements of different classes'() {
+    when:
+    vehicles().binding(VehicleFields).build().checkAll([VALID, new UpdateVehicle(1L, 'TR-2', 'Zeus')])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the elements of a checked collection must be rule targets of one class, or none a rule target; the element at [0] is a ${CreateVehicle.typeName}, the element at [1] a ${UpdateVehicle.typeName}"
+  }
+
+  def 'checkAll of a binding of a final type checks the elements with its own chain'() {
+    given:
+    def binding = vehicles().binding(CreateVehicle).rules(NameUnique).build()
+
+    when:
+    binding.checkAll([VALID, INVALID])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['vehicle.name-unique [1]', 'vehicle.code-format [1]']
+  }
+
+  def 'checkAll of a binding of #type.simpleName passes an empty collection, and one whose elements pass'() {
+    expect:
+    vehicles().binding(type).build().checkAll(inputs)
+
+    where:
+    [type, inputs] << [[VehicleFields, CreateVehicle], [[], [VALID]]].combinations()
+  }
+
+  def 'checkAll of a binding rejects an element of another type, which only unchecked code can pass'() {
+    when:
+    vehicles().binding(CreateVehicle).build().checkAll([VALID, 'two'])
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the binding checks ${CreateVehicle.typeName}; the element at [1] is a java.lang.String"
+  }
 }

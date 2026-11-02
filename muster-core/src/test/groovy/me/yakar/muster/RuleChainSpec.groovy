@@ -23,6 +23,7 @@ import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.rule.Violation
 
 /** Checking an input with a chain: order, skipping, modes, the call context and failures. */
 class RuleChainSpec extends EngineSpecification {
@@ -439,5 +440,37 @@ class RuleChainSpec extends EngineSpecification {
 
     then:
     thrown(UnsupportedOperationException)
+  }
+
+  def 'the position of a violation is read from the front of its target: #target'() {
+    expect:
+    RuleChain.position(violation(target)) == position
+
+    where:
+    target || position
+    '[3].name' || 3
+    '[12]' || 12
+    '[10]' || 10
+    '[9]' || 9
+    '[3][0]' || 3
+    'name' || -1
+    '[]' || -1
+    '[x]' || -1
+    'items[2]' || -1
+    '[99999999999]' || -1
+    '[2147483647]' || 2147483647
+    '[2147483648]' || -1
+    '[' || -1
+    '[3' || -1
+    '[3x]' || -1
+    '[+1]' || -1
+    '[-0]' || -1
+    '[\uFF13]' || -1
+    null || -1
+  }
+
+  static Violation violation(String target) {
+    def builder = RuleContext.forRule('task.exists').violation()
+    target == null ? builder.build() : builder.target(target).build()
   }
 }
