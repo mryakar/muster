@@ -80,6 +80,25 @@ class RulesAdviceSpec extends Specification {
     }
   }
 
+  def 'application contexts in one JVM share the proxy class of an advised service'() {
+    given:
+    def proxyClasses = []
+    def keys = []
+
+    when:
+    2.times {
+      runner.run { context ->
+        proxyClasses << context.getBean(VehicleService).getClass()
+        // Spring keys its cache of proxy classes on this text.
+        keys << context.getBean(RulesAdvisor).pointcut.methodMatcher.toString()
+      }
+    }
+
+    then:
+    proxyClasses[0] == proxyClasses[1]
+    keys == [RulesPointcut.name] * 2
+  }
+
   def 'a method checks the rules it lists: #method'() {
     expect:
     runner.run { context ->

@@ -18,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - In an application processed ahead of time, the starter no longer overrides an order that the application gives the transaction advice, as with `@EnableTransactionManagement(order = ...)`, when it starts from the generated code.
+- The starter no longer makes each application context in one JVM, as in a test suite, generate new proxy classes for the beans it advises.
 
 ### Security
 

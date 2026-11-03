@@ -59,6 +59,18 @@ final class RulesPointcut extends StaticMethodMatcherPointcut {
   }
 
   /**
+   * Names the pointcut by its class only. Spring keys the proxy classes it caches on the text of
+   * the pointcut, so text that differs between applications, such as an identity hash, would make
+   * every application context in a JVM, as in a test suite, generate a proxy class of its own for
+   * each advised class. One text fits every instance, since which methods a pointcut matches
+   * depends only on the method and the class.
+   */
+  @Override
+  public String toString() {
+    return RulesPointcut.class.getName();
+  }
+
+  /**
    * Returns the method of the target class that a call of the given method runs, its bridge
    * resolved, if Muster advises it, or {@code null}. A target that is a proxy based on interfaces
    * itself, such as a Spring Data repository, has only the methods of its interfaces.
