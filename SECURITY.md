@@ -23,6 +23,16 @@ gpg --verify muster-core-<version>.jar.asc muster-core-<version>.jar
 Releases are signed with the key's signing subkey, `46BA04A6815A97C7`; `gpg` names the subkey
 and reports the fingerprint above as the primary key's.
 
+The releases after 0.3.0 also attest the build provenance of their jars, POMs and module metadata:
+that the release workflow of this repository built them from the release tag. To check that with
+the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh attestation verify muster-core-<version>.jar --repo mryakar/muster \
+  --signer-workflow mryakar/muster/.github/workflows/release.yml \
+  --source-ref refs/tags/v<version>
+```
+
 ## Reporting a vulnerability
 
 Please do not report security vulnerabilities in public issues.
