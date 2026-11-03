@@ -1,0 +1,51 @@
+= Transactions and validation
+:description: Where the rules of a Spring Boot service method run among the other advice of its proxy: inside the transaction, after method validation.
+
+The proxy of a service bean runs the advice of the method around it: the transaction, method validation, method security, caching.
+The starter puts the rules where they belong among them.
+
+== Inside the transaction
+
+The rules of a `@Transactional` method run inside its transaction, so a rule reads the data that the method then changes, and a database that isolates transactions keeps another call's half-done changes from it.
+Spring would order the two pieces of advice by accident, so the starter moves the transaction advice ahead of its own when the application starts.
+An application that gives the transaction advice an order of its own, with `@EnableTransactionManagement(order = ...)`, keeps it; `muster.transaction.reorder-advisor=false` leaves the order to Spring.
+Muster checks the order once the application has started, and stops it if the transaction would run inside the rules; transactions woven in with AspectJ stop it too, since they cannot run around a proxy.
+
+A rule does not lock what it reads, so two calls that create a vehicle named Atlas at the same moment can both pass it.
+The database keeps the last word with a unique constraint:
+
+[source,sql]
+----
+include::example$spring-boot/resources/schema.sql[tag=schema,indent=0]
+----
+
+The rule answers the usual case with a clear violation, and the constraint the rare race, with an error.
+
+== After method validation
+
+The constraints of a command, such as a blank name, are checked before its rules, and before its transaction begins:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+The service is `@Validated`, as xref:spring/getting-started.adoc#_a_command_and_a_service[Getting started] shows, and its methods take `@Valid` commands.
+A command with a blank plate is rejected before any rule runs, even when its name is taken as well, and no transaction is opened for it.
+Spring adds method validation after the advice a proxy already has, so the starter moves it ahead of the rules, on the proxies that check rules only; method security and the other advice of the application keep Spring's order.
+With `muster.validation.reorder-advisor=false`, the rules run before the constraints.
+
+A failed constraint of a service method throws `ConstraintViolationException`, which the example answers with 400:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/ConstraintViolations.java[tag=advice,indent=0]
+----
+
+== Other advice
+
+Other advice runs in Spring's order, and some of it changes when the rules run, or whether they do:
+
+* A `@Cacheable` method that finds its answer in the cache does not run, and checks no rules.
+* An `@Async` method checks its rules on the thread that runs it, so a violation does not reach the caller, who already returned, and the rules see no caller and the default locale of the JVM, since both belong to the thread of the request.
+* A call from one method of the bean to another, through the bean, checks the rules of both; a call through `this` checks none, as xref:spring/self-invocation.adoc[] describes.

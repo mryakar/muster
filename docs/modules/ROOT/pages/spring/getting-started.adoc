@@ -1,0 +1,56 @@
+= Getting started with Spring Boot
+:description: A first business rule in a Spring Boot application: a rule class, a command, a service method that checks it, and the answer a client gets.
+
+With the Spring Boot starter, a service method checks its rules before its first line runs, inside its transaction, and a violated rule reaches the client as problem details in its language.
+The service calls nothing of Muster.
+
+This guide follows a Spring Boot application that keeps the vehicles of a fleet in a database, the same fleet as xref:core/rules.adoc[the guide without Spring].
+Every sample is part of that application, which runs on every build of Muster, calls itself over HTTP, and fails if an answer is not the one this guide shows.
+
+== Installation
+
+Add the starter as xref:index.adoc#_installation[the home page] shows.
+It needs Spring Boot 4.0.8 or later, and Java 21 or later; the starter is built against the oldest Spring Boot it supports, so it never pulls an application up to a newer one.
+
+== A rule
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleNameUnique.java[tag=rule,indent=0]
+----
+
+The starter finds rule classes in the packages of the application, as Spring Boot finds entities, and creates each one as a bean.
+A rule needs no `@Component`, and gets the repository through its constructor like any other bean.
+xref:core/rules.adoc[Writing a rule] explains the rest of the class.
+
+== A command and a service
+
+The command that creates a vehicle implements `VehicleFields`, a `RuleTarget`, which binds it to the rules of that type:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+A public method of a `@Service` that takes such a command checks its rules before it runs:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=service,indent=0]
+----
+
+The method holds what the operation does, and nothing of what must be true before it may run.
+A new rule for vehicles adds a class, and no line to the service.
+The constraints on the command, such as a blank name, are checked first, as xref:spring/transactions.adoc[] describes.
+
+== The answer
+
+The fleet has a vehicle named Ilgaz already, and names are compared whatever their case.
+A client that asks for a vehicle named ilgaz, in Turkish, gets:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/name-taken.json[]
+----
+
+The status follows the category of the violation, and the message is in the language the client asked for, as xref:spring/problem-details.adoc[] describes.

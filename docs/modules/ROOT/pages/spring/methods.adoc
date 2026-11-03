@@ -1,0 +1,59 @@
+= Methods that check rules
+:description: Which methods of a Spring Boot application check business rules, how @Rules lists rules and sets the mode, and how a method that takes a collection is checked.
+
+== Methods of a service
+
+A public method of a `@Service` bean that takes a rule target checks the rules of its type before it runs, as the method that creates a vehicle does.
+The command is the method's only parameter: a method that takes a rule target among other parameters stops the application when it starts, since the starter cannot tell which one to check.
+Values that belong together, such as the id and the new name of a rename, travel together in the command.
+
+== Listing rules and setting the mode
+
+`@Rules` changes what a method checks.
+The method that renames a vehicle checks the rules of its type in collect-all mode, so a client hears about a taken name and a vehicle it may not rename at once:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
+----
+
+`@Rules` also lists rules, which run first, in the order listed, and excludes rules that would bind by type.
+`@Rules` makes a public method of any bean check, not only of a `@Service`.
+For an input that is not a rule target, such as an id, the method checks the rules it lists and no others.
+
+`@Rules` can sit on an interface method that the service implements, or on an annotation of your own that stands for a set of rules, just as `@Transactional` can.
+The proxy only sees calls of public instance methods it can override, so the starter refuses `@Rules` on a static, final or non-public method rather than ignore it.
+
+== Collections
+
+A method that takes a collection of rule targets checks the rules of each element and the rules of the whole collection, in one call, before it runs:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=create-all,indent=0]
+----
+
+The limit on the number of vehicles is listed so that it runs before any rule queries the database.
+It is a rule of the whole collection, and takes the limit from the configuration of the application, as any bean can:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/BatchLimit.java[tag=whole,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=batch-limit,indent=0]
+----
+
+A violation about an element names its position, so the client knows which vehicle to correct:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/batch-name-taken.json[]
+----
+
+xref:core/collections.adoc[Checking a collection] describes how the element rules and the collection rules run.
+The starter picks the rules from the declared element type, so `List<CreateVehicle>` works where a raw `List` or a `List<?>` gives it nothing to go on: such a parameter stops the application in a method with `@Rules`, and makes a `@Service` method without `@Rules` check no rules.
+The elements of one call that are rule targets are of one class, since rules bind to that class.
+An array is not a collection to the starter: a method with `@Rules` checks it as one input, and a `@Service` method without `@Rules` that takes one checks no rules.

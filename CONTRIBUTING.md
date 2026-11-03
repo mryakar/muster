@@ -24,8 +24,9 @@ Windows, enable symbolic links in Git (`core.symlinks`) before cloning, or the l
 out as files and the build fails on the first include. A sample is a tagged region of an example,
 `// tag::check-all[]` to `// end::check-all[]`, named after the code it holds rather than the page
 that shows it, and included with `tag=check-all,indent=0`; a tag that is not found fails the build.
-The examples check what the guides say, so a sample that changes what Muster does changes the
-example's assertions too.
+An output that an example compares with what it gets, such as a JSON answer or a log, is a file of
+its own, included whole. The examples check what the guides say, so a sample that changes what
+Muster does changes the example's assertions too.
 
 ## Code
 

@@ -1,4 +1,15 @@
 * xref:index.adoc[]
+* With Spring Boot
+** xref:spring/getting-started.adoc[]
+** xref:spring/methods.adoc[]
+** xref:spring/transactions.adoc[]
+** xref:spring/problem-details.adoc[]
+** xref:spring/caller-and-locale.adoc[]
+** xref:spring/configuration.adoc[]
+** xref:spring/self-invocation.adoc[]
+** xref:spring/observability.adoc[]
+** xref:spring/testing.adoc[]
+** xref:spring/limits.adoc[]
 * Without Spring
 ** xref:core/rules.adoc[]
 ** xref:core/checking.adoc[]
