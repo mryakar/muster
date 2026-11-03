@@ -35,6 +35,39 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - run: ./gradlew build -PtestJavaVersion=${{ matrix.java }}
 
+  # Sends the analysis to SonarQube Cloud, which shows its quality gate on the pull request; not a
+  # required check. Pull requests from forks and from Dependabot get no secrets, so it is skipped
+  # there. Only the step that sends the analysis sees the token, not the build and its tests.
+  sonar:
+    name: SonarQube Cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_SONAR_TOKEN: ${{ secrets.SONAR_TOKEN != '' }}
+    steps:
+      - if: env.HAS_SONAR_TOKEN != 'true'
+        run: echo "No SONAR_TOKEN for this run, so no analysis."
+      # The whole history, so that the analysis tells new code from old.
+      - if: env.HAS_SONAR_TOKEN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - if: env.HAS_SONAR_TOKEN == 'true'
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - if: env.HAS_SONAR_TOKEN == 'true'
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - if: env.HAS_SONAR_TOKEN == 'true'
+        run: ./gradlew build jacocoTestReport
+      - if: env.HAS_SONAR_TOKEN == 'true'
+        name: Send the analysis
+        run: ./gradlew sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   # The build uses the oldest Spring Boot the starter supports; this job tests the newest, on both
   # JDKs.
   spring-boot-latest:

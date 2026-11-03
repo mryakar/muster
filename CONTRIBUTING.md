@@ -131,6 +131,9 @@ contain only related changes. CI checks every commit message in a pull request;
 - `main` is protected; all changes go through pull requests.
 - Pull requests are merged with **rebase and merge** only, so every commit lands on `main` as-is.
   Rebase your branch onto `main` instead of merging `main` into it.
+- SonarQube Cloud analyzes each pull request and shows its quality gate on it. The gate is advice,
+  not a required check. Pull requests from forks and from Dependabot are not analyzed, since they
+  get no token.
 
 ## Releases
 

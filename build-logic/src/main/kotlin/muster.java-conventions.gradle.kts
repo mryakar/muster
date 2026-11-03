@@ -81,6 +81,9 @@ tasks.withType<JacocoReportBase>().configureEach {
   executionData(*tests.toTypedArray())
 }
 
+// An XML report too, which SonarQube Cloud reads for the coverage.
+tasks.jacocoTestReport { reports { xml.required = true } }
+
 tasks.jacocoTestCoverageVerification {
   violationRules {
     rule {
