@@ -18,6 +18,7 @@
 plugins {
   id("muster.java-base-conventions")
   id("muster.api-compatibility-conventions")
+  id("muster.nullness-conventions")
   `java-library`
   groovy
   jacoco

@@ -5,7 +5,8 @@ to discuss a change before you start working on it.
 
 ## Building
 
-Muster needs JDK 21 and a running Docker daemon for the integration tests.
+Muster needs JDK 21, 21.0.8 or later from an OpenJDK build such as Temurin or Corretto, which the
+nullness check needs, and a running Docker daemon for the integration tests.
 
 | Command | What it does |
 |---|---|
@@ -40,7 +41,9 @@ Release, and the Javadoc of the checked-out commit as `next`.
 - Every source file starts with the Apache-2.0 license header. Spotless adds it, except to
   `package-info.java` and `module-info.java`, where it is written by hand.
 - `muster-core` depends only on the JSpecify annotations. Do not add runtime dependencies.
-- Packages are `@NullMarked` (JSpecify).
+- Packages are `@NullMarked` (JSpecify). NullAway checks the main code of the core and the starter
+  against the annotations as it compiles, and fails the build where a value that may be null
+  reaches a place that does not allow it.
 
 ## Tests
 
