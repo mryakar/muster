@@ -1,0 +1,55 @@
+= Learning path
+:description: Every guide of Muster in the order to read it, from the first rule to observing checks in production, with what each one teaches in a sentence.
+
+The guides build on each other.
+Read them in this order, and stop wherever you have what you need: the first three levels are enough for most applications.
+
+== Level 0: the idea
+
+. xref:start/what-is-muster.adoc[] — the problem Muster solves, and when not to use it.
+. xref:start/concepts.adoc[] — every word of this documentation, in plain language.
+
+== Level 1: a first rule
+
+Pick the quick start that matches your application:
+
+* xref:start/quick-start-spring.adoc[] — a Spring Boot application: write a rule, mark a command, and the service checks it by itself.
+* xref:start/quick-start-java.adoc[] — any Java application: build a `Muster` and call `check` yourself.
+
+== Level 2: rules for real
+
+With Spring Boot, in order:
+
+. xref:spring/getting-started.adoc[] — the fleet application, from a rule to the answer a client gets.
+. xref:spring/methods.adoc[] — which methods check rules, `@Rules` to list them, and methods that take a list.
+. xref:spring/transactions.adoc[] — where the rules run: inside the transaction, after validation.
+. xref:spring/problem-details.adoc[] — the HTTP answer to a violation, and its messages in the client's language.
+. xref:spring/testing.adoc[] — testing a rule alone, against the database, and through the web layer.
+
+Without Spring, in order:
+
+. xref:core/rules.adoc[] — every part of a rule, violations, and testing a rule.
+. xref:core/checking.adoc[] — building `Muster`, chains, rules of a type, bindings, and rules that require other rules.
+. xref:core/errors.adoc[] — what a rejected check throws, and how to answer it, such as with an HTTP status.
+. xref:core/messages.adoc[] — turning a violation into a message in the caller's language.
+
+The pages without Spring explain the core that the starter is built on, so a Spring Boot developer learns from them too.
+
+== Level 3: more control
+
+* xref:core/modes.adoc[] — report every violation at once instead of the first; switch rules off without a change to the code.
+* xref:core/context.adoc[] or, with Spring, xref:spring/caller-and-locale.adoc[] — who makes the call, and their language, inside a rule.
+* xref:core/collections.adoc[] — check a hundred inputs in one call, and a rule that checks them all with one query.
+* xref:spring/configuration.adoc[] — the settings of the starter, and the beans that replace its own.
+
+== Level 4: production
+
+* xref:core/listeners.adoc[] or, with Spring, xref:spring/observability.adoc[] — log, time and count every check and every rule.
+* xref:spring/self-invocation.adoc[] — why a call through `this` checks no rules, and how the starter finds such calls.
+* xref:spring/limits.adoc[] — what the starter does not do yet.
+
+== Reference
+
+* xref:reference/properties.adoc[] — every setting of the starter, with its default.
+* xref:reference/api.adoc[] — the Javadoc, which defines every type and method.
+* xref:reference/release-notes.adoc[] — what each release changed.

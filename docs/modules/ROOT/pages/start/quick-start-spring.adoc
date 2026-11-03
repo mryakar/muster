@@ -1,0 +1,131 @@
+= Quick start with Spring Boot
+:description: A first business rule in a Spring Boot application in four steps: a rule class, a command, a service method, and the message the client reads, with no call to Muster in the service.
+include::partial$javadoc.adoc[]
+
+This page adds a business rule to a Spring Boot application, in four small steps.
+You need Java 21 or later and Spring Boot 4.0.9 or later.
+The example keeps its vehicles in a database, as most Spring Boot applications do; Muster itself needs none.
+xref:start/concepts.adoc[] explains every word used here; xref:start/quick-start-java.adoc[the quick start without Spring] shows what happens underneath.
+
+The application keeps the vehicles of a fleet, and the rule is: two vehicles must not have the same name.
+Every sample on this page is part of an example application that runs on every build of Muster, calls itself over HTTP, and fails if an answer is not the one this page shows.
+
+== Step 1: add the starter
+
+Add the Spring Boot starter of Muster to your build, as xref:index.adoc#_installation[the home page] shows: the BOM, and `muster-spring-boot-starter` without a version.
+There is nothing to configure: the starter switches itself on.
+
+== Step 2: write the rule
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleNameUnique.java[tag=rule,indent=0]
+----
+
+Read it from the top:
+
+* link:{javadoc-core}/rule/Rule.html[`@Rule(id = "vehicle.name-unique")`] gives the rule its id; the client receives it as the code of the violation.
+* link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`] says which input it checks: anything that carries the fields of a vehicle.
+* The starter finds rule classes in the packages of your application, as Spring Boot finds entities, and creates each one as a bean.
+So the rule needs no `@Component`, and gets the repository through its constructor, like any other bean.
+* `check` asks the repository, and answers `passed()`, or a violation that names the field (`name`), the value a message needs, and the kind of problem: link:{javadoc-core}/rule/Category.html[`CONFLICT`], which becomes HTTP status 409.
+
+One rule object serves every call, from every thread, as any singleton bean does.
+It does not lock what it reads, so two clients who pick the same name at the same moment can both pass it; the unique constraint of the table stays the last guard, as xref:spring/transactions.adoc[] explains.
+
+== Step 3: mark the command, and write the service
+
+The rule checks `VehicleFields`, the fields that every command about a vehicle carries.
+It extends link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`], the marker that lets rules bind to a type:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleFields.java[tag=fields,indent=0]
+----
+
+The command that creates a vehicle implements it, so the rule checks it:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+The service method takes the command.
+That is all it needs to do:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=service,indent=0]
+----
+
+There is no call to Muster in it.
+The constructor, left out here, takes the repository; `owner()` reads the signed-in user from Spring Security, a choice of the example that Muster does not need.
+A public method of a `@Service` that takes a rule target runs the rules of that target *before its first line*, *inside its transaction*.
+If a rule fails, the method does not run, and nothing is written.
+Adding a rule for vehicles later adds a class, and no line to the service.
+
+`@Validated` on the class and `@Valid` on the parameter run Jakarta Bean Validation, which needs `spring-boot-starter-validation`.
+Format checks of one field, such as `@NotBlank` on the command, stay there, and run before the rules.
+
+A controller passes the body of a request to the service, as in any Spring application:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleController.java[tag=create,indent=0]
+----
+
+== Step 4: write the messages
+
+A violation holds no text.
+The starter writes the message from the message source of your application, which by default reads `messages.properties` and one file per language, keyed by the code of the violation:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=messages]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=messages]
+----
+
+== Try it
+
+The fleet has a vehicle named Ilgaz already, and names are compared whatever their case.
+A client, signed in as ece, asks in Turkish for one more vehicle named ilgaz (the example application signs its users in with Spring Security; the sign-in header is left out here):
+
+[source,http]
+----
+POST /vehicles HTTP/1.1
+Accept-Language: tr-TR
+Content-Type: application/json
+
+{"name": "ilgaz", "plate": "06 ANK 43"}
+----
+
+It gets this answer, without a line of error handling in the application:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/name-taken.json[]
+----
+
+* `409 Conflict` comes from the category of the violation.
+* `message` is in the language the client asked for.
+* `target` tells a form which field to mark.
+* `code` lets a client react to one rule in its own code, whatever the language.
+
+== What happened, in short
+
+. You wrote the condition as a small class with an id; the starter found it and made it a bean.
+. The command said it is a rule target; the service method said nothing at all.
+. When the method was called, the starter ran the rule inside the transaction, before the method; the rule failed, and the method never ran.
+. The starter turned the violation into an HTTP answer, with a message in the client's language.
+
+== Where to go next
+
+* xref:spring/getting-started.adoc[] follows the same application further.
+* xref:spring/methods.adoc[] chooses exactly which rules a method runs, with `@Rules`, and checks lists of commands.
+* xref:spring/problem-details.adoc[] explains every field of the answer, and how to change it.
+* xref:spring/testing.adoc[] tests a rule on its own, and with the database.
+* xref:start/learning-path.adoc[] lists every guide, from simple to advanced.

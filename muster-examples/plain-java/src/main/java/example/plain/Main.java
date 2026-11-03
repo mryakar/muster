@@ -15,6 +15,7 @@
  */
 package example.plain;
 
+import example.plain.quickstart.QuickStart;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -34,8 +35,8 @@ import me.yakar.muster.spi.MessageResolver;
 
 /**
  * An application without Spring, on the module path, whose samples the guide to Muster without
- * Spring includes. It makes the calls the guide describes, and fails if Muster does not answer as
- * the guide says.
+ * Spring includes, with its quick start. It makes the calls they describe, and fails if Muster does
+ * not answer as they say.
  */
 public final class Main {
 
@@ -48,6 +49,7 @@ public final class Main {
   private Main() {}
 
   public static void main(String[] args) {
+    QuickStart.run();
     // tag::muster[]
     var vehicles = new Vehicles();
     var log = new CopyOnWriteArrayList<String>(); // the listener adds to it from every thread

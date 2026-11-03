@@ -17,7 +17,9 @@ package example.spring;
 
 import me.yakar.muster.rule.RuleTarget;
 
+// tag::fields[]
 /** The fields of a vehicle that commands carry, and that the rules check. */
 public interface VehicleFields extends RuleTarget {
   String name();
 }
+// end::fields[]
