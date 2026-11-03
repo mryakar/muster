@@ -29,7 +29,9 @@ its own, included whole. The examples check what the guides say, so a sample tha
 Muster does changes the example's assertions too. The reference of the starter's properties is
 written from its `spring-configuration-metadata.json`, which IDEs read too: after changing the
 metadata, run `./gradlew :muster-spring-boot-starter:propertyReference`; `check` fails while the
-reference is out of date.
+reference is out of date. The site serves the Javadoc of each version under `api/`, which
+`.github/scripts/javadoc-site.sh <site directory>` puts there: the javadoc jars of each GitHub
+Release, and the Javadoc of the checked-out commit as `next`.
 
 ## Code
 
