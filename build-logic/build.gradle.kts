@@ -23,4 +23,7 @@ dependencies {
   implementation(libs.pitest.gradle.plugin)
   implementation(libs.sonarqube.gradle.plugin)
   implementation(libs.spotless.gradle.plugin)
+  // Newer than the plugins take: the versions they would take have known vulnerabilities.
+  implementation(platform(libs.jackson2.bom))
+  constraints { implementation(libs.guava) }
 }

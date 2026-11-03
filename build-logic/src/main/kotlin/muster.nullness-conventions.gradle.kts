@@ -29,6 +29,8 @@ val libs = versionCatalogs.named("libs")
 dependencies {
   errorprone(libs.findLibrary("error-prone-core").get())
   errorprone(libs.findLibrary("nullaway").get())
+  // Newer than Error Prone takes: the version it would take has a known vulnerability.
+  constraints { errorprone(libs.findLibrary("guava").get()) }
 }
 
 tasks.withType<JavaCompile>().configureEach {
