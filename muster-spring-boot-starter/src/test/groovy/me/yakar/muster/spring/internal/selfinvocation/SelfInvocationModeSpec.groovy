@@ -83,4 +83,43 @@ class SelfInvocationModeSpec extends Specification {
     cleanup:
     logs.close()
   }
+
+  def 'in a native image, #mode mode warns that it cannot scan, and scans nothing'() {
+    given:
+    def logs = new LogCapture()
+
+    when:
+    def scanning = logs.withCloseable { mode.inNativeImage(true) }
+
+    then:
+    scanning == SelfInvocationMode.OFF
+    logs.records*.level == [Level.WARNING]
+    logs.messages == [
+      'In a native image, Muster cannot read class files, so it does not look for methods that call an advised method through this, which checks no rules; set muster.self-invocation=off to leave this warning out'
+    ]
+
+    where:
+    mode << [SelfInvocationMode.FAIL, SelfInvocationMode.WARN]
+  }
+
+  def 'in a native image, off mode logs nothing'() {
+    given:
+    def logs = new LogCapture()
+
+    expect:
+    logs.withCloseable { SelfInvocationMode.OFF.inNativeImage(true) } == SelfInvocationMode.OFF
+    logs.records.empty
+  }
+
+  def 'outside a native image, #mode mode scans as it is'() {
+    given:
+    def logs = new LogCapture()
+
+    expect:
+    logs.withCloseable { mode.inNativeImage(false) } == mode
+    logs.records.empty
+
+    where:
+    mode << SelfInvocationMode.values()
+  }
 }

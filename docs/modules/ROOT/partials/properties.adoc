@@ -30,6 +30,7 @@ pass:c[Violations of one category are answered with its status: 403 for forbidde
 |`+fail+`
 |pass:c[What to do when a method of an advised class calls an advised method on this, which passes no proxy and checks no rules: fail stops the application and names the methods, warn logs them, off skips the scan.]
 pass:c[The starter scans the bytecode of the advised classes when it prepares them, the bodies of lambdas included; a call through reflection, through a nested class or from code compiled to dynamic calls, as Groovy's, is not seen.]
+pass:c[A native image has no class files to scan, so there the starter warns at startup that it does not look for such calls, unless the setting is off.]
 Values: `+fail+`, `+warn+`, `+off+`.
 
 |`+muster.rules+`
