@@ -207,8 +207,9 @@ advised methods through `this`, the bodies of lambdas and method references incl
 application, naming the methods; `muster.self-invocation=warn` logs them instead, and `off` skips
 the scan. Call the method through its bean, injecting the bean itself with `@Lazy` or an
 `ObjectProvider`, or move it to another bean. A call through reflection, through a nested class, or
-from code compiled to dynamic calls, as Groovy's, is not seen, and nothing is scanned where the
-class files are not there, as in a native image.
+from code compiled to dynamic calls, as Groovy's, is not seen. A native image has no class files to
+scan: there the starter warns at startup that it does not look for such calls, unless the setting
+is `off`.
 
 **Validation and other advice.** The constraints of a `@Validated` method are checked before its
 rules, and before its transaction: Spring adds the validation advice after the advice a proxy

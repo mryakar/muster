@@ -4,7 +4,7 @@
 * *Native images.* A test starts an application from the code that ahead-of-time processing generates, as a native image does: the constraints are checked before the rules, the rules run inside the transaction, an order the application gives its transaction advice is kept, and an application whose transaction advice would run inside the rules does not start.
 The transaction advice is moved when the application is processed, so `muster.transaction.reorder-advisor` counts with the value it has then, as Spring Boot's conditions do, and not with the one it has at startup.
 A native image itself is not tested.
-In a native image, the scan for calls through `this` has no class files to read and finds nothing.
+In a native image, the scan for calls through `this` has no class files to read, so the starter warns at startup that it does not look for them, as xref:spring/self-invocation.adoc[] describes.
 * *Calls the scan does not see.* A call through reflection, from a nested class of the bean, or compiled to a dynamic call, as Groovy's, checks no rules and is not reported, as xref:spring/self-invocation.adoc[] describes.
 * *`@Cacheable` and `@Async`.* A cached answer checks no rules, and an `@Async` method checks them on its own thread, where a violation does not reach the caller, as xref:spring/transactions.adoc#_other_advice[Other advice] describes.
 * *Element types with two bounds.* For a parameter such as `List<T>` with `T extends A & B`, the elements are taken to be of `A`, the first bound.

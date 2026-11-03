@@ -37,7 +37,7 @@
     {
       "name": "muster.self-invocation",
       "type": "me.yakar.muster.spring.internal.selfinvocation.SelfInvocationMode",
-      "description": "What to do when a method of an advised class calls an advised method on this, which passes no proxy and checks no rules: fail stops the application and names the methods, warn logs them, off skips the scan. The starter scans the bytecode of the advised classes when it prepares them, the bodies of lambdas included; a call through reflection, through a nested class or from code compiled to dynamic calls, as Groovy's, is not seen.",
+      "description": "What to do when a method of an advised class calls an advised method on this, which passes no proxy and checks no rules: fail stops the application and names the methods, warn logs them, off skips the scan. The starter scans the bytecode of the advised classes when it prepares them, the bodies of lambdas included; a call through reflection, through a nested class or from code compiled to dynamic calls, as Groovy's, is not seen. A native image has no class files to scan, so there the starter warns at startup that it does not look for such calls, unless the setting is off.",
       "sourceType": "me.yakar.muster.spring.MusterAutoConfiguration",
       "defaultValue": "fail"
     },
