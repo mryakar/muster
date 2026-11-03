@@ -21,11 +21,6 @@ import java.util.Set;
 import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.Muster;
 import me.yakar.muster.RuleChain;
-import me.yakar.muster.rule.BusinessRule;
-import me.yakar.muster.rule.Rule;
-import me.yakar.muster.rule.RuleContext;
-import me.yakar.muster.rule.RuleResult;
-import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.MessageResolver;
 
@@ -36,32 +31,6 @@ import me.yakar.muster.spi.MessageResolver;
 public final class Main {
 
   private Main() {}
-
-  /** The fields that the rules check. */
-  public interface VehicleFields extends RuleTarget {
-    String name();
-  }
-
-  /** The command to create a vehicle. */
-  public record CreateVehicle(String name) implements VehicleFields {}
-
-  /** A vehicle name must not be taken. */
-  @Rule(id = "vehicle.name-unique")
-  public static final class VehicleNameUnique implements BusinessRule<VehicleFields> {
-
-    private final Set<String> taken;
-
-    VehicleNameUnique(Set<String> taken) {
-      this.taken = taken;
-    }
-
-    @Override
-    public RuleResult check(VehicleFields input, RuleContext ctx) {
-      return taken.contains(input.name())
-          ? RuleResult.failed(ctx.violation().clientArg("name", input.name()).build())
-          : RuleResult.passed();
-    }
-  }
 
   public static void main(String[] args) {
     var muster = Muster.builder().rules(new VehicleNameUnique(Set.of("Atlas"))).build();
