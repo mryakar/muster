@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import me.yakar.muster.spring.internal.Settings;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.AotDetector;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -54,6 +55,12 @@ final class TransactionOrdering implements BeanFactoryPostProcessor, Environment
 
   @Override
   public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+    // Started from the code that ahead-of-time processing generated, which ran this already and
+    // kept the order it set; the generated definitions carry no annotations to tell an order the
+    // application gave from the default, so running again would override the application's.
+    if (AotDetector.useGeneratedArtifacts()) {
+      return;
+    }
     if (beanFactory.containsBeanDefinition(
         TransactionManagementConfigUtils.TRANSACTION_ASPECT_BEAN_NAME)) {
       throw new IllegalStateException(
