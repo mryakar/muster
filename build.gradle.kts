@@ -13,4 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-plugins { id("muster.build-script-conventions") }
+plugins {
+  id("muster.build-script-conventions")
+  id("muster.sonar-conventions")
+}
