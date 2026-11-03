@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- In an application processed ahead of time, the starter no longer overrides an order that the application gives the transaction advice, as with `@EnableTransactionManagement(order = ...)`, when it starts from the generated code.
+
 ### Security
 
 - Releases carry attestations of their build provenance, which `gh attestation verify` checks: SECURITY.md says how.
