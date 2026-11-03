@@ -52,6 +52,10 @@ Release, and the Javadoc of the checked-out commit as `next`.
   tested with [jqwik](https://jqwik.net/) in classes named `…Properties`, next to the
   specifications. Each run tries other inputs; a failure prints its seed, which
   `@Property(seed = "…")` on the property reruns.
+- The test that starts an application from the code that ahead-of-time processing generates is a
+  JUnit Jupiter test, in Groovy too: it needs Spring's `@CompileWithForkedClassLoader`, a Jupiter
+  extension that Spock does not run, to load the generated code next to the package-private `@Bean`
+  methods it calls.
 - Integration tests live in the `integrationTest` source set and use Spring Boot, Testcontainers and
   PostgreSQL.
 - Every change comes with tests. The build requires 100% instruction, branch and line coverage.

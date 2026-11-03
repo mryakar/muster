@@ -64,6 +64,9 @@ testing {
         implementation("org.springframework.boot:spring-boot-starter-webmvc-test")
         implementation("org.springframework.security:spring-security-core")
         implementation("org.springframework:spring-tx")
+        // Compiles the code that ahead-of-time processing generates, to start an application from
+        // it.
+        implementation("org.springframework:spring-core-test")
         implementation("io.micrometer:micrometer-observation-test")
         implementation("org.springframework.boot:spring-boot-starter-actuator")
         implementation("org.spockframework:spock-spring")

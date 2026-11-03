@@ -75,6 +75,15 @@ tasks.withType<Test>().configureEach {
 
 jacoco { toolVersion = version("jacoco") }
 
+// A test may load the classes again in a class loader of its own, which gives them no location;
+// the agent leaves such classes out unless told otherwise, and what runs there would not count.
+tasks.withType<Test>().configureEach {
+  extensions.configure<JacocoTaskExtension> {
+    isIncludeNoLocationClasses = true
+    excludes = listOf("jdk.internal.*")
+  }
+}
+
 // Coverage counts every test suite, integration tests included. Taking the data from the tasks
 // adds no dependency on them, so it is declared.
 tasks.withType<JacocoReportBase>().configureEach {

@@ -38,7 +38,7 @@ class ComponentScanSpec extends Specification {
   @Configuration(proxyBeanMethods = false)
   @ComponentScan(basePackages = 'me.yakar', excludeFilters = [
     @ComponentScan.Filter(type = FilterType.CUSTOM, classes = [TypeExcludeFilter, AutoConfigurationExcludeFilter]),
-    @ComponentScan.Filter(type = FilterType.REGEX, pattern = 'me\\.yakar\\.muster\\.spring\\.(fixture\\..*|.*Spec(\\$.*)?)')
+    @ComponentScan.Filter(type = FilterType.REGEX, pattern = 'me\\.yakar\\.muster\\.spring\\.(fixture\\..*|.*(Spec|Test)(\\$.*)?)')
   ])
   static class ScansMuster {}
 
