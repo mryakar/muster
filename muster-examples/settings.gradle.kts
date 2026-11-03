@@ -34,7 +34,7 @@ dependencyResolutionManagement {
     }
     mavenCentral { content { excludeGroup("me.yakar.muster") } }
   }
-  // The Spring Boot versions that Muster is built against.
+  // The versions of Spring Boot and JUnit that Muster is built against.
   versionCatalogs { create("libs") { from(files("../gradle/libs.versions.toml")) } }
 }
 

@@ -17,7 +17,9 @@ package example.plain;
 
 import me.yakar.muster.rule.RuleTarget;
 
-/** The fields that the rules check. */
+// tag::target[]
+/** The fields of a vehicle that commands carry, and that the rules check. */
 interface VehicleFields extends RuleTarget {
   String name();
 }
+// end::target[]

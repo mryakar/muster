@@ -21,5 +21,5 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 version="${1:-$(sed -n 's/^version=//p' gradle.properties)}"
-./gradlew -p muster-examples run -PmusterVersion="$version"
-./gradlew -p muster-examples run -PmusterVersion="$version" -PpomOnly
+./gradlew -p muster-examples test run -PmusterVersion="$version"
+./gradlew -p muster-examples test run -PmusterVersion="$version" -PpomOnly

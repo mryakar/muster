@@ -20,7 +20,12 @@ val musterVersion = providers.gradleProperty("musterVersion").get()
 dependencies {
   implementation(platform("me.yakar.muster:muster-bom:$musterVersion"))
   implementation("me.yakar.muster:muster-core")
+  testImplementation(platform(libs.junit.bom))
+  testImplementation("org.junit.jupiter:junit-jupiter")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.test { useJUnitPlatform() }
 
 tasks.withType<JavaCompile>().configureEach {
   options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
