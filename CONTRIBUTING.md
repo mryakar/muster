@@ -48,6 +48,10 @@ Release, and the Javadoc of the checked-out commit as `next`.
 ## Tests
 
 - Unit tests are written with [Spock](https://spockframework.org/) in `src/test/groovy`.
+- Properties that hold for every input, such as the order of a chain for any graph of rules, are
+  tested with [jqwik](https://jqwik.net/) in classes named `…Properties`, next to the
+  specifications. Each run tries other inputs; a failure prints its seed, which
+  `@Property(seed = "…")` on the property reruns.
 - Integration tests live in the `integrationTest` source set and use Spring Boot, Testcontainers and
   PostgreSQL.
 - Every change comes with tests. The build requires 100% instruction, branch and line coverage.

@@ -20,5 +20,9 @@ plugins {
 
 description = "Business rules checked before your service method runs."
 
-// Tests show that JSON mappers cannot reveal a violation's internal arguments.
-dependencies { testImplementation(libs.jackson.databind) }
+dependencies {
+  // Tests show that JSON mappers cannot reveal a violation's internal arguments.
+  testImplementation(libs.jackson.databind)
+  // Property-based tests, which run next to the specifications on the JUnit Platform.
+  testImplementation(libs.jqwik)
+}
