@@ -1,0 +1,36 @@
+= The caller and the locale
+:description: Where the rules of a Spring Boot application learn who makes the call and in which locale, and how an application changes either.
+
+== The caller
+
+The starter reads the caller from Spring Security, when the application has it: the user that signed in, such as with HTTP Basic in the example.
+Only the owner of a vehicle may rename it:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+The caller is the `Authentication` of the request, so `getName()` is the user name, and a rule that needs more of it casts it.
+A call that is anonymous, or not authenticated, has no caller.
+The starter reads the security context through the application's `SecurityContextHolderStrategy` bean, if it has one.
+
+== The locale
+
+The locale is that of the request, from `LocaleContextHolder`, which Spring MVC fills from the `Accept-Language` header unless the application resolves it differently.
+The format of a licence plate follows the region of that locale:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehiclePlateFormat.java[tag=locale,indent=0]
+----
+
+A request in `tr-TR` gets its plate checked against the Turkish format, and a request in plain `en` does not get it checked at all.
+Outside a request, such as in a scheduled job, the locale is the default locale of the JVM.
+xref:core/context.adoc#locale[The locale] in the guide without Spring says what the locale is for, and what it is not for.
+
+== From elsewhere
+
+A `Supplier<Principal>` bean of the application replaces where the caller comes from, and a `Supplier<Locale>` bean where the locale comes from, for example for an application that signs its users in without Spring Security.
+The bean must name its type: a raw `Supplier` replaces neither.
+Every request thread calls the supplier, so it reads per-request state, as a `ThreadLocal` holds it, rather than a field that one request could overwrite for another.

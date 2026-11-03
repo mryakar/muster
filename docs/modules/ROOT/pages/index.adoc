@@ -17,7 +17,7 @@ The latest release is {muster-version}, with the core and the Spring Boot starte
 The https://github.com/mryakar/muster/blob/main/ROADMAP.md[roadmap] says what follows.
 
 This site is being written.
-xref:core/rules.adoc[The guide without Spring] is in; until the guide to the Spring Boot starter is, the https://github.com/mryakar/muster#readme[README] says how to use the starter.
+xref:spring/getting-started.adoc[The guide to the Spring Boot starter] and xref:core/rules.adoc[the guide without Spring] are in; until the reference is, the https://github.com/mryakar/muster#readme[README] lists every setting of the starter.
 
 == Installation
 
@@ -64,6 +64,7 @@ Releases are signed; https://github.com/mryakar/muster/blob/main/SECURITY.md#ver
 
 == Where to go
 
+* xref:spring/getting-started.adoc[The guide to the Spring Boot starter] uses Muster in a Spring Boot application, from the first rule to observing checks in production.
 * xref:core/rules.adoc[The guide without Spring] uses Muster in a plain Java application, from the first rule to the answer to a rejected call.
 * https://github.com/mryakar/muster[The repository] holds the code, the issues and the example applications.
 * https://github.com/mryakar/muster/blob/main/CHANGELOG.md[The changelog] says what each release changed.

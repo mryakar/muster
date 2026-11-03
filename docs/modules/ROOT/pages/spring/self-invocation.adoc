@@ -1,0 +1,38 @@
+= Calls through this
+:description: Why a call through this checks no rules in a Spring Boot application, how the starter finds such calls when the application starts, and how to call a method through its bean.
+
+A service method checks its rules in the proxy that Spring puts around the bean.
+A call from one method of the bean to another through `this` goes straight to the method, past the proxy, and checks no rules: a quiet hole in the rules, which no test of the method on its own shows.
+
+== Found when the application starts
+
+The starter reads the bytecode of each class whose methods check rules, with its superclasses and interfaces, when it prepares the bean, which for most beans is when the application starts.
+It finds calls of those methods through `this`, in the bodies of lambdas and method references too, and stops the application with a message that names each call it found and the ways to fix it.
+A lazy bean is prepared on its first call, which then fails instead.
+
+`muster.self-invocation=warn` logs a warning for each call instead, for an application that is being fixed, and `muster.self-invocation=off` skips the scan.
+
+== Calling through the bean
+
+Naming a vehicle after its plate is a rename, with the rules of a rename.
+The service calls its own `rename` through its bean, which it gets from an `ObjectProvider`:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=self,indent=0]
+----
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=name-after-plate,indent=0]
+----
+
+A user who may not rename the vehicle may not name it after its plate either.
+The `ObjectProvider` defers looking the bean up until the call, after the proxy exists; injecting the bean itself with `@Lazy` does the same.
+Moving one of the methods to another bean is the other way out.
+
+== What the scan does not see
+
+The scan reads what the Java compiler writes.
+It does not see a call through reflection, a call from a nested class of the bean, or a call that a language such as Groovy compiles to a dynamic call.
+In a native image there are no class files to read, and the scan finds nothing, as xref:spring/limits.adoc[] notes.

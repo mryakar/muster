@@ -1,0 +1,13 @@
+= Known limits
+:description: What the Muster Spring Boot starter does not do yet, or cannot see, in one place.
+
+* *Ahead-of-time processing and native images* are not tested yet.
+To put the transaction ahead of the rules, the starter reads the annotations of bean definitions when the application starts, which definitions generated ahead of time may not carry; an order that the application gave its transaction advice could then be overridden without notice.
+In a native image, the scan for calls through `this` has no class files to read and finds nothing.
+* *Calls the scan does not see.* A call through reflection, from a nested class of the bean, or compiled to a dynamic call, as Groovy's, checks no rules and is not reported, as xref:spring/self-invocation.adoc[] describes.
+* *`@Cacheable` and `@Async`.* A cached answer checks no rules, and an `@Async` method checks them on its own thread, where a violation does not reach the caller, as xref:spring/transactions.adoc#_other_advice[Other advice] describes.
+* *Element types with two bounds.* For a parameter such as `List<T>` with `T extends A & B`, the elements are taken to be of `A`, the first bound.
+* *Elements of different classes.* The rule targets of one call are of one class, since rules bind to the class, and are not mixed with elements that are not rule targets; a call that breaks either fails with an `IllegalArgumentException`.
+* *Collections of collections.* In a collection whose elements are themselves collections, a rule of `Collection<?>` is always a rule of the whole collection.
+* *WebFlux.* The starter reads the caller from the security context of the thread and the locale from `LocaleContextHolder`, which a WebFlux application does not fill, so its rules see no caller and the default locale of the JVM.
+Problem details are written in Spring MVC only, so a WebFlux application has to answer the exception itself, or the client gets a server error.

@@ -1,0 +1,33 @@
+= Configuration
+:description: The settings of the Spring Boot starter that change without a new build, and the beans of an application that replace the starter's.
+
+The starter reads its settings from the configuration of the application, so an environment variable or a property file changes them without a new build.
+A setting that is present but empty stops the application, rather than falling back to a default nobody chose.
+
+== The mode
+
+`muster.mode` is `fail-fast`, the default, or `collect-all`, for every check whose method does not set its own with `@Rules`.
+xref:core/modes.adoc[Modes and switches] describes the two.
+
+== Switching rules off
+
+`muster.rules.<rule id>.enabled=false` switches a rule off, as `muster.rules.vehicle.plate-format.enabled=false` would while the plates are being migrated.
+The same works as an environment variable, with Spring Boot's relaxed names, such as `MUSTER_RULES_VEHICLE_PLATEFORMAT_ENABLED=false`.
+A key under `muster.rules` that switches no rule, such as a misspelled id, stops the application, so a switch that does nothing never goes unnoticed.
+
+== Rules and beans
+
+Every bean that implements `BusinessRule` is a rule, whether the starter found its class in the packages of the application or the application declared it with `@Bean` or `@Import`, as for a rule class of a library.
+A rule bean is a singleton, since Muster creates each rule once and keeps it.
+
+Beans of the application replace or join the starter's:
+
+* A `Muster` bean replaces the one the starter builds.
+The application then builds it with its own rules, listeners, caller and locale, since the starter registers none of them with a `Muster` it did not build, and observations stop with it.
+Such an application does not start if it also sets `muster.mode` or a key under `muster.rules`, which only the starter's `Muster` reads.
+* A `MessageResolver` bean replaces the starter's, as xref:spring/problem-details.adoc#_messages[Messages] describes.
+* `Supplier<Principal>` and `Supplier<Locale>` beans replace the caller and the locale, as xref:spring/caller-and-locale.adoc#_from_elsewhere[The caller and the locale] describes.
+* `CheckListener` beans join the listeners, as xref:spring/observability.adoc#listeners[Observing checks] describes.
+
+The other settings, `muster.problem-details.mixed-status`, the two `reorder-advisor` settings and `muster.self-invocation`, are described with what they change.
+The https://github.com/mryakar/muster#readme[README] lists every setting with its default.

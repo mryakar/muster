@@ -1,0 +1,45 @@
+= Observing checks
+:description: How the Spring Boot starter observes every check and rule with Micrometer Observation, and how the actuator endpoint lists the rules of each method.
+
+== Observations
+
+When the application has an `ObservationRegistry`, as one with the Spring Boot actuator has, every check is observed with Micrometer Observation, and the timers, traces or logs that the application already collects get Muster's checks and rules too.
+The example exposes the metrics endpoint to show them:
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=actuator,indent=0]
+----
+
+Each check opens an observation named `muster.check`, tagged `name` with the method, such as `VehicleService.create(CreateVehicle)`, or else with the type checked.
+Each rule opens a child observation, `muster.rule`, tagged `rule` with the rule id.
+Both get an `outcome` tag when they end: `passed`, `failed` or `error` for the check, and `skipped` as well for a rule.
+An error carries its exception; a violation is not an error.
+
+Each observation stays in scope while it runs, so what a rule calls shows up under the rule, if the application observes it, as it can a repository.
+No tag carries a code, a target or an argument, which would make every call a series of its own.
+The names and tags are fixed; an `ObservationPredicate` of the registry that leaves out `muster.check` leaves out the whole check.
+
+== The actuator endpoint
+
+The actuator endpoint `muster` lists the rules of each method, so that what runs is never a guess.
+It is exposed as the actuator's own endpoints are, as the property above does, and answers at `/actuator/muster`:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/actuator-muster.json[]
+----
+
+It lists the mode of Muster, the rules the configuration switches off, and each method that checks rules: its input type, its mode, the rules it lists and excludes, and in `ruleIds` the rules that run, by class, in the order they run.
+The method that creates many vehicles runs the limit first, as it lists it, and the rename runs `vehicle.exists` before `vehicle.owned-by-caller`, which requires it.
+`types` and `collections` list the rules that `Muster` bound by type for checks outside such methods, which the example does not make.
+
+The endpoint reads what Muster prepared and binds nothing itself.
+The rules of a final input type, such as a record, or of a type that is not a rule target, are listed from the start; those of other classes of rule targets once one has been checked; and a lazy bean that nobody called yet is not listed.
+It names classes and rule ids, never an input, and only reads.
+
+[[listeners]]
+== Listeners
+
+The `CheckListener` beans of the application observe every check too, as xref:core/listeners.adoc[] describes.
+They are added before the starter's own, so they hear that a check or a rule starts before the observation opens, and that it ends after it closes.

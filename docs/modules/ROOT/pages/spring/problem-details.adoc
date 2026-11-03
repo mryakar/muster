@@ -1,0 +1,52 @@
+= Answering violations
+:description: How the Spring Boot starter answers a call that rules reject with problem details, with messages from the message source of the application in the language of the request.
+
+== Problem details
+
+In a Spring MVC application, a call that rules reject is answered with problem details, as RFC 9457 defines them.
+A vehicle that the caller may not rename:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/not-owner.json[]
+----
+
+The status follows the category: 403 for `FORBIDDEN`, 404 for `NOT_FOUND`, 409 for `CONFLICT`, and 422 for `INVALID_STATE` or no category.
+Violations of different categories get the status of `muster.problem-details.mixed-status`, 422 unless set, from 400 to 499.
+
+Each violation carries its code, its message, its target and category if it has them, and its client arguments.
+The answer holds no rule id, no internal argument and no severity: the owner of the vehicle stays in the application, which logs each violation at `DEBUG` with all three.
+The problem details carry no `type`, which stands for `about:blank`.
+The JSON library of the application writes the client arguments, so a rule passes values, such as strings and numbers, never entities.
+
+== Messages
+
+The message comes from the message source of the application, with the code as its key, in the locale of the request:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=messages,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=messages,indent=0]
+----
+
+`+{name}+` takes the client argument of that name, and a code without a message reads as the code.
+Spring Boot's message source falls back to the default locale of the JVM, so a server whose default locale is Turkish would answer a French client in Turkish.
+The example answers it from `messages.properties` instead:
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=messages,indent=0]
+----
+
+`spring.messages.always-use-message-format=true` stops the application, since `MessageFormat` rejects `+{name}+` placeholders.
+A `MessageResolver` bean of the application replaces the starter's, for messages from elsewhere.
+
+== Answering violations yourself
+
+The starter's handler has the order 0, as Spring Boot's own problem details do, so a controller advice without an order that handles every `Exception` does not turn violations into server errors.
+A controller advice that names `BusinessRuleViolationException` in an `@ExceptionHandler` replaces the starter's handler for every controller, even when the advice applies to some controllers only; it can inject the starter's `MessageResolver` bean to resolve the messages.
+A handler on the controller itself comes first anyway.

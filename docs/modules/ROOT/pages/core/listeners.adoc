@@ -10,13 +10,11 @@ include::example$plain-java/java/example/plain/CheckLog.java[tag=listener,indent
 ----
 
 The builder in xref:core/checking.adoc#_building_muster[Building Muster] registers it with `listener`.
-When a vehicle that does not exist is renamed, it logs lines such as:
+When a vehicle that does not exist is renamed, it logs these lines, each followed by the time the rule took, such as `in 950 ns`:
 
 [source]
 ----
-VehicleService.rename: vehicle.exists FAILED in 2140 ns
-VehicleService.rename: vehicle.name-unique PASSED in 950 ns
-VehicleService.rename: vehicle.owned-by-caller SKIPPED in 310 ns
+include::example$plain-java/resources/example/plain/rename-missing.log[]
 ----
 
 The check is named after the binding, and a chain, or a binding without a name, after the type it checks.
