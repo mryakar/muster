@@ -1,40 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="380" viewBox="0 0 720 380" role="img" aria-labelledby="title desc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="title">Time of a passing check by number of rules</title>
-  <desc id="desc">muster.check(target): 0 rules 21.1 ns, 1 rule 22.7 ns, 5 rules 115.9 ns, 20 rules 404.7 ns. RuleChain.check: 0 rules 13.0 ns, 1 rule 12.3 ns, 5 rules 106.0 ns, 20 rules 381.6 ns. By hand (baseline): 0 rules 1.3 ns, 1 rule 11.0 ns, 5 rules 65.1 ns, 20 rules 265.0 ns.</desc>
+  <desc id="desc">muster.check(target): 0 rules 21.4 ns, 1 rule 23.0 ns, 5 rules 117.1 ns, 20 rules 397.9 ns. RuleChain.check: 0 rules 12.2 ns, 1 rule 12.5 ns, 5 rules 108.5 ns, 20 rules 390.9 ns. By hand (baseline): 0 rules 1.3 ns, 1 rule 11.1 ns, 5 rules 65.4 ns, 20 rules 268.2 ns.</desc>
   <line x1="64" y1="324.0" x2="484" y2="324.0" stroke="#3d444d"/>
   <text x="56" y="324.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
-  <line x1="64" y1="263.2" x2="484" y2="263.2" stroke="#3d444d"/>
-  <text x="56" y="263.2" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">100</text>
-  <line x1="64" y1="202.4" x2="484" y2="202.4" stroke="#3d444d"/>
-  <text x="56" y="202.4" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
-  <line x1="64" y1="141.6" x2="484" y2="141.6" stroke="#3d444d"/>
-  <text x="56" y="141.6" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">300</text>
-  <line x1="64" y1="80.8" x2="484" y2="80.8" stroke="#3d444d"/>
-  <text x="56" y="80.8" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">400</text>
+  <line x1="64" y1="248.0" x2="484" y2="248.0" stroke="#3d444d"/>
+  <text x="56" y="248.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">100</text>
+  <line x1="64" y1="172.0" x2="484" y2="172.0" stroke="#3d444d"/>
+  <text x="56" y="172.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
+  <line x1="64" y1="96.0" x2="484" y2="96.0" stroke="#3d444d"/>
+  <text x="56" y="96.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">300</text>
   <line x1="64" y1="20.0" x2="484" y2="20.0" stroke="#3d444d"/>
-  <text x="56" y="20.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">500</text>
+  <text x="56" y="20.0" fill="#9198a1" font-size="12" text-anchor="end" dominant-baseline="middle">400</text>
   <text x="64.0" y="344" fill="#9198a1" font-size="12" text-anchor="middle">0</text>
   <text x="85.0" y="344" fill="#9198a1" font-size="12" text-anchor="middle">1</text>
   <text x="169.0" y="344" fill="#9198a1" font-size="12" text-anchor="middle">5</text>
   <text x="484.0" y="344" fill="#9198a1" font-size="12" text-anchor="middle">20</text>
   <text x="274.0" y="368" fill="#9198a1" font-size="12" text-anchor="middle">Rules in the check</text>
   <text x="16" y="172.0" fill="#9198a1" font-size="12" text-anchor="middle" transform="rotate(-90 16 172.0)">ns per check</text>
-  <polyline points="64.0,311.2 85.0,310.2 169.0,253.5 484.0,77.9" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 4"/>
-  <circle cx="64.0" cy="311.2" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="85.0" cy="310.2" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="169.0" cy="253.5" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="484.0" cy="77.9" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-  <polyline points="64.0,316.1 85.0,316.5 169.0,259.5 484.0,92.0" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-  <circle cx="64.0" cy="316.1" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="85.0" cy="316.5" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="169.0" cy="259.5" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="484.0" cy="92.0" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-  <polyline points="64.0,323.2 85.0,317.3 169.0,284.4 484.0,162.9" fill="none" stroke="#9198a1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 4"/>
-  <circle cx="64.0" cy="323.2" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="85.0" cy="317.3" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="169.0" cy="284.4" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
-  <circle cx="484.0" cy="162.9" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
-  <text x="498" y="77.9" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#199e70">●</tspan> muster.check(target) <tspan fill="#9198a1">405 ns</tspan></text>
-  <text x="498" y="95.9" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#3987e5">●</tspan> RuleChain.check <tspan fill="#9198a1">382 ns</tspan></text>
-  <text x="498" y="162.9" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#9198a1">●</tspan> By hand (baseline) <tspan fill="#9198a1">265 ns</tspan></text>
+  <polyline points="64.0,307.7 85.0,306.5 169.0,235.0 484.0,21.6" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 4"/>
+  <circle cx="64.0" cy="307.7" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="85.0" cy="306.5" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="169.0" cy="235.0" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="484.0" cy="21.6" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+  <polyline points="64.0,314.7 85.0,314.5 169.0,241.6 484.0,26.9" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="64.0" cy="314.7" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="85.0" cy="314.5" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="169.0" cy="241.6" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="484.0" cy="26.9" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+  <polyline points="64.0,323.0 85.0,315.5 169.0,274.3 484.0,120.1" fill="none" stroke="#9198a1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 4"/>
+  <circle cx="64.0" cy="323.0" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="85.0" cy="315.5" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="169.0" cy="274.3" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
+  <circle cx="484.0" cy="120.1" r="4" fill="#9198a1" stroke="#0d1117" stroke-width="2"/>
+  <text x="498" y="21.6" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#199e70">●</tspan> muster.check(target) <tspan fill="#9198a1">398 ns</tspan></text>
+  <text x="498" y="39.6" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#3987e5">●</tspan> RuleChain.check <tspan fill="#9198a1">391 ns</tspan></text>
+  <text x="498" y="120.1" fill="#f0f6fc" font-size="13" dominant-baseline="middle"><tspan fill="#9198a1">●</tspan> By hand (baseline) <tspan fill="#9198a1">268 ns</tspan></text>
 </svg>

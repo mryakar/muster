@@ -68,4 +68,4 @@ Releases are signed; https://github.com/mryakar/muster/blob/main/SECURITY.md#ver
 * xref:core/rules.adoc[The guide without Spring] uses Muster in a plain Java application, from the first rule to the answer to a rejected call.
 * https://github.com/mryakar/muster[The repository] holds the code, the issues and the example applications.
 * https://github.com/mryakar/muster/blob/main/CHANGELOG.md[The changelog] says what each release changed.
-* https://github.com/mryakar/muster/blob/main/docs/benchmarks/README.md[The benchmarks] give what Muster adds to a call and the budget a change is held to.
+* https://github.com/mryakar/muster/blob/main/docs/benchmarks/README.md[The benchmarks] give what Muster adds to a call and to the startup of an application, and the budget a change is held to.

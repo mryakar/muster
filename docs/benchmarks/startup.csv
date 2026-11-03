@@ -1,0 +1,10 @@
+Benchmark,Parameters,Median (ms),Min (ms),Max (ms),Forks over 10% from the median: fork (ms),Allocated (MB)
+StartupBenchmark.start,app=plain services=0,828.4,793.0,886.6,,37.1
+StartupBenchmark.start,app=plain services=100,1019.7,987.5,1096.5,,44.6
+StartupBenchmark.start,app=plain services=1000,2032.0,1918.3,2181.2,,114.6
+StartupBenchmark.start,app=proxied services=0,862.4,825.9,894.4,,38.5
+StartupBenchmark.start,app=proxied services=100,1697.4,1628.6,1797.2,,95.6
+StartupBenchmark.start,app=proxied services=1000,5720.9,5498.7,6047.1,,580.9
+StartupBenchmark.start,app=muster services=0,1006.3,968.3,1084.6,,42.9
+StartupBenchmark.start,app=muster services=100,1962.3,1876.9,2041.8,,106.0
+StartupBenchmark.start,app=muster services=1000,6418.8,6188.5,6538.6,,642.6
