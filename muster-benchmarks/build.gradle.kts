@@ -16,7 +16,7 @@
 plugins { id("muster.java-base-conventions") }
 
 description =
-  "JMH benchmarks of what Muster adds to a call, with and without Spring. Not published."
+  "JMH benchmarks of what Muster adds to a call, with and without Spring, and to the startup of an application. Not published."
 
 dependencies {
   implementation(project(":muster-core"))
@@ -37,6 +37,98 @@ dependencies {
 
 // javac warns of every annotation that the JMH processor does not claim, such as @Rule.
 tasks.compileJava { options.compilerArgs.add("-Xlint:-processing") }
+
+// The applications whose startup StartupBenchmark measures: for each number of services, a package
+// with an application class, five rules of a command interface, and the services, each with a
+// command record of its own that two of its four methods take. Generated, since a thousand
+// services are too many to keep in the sources; class files, which the scan for calls through
+// `this` reads, as an application has them.
+val generateStartupSources by tasks.registering {
+  description = "Generates the applications whose startup StartupBenchmark measures."
+  // The values of StartupBenchmark.services.
+  val counts = listOf(0, 100, 1000)
+  val directory = layout.buildDirectory.dir("generated/sources/startup/java")
+  inputs.property("counts", counts)
+  outputs.dir(directory)
+  doLast {
+    val root = directory.get().asFile
+    root.deleteRecursively()
+    for (count in counts) {
+      val name = "me.yakar.muster.benchmark.startup.s$count"
+      val dir = root.resolve(name.replace('.', '/')).apply { mkdirs() }
+      fun write(file: String, text: String) =
+        dir.resolve("$file.java").writeText("package $name;\n\n" + text.trimIndent() + "\n")
+      write(
+        "Application",
+        """
+          /** The application, with $count services. */
+          @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+          @org.springframework.boot.autoconfigure.AutoConfigurationPackage
+          @org.springframework.context.annotation.ComponentScan
+          public class Application {}
+          """,
+      )
+      write(
+        "Command",
+        """
+          /** The input of every advised method. */
+          public interface Command extends me.yakar.muster.rule.RuleTarget {}
+          """,
+      )
+      for (rule in 1..5) {
+        write(
+          "Rule$rule",
+          """
+            /** A rule of every command, which passes. */
+            @me.yakar.muster.rule.Rule(id = "s$count-rule-$rule")
+            public final class Rule$rule implements me.yakar.muster.rule.BusinessRule<Command> {
+              @Override
+              public me.yakar.muster.rule.RuleResult check(
+                  Command input, me.yakar.muster.rule.RuleContext ctx) {
+                return me.yakar.muster.rule.RuleResult.passed();
+              }
+            }
+            """,
+        )
+      }
+      for (service in 0 until count) {
+        write(
+          "Command$service",
+          """
+            /** The command of Service$service. */
+            public record Command$service(String name) implements Command {}
+            """,
+        )
+        write(
+          "Service$service",
+          """
+            /** A service with two methods that the starter checks and two that it does not. */
+            @org.springframework.stereotype.Service
+            public class Service$service {
+              /** Saves. */
+              public void save(Command$service command) {}
+
+              /** Updates. */
+              public void update(Command$service command) {}
+
+              /** Counts. */
+              public int count(int value) {
+                return value + 1;
+              }
+
+              /** Names. */
+              public String name() {
+                return "Service$service";
+              }
+            }
+            """,
+        )
+      }
+    }
+  }
+}
+
+sourceSets.main { java.srcDir(generateStartupSources) }
 
 // Each task copies it to a local value: a lambda that read the script's own value would capture
 // the script, which the configuration cache cannot store.
@@ -70,6 +162,7 @@ tasks.register<JavaExec>("jmhReport") {
   outputs.files(
     docs.file("results.json"),
     docs.file("results.csv"),
+    docs.file("startup.csv"),
     docs.file("check-cost-light.svg"),
     docs.file("check-cost-dark.svg"),
   )

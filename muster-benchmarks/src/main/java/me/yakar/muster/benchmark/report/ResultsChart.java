@@ -19,11 +19,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
+import org.openjdk.jmh.annotations.Mode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Publishes the results of a JMH run: a copy of them, the {@linkplain BenchmarkResults summary} of
- * their medians, and the {@linkplain CheckCostChart chart} that the README shows.
+ * Publishes the results of a JMH run: a copy of them, the {@linkplain BenchmarkResults summaries}
+ * of their medians, of calls and of starts, and the {@linkplain CheckCostChart chart} that the
+ * README shows.
  */
 public final class ResultsChart {
 
@@ -33,7 +35,7 @@ public final class ResultsChart {
   private ResultsChart() {}
 
   /**
-   * Draws the chart and writes the summary.
+   * Draws the chart and writes the summaries.
    *
    * @param args the JMH results as JSON, and the directory to write the chart and the results to
    * @throws IOException if the results cannot be read or the chart cannot be written
@@ -51,11 +53,13 @@ public final class ResultsChart {
     var runs = BenchmarkResults.read(results, JsonMapper.shared().readTree(json));
     // Everything is drawn before anything is written, so a failure leaves the published files as
     // they were.
-    var csv = BenchmarkResults.csv(runs);
+    var csv = BenchmarkResults.csv(runs, Mode.AverageTime);
+    var startup = BenchmarkResults.csv(runs, Mode.SingleShotTime);
     var charts = CheckCostChart.draw(runs);
     Files.createDirectories(directory);
     Files.writeString(directory.resolve("results.json"), json);
     Files.writeString(directory.resolve("results.csv"), csv);
+    Files.writeString(directory.resolve("startup.csv"), startup);
     for (var chart : charts.entrySet()) {
       Files.writeString(directory.resolve(chart.getKey()), chart.getValue());
     }

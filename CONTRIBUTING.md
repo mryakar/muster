@@ -66,22 +66,25 @@ Release, and the Javadoc of the checked-out commit as `next`.
 ## Benchmarks
 
 `muster-benchmarks` measures with [JMH](https://github.com/openjdk/jmh) what Muster adds to a call,
-against the same rules called by hand. It is not published, and the build only compiles it.
+against the same rules called by hand, and what the starter adds to the startup of an application.
+It is not published, and the build only compiles it, with the applications whose startup it measures,
+which it generates.
 
 ```bash
 ./gradlew jmh
 ```
 
-The run takes about an hour and writes `muster-benchmarks/build/results/jmh/results.json`, with the
-time and the allocation per call of each fork. `--args` selects benchmarks and overrides their
+The run takes over an hour and writes `muster-benchmarks/build/results/jmh/results.json`, with the
+time and the allocation per call, or per start, of each fork. `--args` selects benchmarks and overrides their
 settings, except the result file and format, as in `./gradlew jmh --args="CheckBenchmark -f 1"`. For
 numbers worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a
 fixed CPU frequency.
 
 `./gradlew jmhReport` copies the results of the last run to `docs/benchmarks`, writes the median of
-each benchmark's forks to `results.csv` there, and draws the chart that the README shows. It refuses
-results that lack a benchmark method or parameter, or that ran with other forks, iterations or
-threads than a benchmark declares. A change that affects performance is compared with the budget in
+each benchmark's forks to `results.csv` there, and of the starts to `startup.csv`, and draws the
+chart that the README shows. It refuses results that lack a benchmark method or parameter, or that
+ran in another mode or time unit, or with other forks, iterations or threads, than a benchmark
+declares. A change that affects performance is compared with the budget in
 [docs/benchmarks](docs/benchmarks/README.md), on the same machine.
 
 ## Dependencies

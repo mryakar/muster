@@ -397,7 +397,7 @@ budget a change is held to.
 | `muster-spring-boot-starter` | Spring Boot integration: rules around service methods and inside their transaction, problem details, messages, configuration. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Complete example applications, with Spring Boot and without; also the test of the published artifacts. Not published. |
-| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call, with [the results](docs/benchmarks/README.md). Not published. |
+| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call and to the startup of an application, with [the results](docs/benchmarks/README.md). Not published. |
 
 ## Contributing
 
