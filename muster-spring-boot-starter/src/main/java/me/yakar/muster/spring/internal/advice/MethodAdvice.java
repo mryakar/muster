@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
@@ -180,7 +182,7 @@ record MethodAdvice(
 
       @Override
       public void check(@Nullable Object input) {
-        binding.check(input);
+        binding.check(requireNonNull(input, "input"));
       }
 
       @Override
@@ -200,7 +202,7 @@ record MethodAdvice(
       @Override
       @SuppressWarnings("unchecked")
       public void check(@Nullable Object input) {
-        binding.check((Collection<Object>) input);
+        binding.check((Collection<Object>) requireNonNull(input, "inputs"));
       }
 
       @Override

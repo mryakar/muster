@@ -44,7 +44,8 @@ final class MessageSourceTemplates implements BiFunction<String, Locale, Optiona
    */
   MessageSourceTemplates(MessageSource messageSource) {
     var written =
-        messageSource.getMessage(new DefaultMessageSourceResolvable(null, PROBE), Locale.ROOT);
+        messageSource.getMessage(
+            new DefaultMessageSourceResolvable(null, null, PROBE), Locale.ROOT);
     if (!PROBE.equals(written)) {
       throw new IllegalStateException(
           "the message source of the application formats every message with MessageFormat, as"

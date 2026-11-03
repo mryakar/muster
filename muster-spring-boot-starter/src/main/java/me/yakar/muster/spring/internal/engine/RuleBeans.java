@@ -108,7 +108,7 @@ final class RuleBeans implements RuleFactory {
    */
   @Override
   public BusinessRule<?> create(Class<? extends BusinessRule<?>> ruleClass) {
-    var name = names.get(ruleClass);
+    var name = requireNonNull(names.get(ruleClass)); // every registered rule has a bean
     var bean = beanFactory.getBean(name, BusinessRule.class);
     if (Proxy.isProxyClass(bean.getClass())) {
       throw new IllegalStateException(

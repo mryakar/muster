@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.spring.internal.advice;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -168,7 +170,7 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
       inPass.remove();
     }
     if (checkOrder) {
-      guard.checkOrder(RulesAdvisor.ORDER);
+      requireNonNull(guard).checkOrder(RulesAdvisor.ORDER); // checked only with a guard
     }
   }
 

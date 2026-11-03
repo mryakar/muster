@@ -119,7 +119,7 @@ final class ObservationListener implements CheckListener {
         Observation.Scope scope,
         Outcome outcome,
         @Nullable Throwable error) {
-      observation.lowCardinalityKeyValue(OUTCOMES.get(outcome));
+      observation.lowCardinalityKeyValue(requireNonNull(OUTCOMES.get(outcome)));
       if (error != null) {
         observation.error(error);
       }
