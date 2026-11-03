@@ -16,4 +16,4 @@
 package example.plain;
 
 /** The command to create a vehicle. */
-record CreateVehicle(String name) implements VehicleFields {}
+record CreateVehicle(String name, String plate) implements VehicleFields {}

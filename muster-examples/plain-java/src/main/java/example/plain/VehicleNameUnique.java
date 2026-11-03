@@ -15,26 +15,62 @@
  */
 package example.plain;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import me.yakar.muster.rule.BusinessRule;
+import me.yakar.muster.rule.Category;
 import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
+import me.yakar.muster.rule.Violation;
 
+// tag::rule[]
 /** A vehicle name must not be taken. */
 @Rule(id = "vehicle.name-unique")
 final class VehicleNameUnique implements BusinessRule<VehicleFields> {
 
-  private final Set<String> taken;
+  private final Vehicles vehicles;
 
-  VehicleNameUnique(Set<String> taken) {
-    this.taken = taken;
+  VehicleNameUnique(Vehicles vehicles) {
+    this.vehicles = vehicles;
   }
 
   @Override
   public RuleResult check(VehicleFields input, RuleContext ctx) {
-    return taken.contains(input.name())
-        ? RuleResult.failed(ctx.violation().clientArg("name", input.name()).build())
+    return vehicles.isTaken(input.name())
+        ? RuleResult.failed(taken(ctx, input.name()))
         : RuleResult.passed();
   }
+
+  // end::rule[]
+
+  // tag::check-all[]
+  @Override
+  public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx) {
+    var taken = vehicles.takenAmong(inputs.stream().map(VehicleFields::name).toList()); // one query
+    var seen = new HashSet<String>();
+    var violations = new ArrayList<Violation>();
+    for (var i = 0; i < inputs.size(); i++) {
+      var name = inputs.get(i).name();
+      if (taken.contains(name) || !seen.add(Vehicles.key(name))) {
+        violations.add(taken(ctx.element(i), name));
+      }
+    }
+    return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
+  }
+
+  // end::check-all[]
+
+  // tag::violation[]
+  private static Violation taken(RuleContext ctx, String name) {
+    return ctx.violation()
+        .clientArg("name", name)
+        .target("name")
+        .category(Category.CONFLICT)
+        .build();
+  }
+  // end::violation[]
+  // tag::rule[]
 }
+// end::rule[]

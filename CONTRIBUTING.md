@@ -82,13 +82,13 @@ supports; the second command records the newest, which CI tests the starter agai
 ./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks :muster-spring-boot-starter:check -PspringBootVersion=latest
 ```
 
-The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`, and
-their Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`. When that
-version changes, update the examples' file too:
+The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`. Their
+Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`, and their tests
+its JUnit version. When either changes, update the examples' file too:
 
 ```bash
 ./gradlew publishToMavenLocal
-./gradlew -p muster-examples --write-verification-metadata sha256 --refresh-dependencies run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
+./gradlew -p muster-examples --write-verification-metadata sha256 --refresh-dependencies test run -PmusterVersion="$(sed -n 's/^version=//p' gradle.properties)"
 ```
 
 Gradle drops the comments of a file it rewrites; keep the one on the trusted Muster artifacts.
