@@ -23,6 +23,7 @@ groovy-bom = { module = "org.apache.groovy:groovy-bom", version.ref = "groovy" }
 jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+jqwik = { module = "net.jqwik:jqwik", version = "1.10.2" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 spock-bom = { module = "org.spockframework:spock-bom", version.ref = "spock" }
