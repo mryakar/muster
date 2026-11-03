@@ -1,0 +1,39 @@
+= Modes and switches
+:description: Whether a check stops at the first rule that finds a problem or runs them all, and how an application switches rules off without a change to its code.
+
+== Fail-fast and collect-all
+
+A command to create a vehicle named Atlas, with a plate that is not a plate, breaks two rules.
+How many of them the caller hears about depends on the mode of the check:
+
+* In fail-fast mode, the default, the check stops at the first rule that finds a problem.
+The rules after it never run, so the queries they would make are saved.
+* In collect-all mode, every rule that applies runs, and the caller hears about all of them at once, as a form that marks every wrong field wants.
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=collect-all,indent=0]
+----
+
+`withMode` leaves the chain it is called on as it was, and returns a second chain that collects all.
+The builder of `Muster` sets the mode of every check with `mode`, a binding has its own in its builder, as the binding of renames has in xref:core/checking.adoc#_rules_of_a_type[Rules of a type], and a single check of a rule target by type can take one as a second argument to `check`.
+
+A rule that is skipped, because it does not apply or because a rule it requires failed, does not end a fail-fast check: the next rule runs.
+Which violation a fail-fast check reports depends on the order of the rules, which xref:core/checking.adoc#_the_order_of_rules[Checking inputs] describes.
+A collection adds one more step, described in xref:core/collections.adoc[]: a rule that checks its elements one by one stops at the first element it rejects.
+
+== Switching rules off
+
+A rule can be switched off without a change to the code, for example while the vehicles it checks are being migrated:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=disable,indent=0]
+----
+
+The ids come from wherever the application keeps its configuration, such as an environment variable.
+The plate is then never checked, and Muster warns at startup that the rule is off, so that it is not forgotten.
+
+Muster still creates the rule and checks its setup, so a rule that was off for a month cannot fail the day it is switched back on.
+An id that names no rule fails the build of `Muster`, and so does a rule that is on while a rule it requires is off: switch off the rules that depend on it too.
+The set of rules is fixed when `Muster` is built; to switch a rule at run time, build a new `Muster`.

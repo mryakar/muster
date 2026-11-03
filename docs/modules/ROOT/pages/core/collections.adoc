@@ -1,0 +1,82 @@
+= Checking a collection
+:description: How Muster checks the elements of a collection, and the collection as a whole, in one call, and how a rule checks every element in one query.
+
+A call that creates many vehicles is checked once, before any of them is created: by the rules of each vehicle and by the rules of the call as a whole.
+If any rule finds a problem with any vehicle, none is created.
+
+== One call for the collection
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=check-all,indent=0]
+----
+
+`checkAll` runs, for the class of the elements, the rules that `check` runs for one of them, and the rules of the whole collection.
+A chain and a binding have a `checkAll` too, with the rules they would run for one element.
+The service creates many vehicles through a collection binding, which also lists the limit on their number, so that it runs before any rule queries the vehicles:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=collection-binding,indent=0]
+----
+
+In collect-all mode, each element goes as far as it can: when a rule rejects one element, the rules that require that rule still check the other elements.
+Checked by type, the elements must be of one class, since the rules bind to that class.
+An empty collection passes, and no rule runs.
+The rules see a copy of the collection, which later changes to the caller's collection do not reach.
+
+== Violations of an element
+
+The target of a violation about an element starts with its position: `[1].name` is the name of the second vehicle, and `[1]` the second vehicle as a whole.
+A client points at the right row of its form without matching messages to vehicles.
+
+== A rule that checks every element at once
+
+Checked one vehicle at a time, the rule of unique names would query the vehicles once for each new one.
+It checks them all at once instead:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=check-all,indent=0]
+----
+
+One query finds the names that are taken, and the same loop finds two new vehicles with the same name, which no check of a single vehicle can see.
+`ctx.element(i)` is the context of the input at index `i` of the list: a violation created from it gets that vehicle's position in front of its target.
+The list holds only the elements that passed the rules this one requires, so an index of the list and a position in the collection can differ; the context maps one to the other.
+A violation created from `ctx` itself is about the call as a whole, and the rules that require this one then check none of the elements.
+
+A rule that does not override `checkAll` is checked one element at a time, and stops at the first element it rejects in fail-fast mode.
+Muster warns about it once, since one query per element is what the override exists to avoid.
+The plate format costs nothing per vehicle, so its rule keeps the one-by-one check on purpose, and says so:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehiclePlateFormat.java[tag=one-by-one,indent=0]
+----
+
+That drops the warning, and since the rule now checks the whole list itself, it reports every vehicle with a wrong plate, also in fail-fast mode.
+
+== Rules of the whole collection
+
+A limit on how many vehicles one call creates is about the call, not about any vehicle:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/BatchLimit.java[tag=whole,indent=0]
+----
+
+A rule whose input is a `List`, a `SequencedCollection` or a `Collection` of the elements checks the collection as a whole.
+It waits until every element has passed the rules it requires, and its violations point at no element.
+Like the rules of each element, it binds by type to collections of their class, so `muster.checkAll` runs it too.
+
+[[testing]]
+== Testing a rule that checks every element at once
+
+A test of `checkAll` passes a context that knows where each input stands in the checked collection, as Muster's does:
+
+[source,java]
+----
+include::example$plain-java-test/java/example/plain/VehicleNameUniqueTest.java[tag=test-check-all,indent=0]
+----
+
+The two inputs stand for the vehicles at positions 0 and 2, as if the one at position 1 had failed a rule this one requires, so the violation about the second input is about `[2]`.

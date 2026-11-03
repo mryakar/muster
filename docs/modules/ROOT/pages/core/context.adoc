@@ -1,0 +1,57 @@
+= The caller and the locale
+:description: What a rule knows of a call besides its input, where it comes from without Spring, and what the locale of a call is for.
+
+Besides its input, a rule knows who makes the call and in which locale.
+Nothing else belongs in the context: the vehicles, or a `Clock`, are the same for every call, so a rule takes them in its constructor, where a test can hand it a fixed clock.
+
+== Where they come from
+
+Muster asks for the caller and the locale when a check starts, on the thread that checks.
+Without Spring, the code that receives a call, such as the handler of a request, knows both, and puts them where Muster's suppliers can read them, for example in a `ThreadLocal`:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/CurrentCall.java[tag=current-call,indent=0]
+----
+
+The builder in xref:core/checking.adoc#_building_muster[Building Muster] reads them with `CurrentCall::caller` and `CurrentCall::locale`.
+Every thread that checks calls these suppliers, so they must be safe to call from many threads at once, as a `ThreadLocal` is.
+
+A `ThreadLocal` stays on its thread: work handed to an executor, a parallel stream or a `CompletableFuture` runs elsewhere, where a check sees no caller and the default locale.
+Set the call again on that thread, or check before handing the work over.
+Without suppliers, every check has no caller and the default locale of the JVM.
+
+== The caller
+
+The caller is a `java.security.Principal`, or none for an anonymous or system call.
+Only the owner of a vehicle may rename it:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+Whether a caller has a role is for the security of the application to decide, before the call reaches the service.
+A rule checks what depends on the data: not whether the user may rename vehicles, but whether this vehicle is theirs.
+
+[[locale]]
+== The locale
+
+Messages do not need the locale in the rule: a violation carries a code and arguments, and the edge of the application writes the message in the caller's language, as xref:core/messages.adoc[] describes.
+The locale is for business logic that depends on the language or the region of the caller.
+The format of a licence plate depends on the country, which the region of the locale tells:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehiclePlateFormat.java[tag=locale,indent=0]
+----
+
+For a caller in Turkey or Germany the rule checks the plate; for a caller whose locale names another region, or none, `appliesTo` says the rule does not apply, and the plate is not checked.
+`appliesTo` looks at the context alone, so a condition on the command itself stays in `check`.
+
+Data that must be unique is the opposite case: compare it in one fixed locale, never in the caller's.
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Vehicles.java[tag=name-key,indent=0]
+----
