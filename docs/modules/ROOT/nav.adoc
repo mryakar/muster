@@ -1,4 +1,10 @@
 * xref:index.adoc[]
+* Start here
+** xref:start/what-is-muster.adoc[]
+** xref:start/concepts.adoc[]
+** xref:start/quick-start-java.adoc[]
+** xref:start/quick-start-spring.adoc[]
+** xref:start/learning-path.adoc[]
 * With Spring Boot
 ** xref:spring/getting-started.adoc[]
 ** xref:spring/methods.adoc[]

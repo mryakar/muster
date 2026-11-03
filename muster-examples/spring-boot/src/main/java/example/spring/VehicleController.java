@@ -34,10 +34,13 @@ public class VehicleController {
     this.vehicles = vehicles;
   }
 
+  // tag::create[]
   @PostMapping
   public Vehicle create(@RequestBody CreateVehicle command) {
     return vehicles.create(command);
   }
+
+  // end::create[]
 
   @PostMapping("/batch")
   public List<Vehicle> createAll(@RequestBody List<CreateVehicle> commands) {

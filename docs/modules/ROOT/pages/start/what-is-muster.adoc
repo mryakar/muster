@@ -1,0 +1,56 @@
+= What Muster is
+:description: The problem Muster solves, in plain words: checks that make a service method hard to read, moved into small rule classes that run before the method.
+include::partial$javadoc.adoc[]
+
+This page needs no knowledge of Muster.
+It says what problem Muster solves, and when you should not use it.
+
+== The problem
+
+Most applications have methods that change data: create a user, rename a vehicle, place an order.
+Before such a method may do its work, a few things have to be true:
+
+* The username is not taken yet.
+* The vehicle exists, and belongs to the person who wants to rename it.
+* The customer has not ordered more than their limit this month.
+
+These are *business rules*: they come from the business, not from the programming language, and most of them need the database to answer.
+
+Without a library, each method starts with these checks, one `if` after another, before the line that does the real work.
+That works for one method.
+After a year, the same check is copied into three methods, one copy is forgotten in a fourth, and nobody can see at a glance what a method actually does.
+
+== What Muster does
+
+Muster moves each check into a class of its own, called a *rule*.
+A rule checks one kind of input and says either "fine" or "this is wrong, and here is why".
+
+You register your rules once.
+Then, before a method does its work, Muster runs the rules that belong to its input:
+
+. If every rule is fine, the method runs.
+. If a rule finds a problem, the method does not run, and the caller gets an answer that says which rule failed, about which field, with the values a message needs.
+
+With the Spring Boot starter you do not even call Muster yourself: the method of a `@Service` runs its rules before its first line, inside its transaction, and a rejected call reaches the client as a clear HTTP answer in the client's language.
+
+== What you get
+
+* *Short service methods.* A method holds what the operation does, nothing of what must be true before it may run.
+* *One place per rule.* A rule is written once and checks every method that takes its input.
+* *Rules you can test alone.* A rule is a plain object: create it, call it, look at the answer.
+* *Answers a client understands.* Every violation carries a code, the field it is about, and the values a message needs; the message itself is written in the caller's language, at the edge of the application.
+* *Mistakes found at startup.* Two rules with the same id, or a rule that needs a rule nobody registered, stop the application when it starts, not on the first call that meets them.
+
+== When not to use Muster
+
+* *Checks of the format of one field*, such as "not blank", "a valid e-mail" or "not negative", belong to Jakarta Bean Validation (`@NotBlank`, `@Email`, …).
+Muster works next to it: with Spring, validation runs first, then the rules.
+* *Rules that change data.* A rule only looks; the method does the work.
+* *Security.* Whether a user may call a method at all is for your security setup.
+A rule checks what depends on the data, such as whether this vehicle belongs to the caller.
+
+== Where to go next
+
+* xref:start/concepts.adoc[] explains the few words this documentation uses, each with an everyday example.
+* xref:start/quick-start-java.adoc[] gets your first rules running in plain Java in five minutes.
+* xref:start/quick-start-spring.adoc[] does the same in a Spring Boot application.

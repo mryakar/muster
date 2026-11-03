@@ -1,0 +1,111 @@
+= The words Muster uses
+:description: Every word of this documentation in plain language, from rule and violation to chain, binding and mode, each with an everyday example.
+include::partial$javadoc.adoc[]
+
+Muster has few ideas, and each has a name.
+Read this page once; come back to it whenever a word in another page is unclear.
+The example throughout is a website where new users sign up with a username and their age, the same as in xref:start/quick-start-java.adoc[the quick start].
+
+== Input
+
+The *input* is what a call wants to do, as data: the username and age that someone signs up with.
+In Java it is usually a record, often called a *command*, such as `SignUp(String username, int age)`.
+
+== Business rule
+
+A *business rule*, or *rule* for short, is one condition that the input must meet, for a reason the business gives: "only adults may sign up", "a username must not be taken".
+In Muster a rule is a small class that implements link:{javadoc-core}/rule/BusinessRule.html[`BusinessRule`] and has one method, `check`, which looks at the input and answers.
+
+A rule only looks: it never changes data.
+
+== Rule id
+
+Every rule has an *id*, such as `signup.adult`, which you choose in its link:{javadoc-core}/rule/Rule.html[`@Rule`] annotation.
+The id names the rule everywhere outside the code: in the answer the client gets, in the configuration that switches a rule off, and in the logs.
+Choose it as carefully as the name of a database column, since clients may come to depend on it.
+
+== Result: passed or failed
+
+`check` answers with a *result*: link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`] when the input is fine, or a failed result that holds one or more violations.
+
+== Violation
+
+A *violation* says what is wrong, without any text.
+Like a form that a clerk fills in, it has fixed boxes:
+
+* The *code*, normally the id of the rule: `signup.username-free`.
+* The *target*: the field to correct, such as `username`.
+* *Client arguments*: values a message may show to the user, such as the username that is taken.
+* *Internal arguments*: values only the application sees, in its logs, such as who owns a record the user may not see.
+* The *category*: what kind of problem it is, such as `CONFLICT` (something already exists) or `NOT_FOUND`; with Spring it picks the HTTP status of the answer.
+
+== Message
+
+The *message* is the sentence a person reads, such as "The username ece is taken", or "ece kullanıcı adı alınmış" in Turkish.
+Rules do not write messages.
+The edge of the application, the code that answers the client, writes the message from the code of the violation and its client arguments, in the language of the client, usually from one properties file per language.
+That way one rule serves users in every language.
+
+== Muster
+
+link:{javadoc-core}/Muster.html[`Muster`] is the object that holds all your rules.
+You build it once when the application starts, and every part of the application shares it.
+With Spring Boot, the starter builds it for you.
+
+== Check
+
+A *check* runs rules against an input.
+If every rule passes, nothing happens and your code goes on.
+If any rule fails, the check throws link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`], which holds the violations, so the code after the check never runs on a bad input.
+
+== Rule target
+
+How does Muster know which rules belong to an input?
+The simplest way: the input implements link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`], an empty marker interface.
+Then `muster.check(input)` runs every registered rule whose input type fits.
+A rule added later joins in by itself, without a change to the code that checks.
+
+== Chain and binding
+
+Instead of "every rule of the type", a method can name exactly which rules to run:
+
+* A *chain* is a fixed list of rules for one input type, such as "the format of the plate, then the unique name".
+* A *binding* runs the rules it lists, then the rules of the input's type, with a name for the logs and, if you want, a mode of its own (see below).
+
+You create chains and bindings once and reuse them on every call.
+xref:core/checking.adoc[] shows both.
+
+== Mode: fail-fast or collect-all
+
+When two rules fail, how many does the caller hear about?
+
+* *Fail-fast*, the default, stops at the first rule that fails: the rules after it never run, which saves their database queries.
+* *Collect-all* runs every rule and reports all the violations at once, as a form that marks every wrong field needs.
+
+== Order and required rules
+
+Rules run in a fixed order.
+A rule can *require* another with link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`]: "check that the vehicle exists before you check who owns it".
+The required rule runs first, and when it fails, the rule that requires it is skipped, so it never has to handle a missing vehicle.
+
+== Context: the caller and the locale
+
+Besides the input, a rule gets a *context*: link:{javadoc-core}/rule/RuleContext.html[`RuleContext`].
+It tells who makes the call, the *caller*, and their *locale*, which is their language and country.
+A rule uses them for logic that depends on who is asking, such as "only the owner may rename a vehicle"; it creates its violations from the context too.
+
+== Collection check
+
+`checkAll` checks a whole list of inputs in one call, such as a hundred sign-ups imported at once.
+Each element is checked, and so is the list as a whole, such as "at most a hundred at once"; violations say which element they are about, as `[3].username`.
+
+== Listener
+
+A *listener* is told about every check and every rule as they run, so that an application can log them, time them or count them.
+With Spring Boot, the starter reports them to Micrometer, the metrics library of Spring.
+
+== Where to go next
+
+* xref:start/quick-start-java.adoc[] puts these words to work in plain Java.
+* xref:start/quick-start-spring.adoc[] does the same with Spring Boot.
+* xref:start/learning-path.adoc[] lists the guides from simple to advanced.

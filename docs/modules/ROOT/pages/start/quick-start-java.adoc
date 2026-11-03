@@ -1,0 +1,149 @@
+= Quick start without Spring
+:description: A first program with Muster in six steps, in plain Java: an input, two rules, a Muster, a check that passes and one that fails, and the message a user reads.
+include::partial$javadoc.adoc[]
+
+This page gets two business rules running in a plain Java program, in six small steps.
+You need Java 21 or later, and a project built with Gradle or Maven.
+xref:start/concepts.adoc[] explains every word used here.
+
+The program is a sign-up: a new user sends a username and their age, and two rules decide whether they may sign up.
+Every sample on this page is part of an example program that runs on every build of Muster and fails if Muster does not answer as this page says.
+The samples leave out the imports: the types of a rule are in the package `me.yakar.muster.rule`, `Muster` and its exception in `me.yakar.muster`, and `MessageResolver` in `me.yakar.muster.spi`.
+
+== Step 1: add Muster
+
+Add the core module of Muster to your build: the BOM, which keeps the versions of the Muster modules in line, and `muster-core` without a version.
+With Gradle:
+
+[source,kotlin,subs="+attributes"]
+----
+dependencies {
+  implementation(platform("me.yakar.muster:muster-bom:{muster-version}"))
+  implementation("me.yakar.muster:muster-core")
+}
+----
+
+xref:index.adoc#_installation[The home page] shows the same with Maven.
+The core has no other dependency at run time.
+If your project has a `module-info.java`, it needs `requires me.yakar.muster;`.
+
+== Step 2: describe the input
+
+The input is a record of what the user sends:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/SignUp.java[tag=input,indent=0]
+----
+
+link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`] is an empty marker interface.
+Implementing it tells Muster that rules may bind to this type, so that `muster.check(signUp)` finds them by itself.
+
+== Step 3: write the rules
+
+Each rule is a class with an id, which checks one kind of input.
+The first lets only adults sign up:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/AdultsOnly.java[tag=rule,indent=0]
+----
+
+Read it from the top:
+
+* link:{javadoc-core}/rule/Rule.html[`@Rule(id = "signup.adult")`] gives the rule its id, which names it in answers, logs and configuration.
+* link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<SignUp>`] says which input it checks.
+* `check` gets the input and a context, and answers.
+When the age is fine it returns link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`].
+Otherwise it returns a failed result with a violation, built from the context: the age goes in as a client argument, for the message, and `age` is the field the user should correct.
+
+The second rule rejects a username that is taken.
+A real application would ask its database; this one gets the taken names in its constructor:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/UsernameFree.java[tag=rule,indent=0]
+----
+
+One object of each rule serves every check, from every thread, so a rule keeps nothing that changes: here an unmodifiable copy of the taken names.
+A rule that asks a database does not lock what it reads, so two users who pick the same name at the same moment can both pass it; the unique constraint of the database stays the last guard, as xref:core/checking.adoc[] explains.
+
+link:{javadoc-core}/rule/Category.html[`Category.CONFLICT`] says what kind of problem it is: something already exists.
+An HTTP application answers it with status 409, as xref:core/errors.adoc[] shows.
+
+== Step 4: build Muster
+
+Create the rules and give them to the builder of link:{javadoc-core}/Muster.html[`Muster`], once, when the program starts:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=build,indent=0]
+----
+
+`muster` is now ready, and safe to share between every thread of the program.
+If something is wrong with the rules, such as two rules with the same id or a rule that requires one nobody registered, building `Muster` fails at once, not later on a user's call.
+
+== Step 5: check an input
+
+`muster.check(input)` runs every rule of the input's type.
+It returns nothing when all of them pass, and throws link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] when one fails.
+A small method turns that into a value, so that the result is easy to look at:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=sign-up,indent=0]
+----
+
+Three users try to sign up:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=try,indent=0]
+----
+
+* Deniz, 30, passes both rules: no violation.
+* Ece, 30, picked a username that is taken.
+The violation says which rule failed (`signup.username-free`), which field to correct (`username`), and the value a message needs (`ece`).
+* Deniz, 16, is too young: `signup.adult`.
+
+In a real service method, you call `muster.check(command)` as its first line, and let the exception travel up to the code that answers the user; the line after the check runs only when every rule passed.
+
+== Step 6: tell the user
+
+A violation holds no text, so that one rule serves users in every language.
+The program keeps its messages in one properties file per language, keyed by the code of the violation, with the client arguments in braces.
+They are in `src/main/resources/example/plain/quickstart/`: `messages.properties` for English, the default, and `messages_tr.properties` for Turkish.
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/quickstart/messages.properties[tag=messages]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/quickstart/messages_tr.properties[tag=messages]
+----
+
+A link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] reads them; the name it gives `ResourceBundle.getBundle` is the path of the files, with dots and without the language:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=messages,indent=0]
+----
+
+That is the whole cycle: an input, rules that look at it, a check that stops a bad input, and a message in the user's language.
+
+== What happened, in short
+
+. You wrote each condition as a small class with an id, instead of an `if` inside a method.
+. You registered the rules once, in a `Muster`.
+. One call, `muster.check(input)`, ran every rule of the input, and stopped at the first that failed: that is fail-fast mode, the default.
+. The violation said what was wrong in fixed boxes, and the edge of the program turned it into a sentence.
+
+== Where to go next
+
+* xref:core/rules.adoc[] explains every part of a rule, and how to test one.
+* xref:core/checking.adoc[] shows the other ways to choose which rules run: chains, bindings, and rules that require other rules.
+* xref:core/modes.adoc[] reports every violation at once instead of the first.
+* xref:start/quick-start-spring.adoc[] does all this in a Spring Boot application, where you do not call `check` yourself.
+* xref:start/learning-path.adoc[] lists every guide, from simple to advanced.
