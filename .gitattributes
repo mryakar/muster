@@ -5,3 +5,4 @@
 # Written by the jmhReport task.
 docs/benchmarks/results.* linguist-generated
 docs/benchmarks/*.svg linguist-generated
+docs/modules/ROOT/partials/properties.adoc linguist-generated

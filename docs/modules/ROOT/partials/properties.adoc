@@ -1,0 +1,40 @@
+// Written by ./gradlew :muster-spring-boot-starter:propertyReference from the starter's
+// META-INF/spring-configuration-metadata.json: change that file, then run the task.
+[cols="2,1,5"]
+|===
+|Property |Default |Description
+
+|`+muster.mode+`
+|`+fail-fast+`
+|pass:c[How far a check goes once a rule is violated: fail-fast stops at the first violated rule, collect-all runs every rule and reports every violation.]
+pass:c[It configures only the Muster that the starter builds: an application with a Muster bean of its own does not start if it sets it.]
+Values: `+fail-fast+`, `+collect-all+`.
+
+|`+muster.transaction.reorder-advisor+`
+|`+true+`
+|pass:c[Whether to move the transaction advice one step ahead of Muster's, so that rules run inside the transaction, unless @EnableTransactionManagement has an order of its own.]
+pass:c[Either way, the application does not start if the transaction advice would not run around Muster's.]
+
+|`+muster.validation.reorder-advisor+`
+|`+true+`
+|pass:c[Whether to move the method validation advice ahead of Muster's on the proxies Muster advises, so that the constraints of a method are checked before its rules and before its transaction.]
+pass:c[Other advice, and beans without rules, keep Spring's order.]
+pass:c[Off, Spring adds the validation advice last, and the rules run before the constraints.]
+
+|`+muster.problem-details.mixed-status+`
+|`+422+`
+|pass:c[The status that answers business rule violations of different categories in a Spring MVC application, a client error from 400 to 499.]
+pass:c[Violations of one category are answered with its status: 403 for forbidden, 404 for not found, 409 for conflict, and 422 for invalid state or no category.]
+
+|`+muster.self-invocation+`
+|`+fail+`
+|pass:c[What to do when a method of an advised class calls an advised method on this, which passes no proxy and checks no rules: fail stops the application and names the methods, warn logs them, off skips the scan.]
+pass:c[The starter scans the bytecode of the advised classes when it prepares them, the bodies of lambdas included; a call through reflection, through a nested class or from code compiled to dynamic calls, as Groovy's, is not seen.]
+Values: `+fail+`, `+warn+`, `+off+`.
+
+|`+muster.rules+`
+|
+|pass:c[Switches rules on and off by id, as muster.rules.<rule id>.enabled, for example muster.rules.vehicle.name-unique.enabled=false.]
+pass:c[Rules are on unless switched off.]
+pass:c[A key that switches no rule stops the application, and so does any key in an application with a Muster bean of its own.]
+|===

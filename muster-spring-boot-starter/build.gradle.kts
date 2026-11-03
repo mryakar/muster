@@ -89,3 +89,102 @@ testing {
 tasks.check { dependsOn(testing.suites.named("integrationTest")) }
 
 tasks.jar { manifest { attributes("Automatic-Module-Name" to "me.yakar.muster.spring") } }
+
+// The reference of the configuration properties in the documentation, written from the metadata
+// that IDEs read, so that the two never differ. A task writes it; check fails if it is out of date.
+abstract class PropertyReference : DefaultTask() {
+
+  @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val metadata: RegularFileProperty
+
+  /** Returns the reference: an AsciiDoc table of the properties, in the order of the metadata. */
+  protected fun render(): String {
+    @Suppress("UNCHECKED_CAST")
+    val json =
+      groovy.json.JsonSlurper().parse(metadata.get().asFile) as Map<String, List<Map<String, Any?>>>
+    val values =
+      json["hints"].orEmpty().associate { hint ->
+        hint["name"] as String to (hint["values"] as List<Map<String, Any?>>).map { it["value"] }
+      }
+    val rows =
+      json.getValue("properties").joinToString("\n") { property ->
+        val name = property["name"] as String
+        // Each sentence as written: a passthrough keeps AsciiDoc from reading braces, asterisks or
+        // underscores in it, and a cell ends at the next unescaped bar.
+        val sentences =
+          (property["description"] as String).split(Regex("(?<=\\.) (?=[A-Z])")).map {
+            "pass:c[" + it.replace("]", "\\]").replace("|", "\\|") + "]"
+          }
+        val allowed = values[name]?.joinToString(", ", "Values: ", ".") { "`+$it+`" }
+        val default =
+          when (val value = property["defaultValue"]) {
+            null -> ""
+            is List<*> -> value.joinToString(", ") { "`+$it+`" }
+            else -> "`+$value+`"
+          }
+        "|`+$name+`\n|$default\n|" + (sentences + listOfNotNull(allowed)).joinToString("\n") + "\n"
+      }
+    val header =
+      listOf(
+        "// Written by ./gradlew :muster-spring-boot-starter:propertyReference from the starter's",
+        "// META-INF/spring-configuration-metadata.json: change that file, then run the task.",
+        "[cols=\"2,1,5\"]",
+        "|===",
+        "|Property |Default |Description",
+        "",
+        "",
+      )
+    return header.joinToString("\n") + rows + "|===\n"
+  }
+}
+
+abstract class WritePropertyReference : PropertyReference() {
+
+  @get:OutputFile abstract val reference: RegularFileProperty
+
+  @TaskAction
+  fun write() {
+    reference.get().asFile.writeText(render())
+  }
+}
+
+abstract class CheckPropertyReference : PropertyReference() {
+
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val reference: RegularFileProperty
+
+  @TaskAction
+  fun check() {
+    if (reference.get().asFile.readText() != render()) {
+      throw GradleException(
+        "The property reference in the documentation is out of date: run " +
+          "./gradlew :muster-spring-boot-starter:propertyReference",
+      )
+    }
+  }
+}
+
+val propertyMetadata =
+  layout.projectDirectory.file("src/main/resources/META-INF/spring-configuration-metadata.json")
+val propertyReferencePage =
+  layout.settingsDirectory.file("docs/modules/ROOT/partials/properties.adoc")
+
+tasks.register<WritePropertyReference>("propertyReference") {
+  description = "Writes the reference of the configuration properties in the documentation."
+  metadata = propertyMetadata
+  reference = propertyReferencePage
+}
+
+val checkPropertyReference =
+  tasks.register<CheckPropertyReference>("checkPropertyReference") {
+    description = "Fails if the reference of the configuration properties is out of date."
+    metadata = propertyMetadata
+    reference = propertyReferencePage
+    // Nothing to write; a task with an up-to-date spec counts as having outputs, so it is checked
+    // again only when the metadata or the reference changes.
+    outputs.upToDateWhen { true }
+    // After the task that writes the reference, when both run in one build.
+    mustRunAfter("propertyReference")
+  }
+
+tasks.check { dependsOn(checkPropertyReference) }
