@@ -87,8 +87,10 @@ supports; the second command records the newest, which CI tests the starter agai
 ```
 
 The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`. Their
-Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml`, and their tests
-its JUnit version. When either changes, update the examples' file too:
+Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml` and the
+versions that Spring Boot manages, such as those of H2 and JUnit; the tests of the plain Java
+application use the JUnit version of the same file. When either changes, update the examples' file
+too:
 
 ```bash
 ./gradlew publishToMavenLocal
