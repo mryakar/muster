@@ -1,5 +1,7 @@
 # Muster
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mryakar/muster/badge)](https://scorecard.dev/viewer/?uri=github.com/mryakar/muster)
+
 > Does your request pass muster?
 
 Business rules for layered Java applications, checked before your service method runs — inside the
