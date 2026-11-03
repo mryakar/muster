@@ -17,6 +17,7 @@
 // Spock tests, full coverage, mutation testing and strict API docs.
 plugins {
   id("muster.java-base-conventions")
+  id("muster.api-compatibility-conventions")
   `java-library`
   groovy
   jacoco
