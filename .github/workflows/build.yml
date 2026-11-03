@@ -160,9 +160,10 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: docs/package-lock.json
-      # A warning, such as a broken cross reference, fails the build.
+      # A warning, such as a broken cross reference, fails the build. No package runs scripts when it
+      # is installed: none needs to, and the build then runs only the code it means to.
       - name: Build the documentation site with Antora
         working-directory: docs
         run: |
-          npm ci
+          npm ci --ignore-scripts
           npm run build
