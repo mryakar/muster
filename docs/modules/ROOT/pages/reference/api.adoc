@@ -1,0 +1,9 @@
+= Javadoc
+:description: The API documentation of each module of Muster, for the version of this page.
+
+The guides explain how to use Muster; the Javadoc specifies each type and method, for the version of this page.
+
+* link:{site-url}/api/{page-component-version}/muster-core/index.html[`muster-core`]: the rules, the engine that checks them, and the extension points, in the Java module `me.yakar.muster`.
+* link:{site-url}/api/{page-component-version}/muster-spring-boot-starter/index.html[`muster-spring-boot-starter`]: `@Rules` and the auto-configuration.
+
+Where a page of the guides first names a type on its own, it links the name to the type's page.

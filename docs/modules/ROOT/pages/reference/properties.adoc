@@ -1,0 +1,7 @@
+= Configuration properties
+:description: Every configuration property of the Muster Spring Boot starter, with its default.
+
+The Spring Boot starter reads these properties from the configuration of the application, such as `application.properties` or environment variables.
+xref:spring/configuration.adoc[Configuration] explains when to change them.
+
+include::partial$properties.adoc[]

@@ -1,5 +1,6 @@
 = Methods that check rules
 :description: Which methods of a Spring Boot application check business rules, how @Rules lists rules and sets the mode, and how a method that takes a collection is checked.
+include::partial$javadoc.adoc[]
 
 == Methods of a service
 
@@ -9,7 +10,7 @@ Values that belong together, such as the id and the new name of a rename, travel
 
 == Listing rules and setting the mode
 
-`@Rules` changes what a method checks.
+link:{javadoc-starter}/Rules.html[`@Rules`] changes what a method checks.
 The method that renames a vehicle checks the rules of its type in collect-all mode, so a client hears about a taken name and a vehicle it may not rename at once:
 
 [source,java]

@@ -1,7 +1,8 @@
 = Checking inputs
 :description: How an application without Spring builds Muster, and checks an input against a chain of rules, the rules of its type, or both.
+include::partial$javadoc.adoc[]
 
-An application builds one `Muster` with its rules, and checks each input against some of them: the rules it lists, the rules that bind to the type of the input, or both.
+An application builds one link:{javadoc-core}/Muster.html[`Muster`] with its rules, and checks each input against some of them: the rules it lists, the rules that bind to the type of the input, or both.
 
 == Building Muster
 
@@ -11,7 +12,7 @@ include::example$plain-java/java/example/plain/Main.java[tag=muster,indent=0]
 ----
 
 The application creates its rules and hands them to the builder.
-Where a dependency injection container creates them instead, the builder takes their classes and a `RuleFactory`, which asks the container for each one when `Muster` is built.
+Where a dependency injection container creates them instead, the builder takes their classes and a link:{javadoc-core}/spi/RuleFactory.html[`RuleFactory`], which asks the container for each one when `Muster` is built.
 The caller and the locale come from suppliers that xref:core/context.adoc[] describes, and the listener is the subject of xref:core/listeners.adoc[].
 
 A mistake in the setup, such as two rules with the same id or a rule that requires one nobody registered, stops the application when `Muster` is built, or when a chain or a binding is created, rather than on the first call that would meet it.
@@ -56,7 +57,7 @@ include::example$plain-java/java/example/plain/Main.java[tag=check-by-type,inden
 ----
 
 Every registered rule whose input type `CreateVehicle` fits checks it: the rule of `VehicleFields`, the rule of `CreateVehicle`, and any rule added later, without a change to the code that checks.
-A type has to opt in with `RuleTarget`, so a rule written for a common type such as `Long` stays where it is listed.
+A type has to opt in with link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`], so a rule written for a common type such as `Long` stays where it is listed.
 
 A binding combines both: the rules it lists run first, then the rules of the type.
 The service binds the command that renames a vehicle to the rules of its type alone, and gives the binding a name and a mode:
@@ -83,7 +84,7 @@ include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,ind
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
 ----
 
-`@RequiresRule` puts `VehicleExists` in front of `VehicleOwnedByCaller`, and keeps `VehicleOwnedByCaller` from running when the vehicle does not exist, so it can look the owner up without checking again.
+link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`] puts `VehicleExists` in front of `VehicleOwnedByCaller`, and keeps `VehicleOwnedByCaller` from running when the vehicle does not exist, so it can look the owner up without checking again.
 A caller who renames a vehicle that is not there is told that, and not that they may not rename it.
 A chain that lists only `VehicleOwnedByCaller` runs `VehicleExists` too, and logs that it added it.
 

@@ -1,5 +1,6 @@
 = Answering violations
 :description: How the Spring Boot starter answers a call that rules reject with problem details, with messages from the message source of the application in the language of the request.
+include::partial$javadoc.adoc[]
 
 == Problem details
 
@@ -43,10 +44,10 @@ include::example$spring-boot/resources/application.properties[tag=messages,inden
 ----
 
 `spring.messages.always-use-message-format=true` stops the application, since `MessageFormat` rejects `+{name}+` placeholders.
-A `MessageResolver` bean of the application replaces the starter's, for messages from elsewhere.
+A link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean of the application replaces the starter's, for messages from elsewhere.
 
 == Answering violations yourself
 
 The starter's handler has the order 0, as Spring Boot's own problem details do, so a controller advice without an order that handles every `Exception` does not turn violations into server errors.
-A controller advice that names `BusinessRuleViolationException` in an `@ExceptionHandler` replaces the starter's handler for every controller, even when the advice applies to some controllers only; it can inject the starter's `MessageResolver` bean to resolve the messages.
+A controller advice that names link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] in an `@ExceptionHandler` replaces the starter's handler for every controller, even when the advice applies to some controllers only; it can inject the starter's `MessageResolver` bean to resolve the messages.
 A handler on the controller itself comes first anyway.
