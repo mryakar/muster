@@ -1,0 +1,14 @@
+{
+  "title": "Conflict",
+  "status": 409,
+  "instance": "/vehicles/batch",
+  "violations": [
+    {
+      "code": "vehicle.name-unique",
+      "message": "boreas adı kullanılıyor",
+      "target": "[1].name",
+      "category": "CONFLICT",
+      "args": { "name": "boreas" }
+    }
+  ]
+}

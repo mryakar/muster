@@ -1,0 +1,14 @@
+{
+  "title": "Conflict",
+  "status": 409,
+  "instance": "/vehicles",
+  "violations": [
+    {
+      "code": "vehicle.name-unique",
+      "message": "ilgaz adı kullanılıyor",
+      "target": "name",
+      "category": "CONFLICT",
+      "args": { "name": "ilgaz" }
+    }
+  ]
+}

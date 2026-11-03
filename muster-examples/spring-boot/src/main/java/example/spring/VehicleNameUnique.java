@@ -15,28 +15,57 @@
  */
 package example.spring;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Category;
 import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
+import me.yakar.muster.rule.Violation;
 
-/** A vehicle name must not be taken. A rule class without {@code @Component}. */
+// tag::rule[]
+/** A vehicle name must not be taken. The starter creates the rule as a bean. */
 @Rule(id = "vehicle.name-unique")
-public class VehicleNameUnique implements BusinessRule<CreateVehicle> {
+public class VehicleNameUnique implements BusinessRule<VehicleFields> {
 
-  private static final Set<String> TAKEN = Set.of("Atlas");
+  private final VehicleRepository vehicles;
+
+  public VehicleNameUnique(VehicleRepository vehicles) {
+    this.vehicles = vehicles;
+  }
 
   @Override
-  public RuleResult check(CreateVehicle input, RuleContext ctx) {
-    return TAKEN.contains(input.name())
-        ? RuleResult.failed(
-            ctx.violation("vehicle.name-taken")
-                .clientArg("name", input.name())
-                .target("name")
-                .category(Category.CONFLICT)
-                .build())
+  public RuleResult check(VehicleFields input, RuleContext ctx) {
+    return vehicles.isTaken(input.name())
+        ? RuleResult.failed(taken(ctx, input.name()))
         : RuleResult.passed();
   }
+
+  private static Violation taken(RuleContext ctx, String name) {
+    return ctx.violation()
+        .clientArg("name", name)
+        .target("name")
+        .category(Category.CONFLICT)
+        .build();
+  }
+
+  // end::rule[]
+
+  @Override
+  public RuleResult checkAll(List<? extends VehicleFields> inputs, RuleContext ctx) {
+    var taken = vehicles.takenAmong(inputs.stream().map(VehicleFields::name).toList());
+    var seen = new HashSet<String>();
+    var violations = new ArrayList<Violation>();
+    for (var i = 0; i < inputs.size(); i++) {
+      var name = inputs.get(i).name();
+      if (taken.contains(name) || !seen.add(VehicleRepository.key(name))) {
+        violations.add(taken(ctx.element(i), name));
+      }
+    }
+    return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
+  }
+  // tag::rule[]
 }
+// end::rule[]

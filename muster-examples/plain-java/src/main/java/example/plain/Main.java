@@ -15,6 +15,9 @@
  */
 package example.plain;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -161,9 +164,7 @@ public final class Main {
                   () -> service.rename(new RenameVehicle(99, "Atlas II")), "vehicle.exists");
           expectProblem(problems.problem(missing, TURKISH), 404, "99 numaralı araç yok");
           // The binding collects all, and checks the owner only of a vehicle that exists.
-          expectLogged(log, "VehicleService.rename: vehicle.exists FAILED");
-          expectLogged(log, "VehicleService.rename: vehicle.name-unique PASSED");
-          expectLogged(log, "VehicleService.rename: vehicle.owned-by-caller SKIPPED");
+          expectLog(log, "rename-missing.log");
           service.rename(new RenameVehicle(ATLAS, "Atlas II"));
         });
   }
@@ -248,10 +249,15 @@ public final class Main {
     expect(problem.violations().getFirst().message(), message);
   }
 
-  private static void expectLogged(List<String> log, String start) {
-    if (log.stream().noneMatch(line -> line.startsWith(start + " in "))) {
-      throw new AssertionError("expected a line that starts with '" + start + "' in " + log);
+  /** Expects the lines of the given file in the log, without the time each rule took. */
+  private static void expectLog(List<String> log, String file) {
+    List<String> expected;
+    try (var in = Main.class.getResourceAsStream(file)) {
+      expected = new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
+    expect(log.stream().map(line -> line.replaceFirst(" in \\d+ ns$", "")).toList(), expected);
   }
 
   private static void expect(Object actual, Object expected) {
