@@ -1,0 +1,119 @@
+= Checking inputs
+:description: How an application without Spring builds Muster, and checks an input against a chain of rules, the rules of its type, or both.
+
+An application builds one `Muster` with its rules, and checks each input against some of them: the rules it lists, the rules that bind to the type of the input, or both.
+
+== Building Muster
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=muster,indent=0]
+----
+
+The application creates its rules and hands them to the builder.
+Where a dependency injection container creates them instead, the builder takes their classes and a `RuleFactory`, which asks the container for each one when `Muster` is built.
+The caller and the locale come from suppliers that xref:core/context.adoc[] describes, and the listener is the subject of xref:core/listeners.adoc[].
+
+A mistake in the setup, such as two rules with the same id or a rule that requires one nobody registered, stops the application when `Muster` is built, or when a chain or a binding is created, rather than on the first call that would meet it.
+`Muster` is meant to live as long as the application, and to be shared by every thread.
+
+== A chain of rules
+
+The service that creates vehicles lists the rules a new vehicle must pass, in the order they should run:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=chain,indent=0]
+----
+
+Preparing a chain does the work of looking the rules up and ordering them, so the service does it once, in its constructor, and every call reuses the chain.
+The method checks the command before it changes anything:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=check-first,indent=0]
+----
+
+A command that passes goes on to the repository; one that does not makes `check` throw, and the vehicle is never added.
+In an application with a database, the check is the first step inside the transaction of the operation, so that the rules read the data that the operation then changes.
+
+A rule reads the data but does not lock it, so two calls that create a vehicle named Atlas at the same moment can both pass the check.
+The unique constraint of the database stays the last guard; the rule is what gives the client a clear answer in the usual case.
+
+== Rules of a type
+
+An input can carry its rules with it instead.
+The commands of the fleet implement `VehicleFields`, which marks them as rule targets:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleFields.java[tag=target,indent=0]
+----
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=check-by-type,indent=0]
+----
+
+Every registered rule whose input type `CreateVehicle` fits checks it: the rule of `VehicleFields`, the rule of `CreateVehicle`, and any rule added later, without a change to the code that checks.
+A type has to opt in with `RuleTarget`, so a rule written for a common type such as `Long` stays where it is listed.
+
+A binding combines both: the rules it lists run first, then the rules of the type.
+The service binds the command that renames a vehicle to the rules of its type alone, and gives the binding a name and a mode:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=binding,indent=0]
+----
+
+The name shows in logs and listeners, and the mode is the subject of xref:core/modes.adoc[].
+A binding can also leave out a rule that would bind by type, with `exclude`.
+
+== Rules that require other rules
+
+There is no owner to compare with the caller until the vehicle is known to exist:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,indent=0]
+----
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
+----
+
+`@RequiresRule` puts `VehicleExists` in front of `VehicleOwnedByCaller`, and keeps `VehicleOwnedByCaller` from running when the vehicle does not exist, so it can look the owner up without checking again.
+A caller who renames a vehicle that is not there is told that, and not that they may not rename it.
+A chain that lists only `VehicleOwnedByCaller` runs `VehicleExists` too, and logs that it added it.
+
+== The order of rules
+
+The order of a chain is the order of its list, with each rule's requirements moved in front of it.
+Rules of a type have no list, so they run in the order of their ids, again after their requirements; a binding runs the rules it lists before them.
+The order does not change from call to call.
+It matters in fail-fast mode, which stops at the first violated rule: list the rules that cost nothing, such as the format of the plate, before those that query the database.
+
+Muster tells the order it chose, here for a chain that lists only the rule of the owner:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=rule-ids,indent=0]
+----
+
+and for the rules bound by type to the classes checked so far:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=bound-rule-ids,indent=0]
+----
+
+Asking does not bind anything; a class shows up once an input of it has been checked.
+
+== Logging
+
+Muster logs through the `System.Logger` named `me.yakar.muster`, which writes to `java.util.logging` unless the application routes it elsewhere:
+
+* At `INFO`, the rules a chain or a binding adds because a listed rule requires them, and the rules it leaves out because they require an excluded one.
+* At `DEBUG`, which `java.util.logging` calls `FINE` and hides unless it is switched on, the rules of each class bound by type, when it is first checked.
+* At `WARNING`, a class that no rule binds to, which usually means that a rule was never registered, and each rule that is switched off.

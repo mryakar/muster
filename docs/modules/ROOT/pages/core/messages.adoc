@@ -1,0 +1,46 @@
+= Messages
+:description: How the edge of an application without Spring turns the code and the client arguments of a violation into a message in the language of the caller.
+
+Rules report codes and arguments, and the edge of the application, where it answers the caller, turns them into a message.
+A rule then needs no text and no language, and the same violation reads in the language of each caller.
+
+== From resource bundles
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=messages,indent=0]
+----
+
+The bundles hold a template for each code, where `+{name}+` is replaced by the client argument `name`:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=messages,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=messages,indent=0]
+----
+
+The violation of a taken name, with `Atlas` as its client argument `name`, reads `The name Atlas is taken`, and `Atlas adı kullanılıyor` for a caller whose locale is Turkish.
+The lambda calls `ResourceBundle.getBundle` from the application's own module, which is what lets it find the bundles on the module path.
+
+A caller whose language has no bundle reads the base bundle, the one without a locale in its name, even on a server whose own default locale is Turkish: the example checks that a French caller reads English there.
+Without a base bundle, `ofResourceBundles` refuses the family.
+
+== Templates
+
+The value of an argument goes into the message as `String.valueOf` writes it, so a rule passes a value that reads well as it is, or the edge formats it before the message is written.
+Template text is written as it reads, apostrophes included, and `+{{+` or `+}}+` writes a brace where it would otherwise read as part of a placeholder.
+A name that the violation does not carry stays in the message as it is, and a code without a template reads as the code, so a mistake in a template shows in the answer rather than failing the call.
+
+== From elsewhere
+
+Templates kept in a database table, or in the message source of a framework, reach Muster through `MessageResolver.ofTemplates`, which asks for the template of a code in a locale and fills it in the same way.
+An application with its own way of writing messages implements `MessageResolver` itself.
+
+== Client and internal arguments
+
+A message is made from client arguments only.
+Internal arguments, such as the owner of a vehicle that the caller may not rename, never reach it.

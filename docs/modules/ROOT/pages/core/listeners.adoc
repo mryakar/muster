@@ -1,0 +1,40 @@
+= Observing checks
+:description: How a listener observes every check of Muster, to log which rules ran, how each ended and how long it took.
+
+A listener sees every check that a `Muster` makes, and every rule in it, without a change to the rules or to the code that checks.
+The example logs each rule:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/CheckLog.java[tag=listener,indent=0]
+----
+
+The builder in xref:core/checking.adoc#_building_muster[Building Muster] registers it with `listener`.
+When a vehicle that does not exist is renamed, it logs lines such as:
+
+[source]
+----
+VehicleService.rename: vehicle.exists FAILED in 2140 ns
+VehicleService.rename: vehicle.name-unique PASSED in 950 ns
+VehicleService.rename: vehicle.owned-by-caller SKIPPED in 310 ns
+----
+
+The check is named after the binding, and a chain, or a binding without a name, after the type it checks.
+The rename binding collects all, so the name is still checked; the owner is not, since the vehicle is not there.
+A rule ends `PASSED`, `FAILED` or `SKIPPED`, or `ERROR` when something went wrong in it, such as an exception.
+
+== One observer for each check
+
+`checkStarted` returns an observer for that one check, which Muster then tells, on the thread that checks, about each rule and about the end of the check.
+The observer can keep what it needs, such as a timer it started, without telling one check from another, since no other check reaches it.
+Returning `null` instead leaves the check unobserved, such as for checks that a listener does not care about.
+
+The listener itself is shared by every check on every thread, and so is whatever it is given: `CheckLog` writes to a list that is safe for many threads, as it would write to a logger.
+
+== Many listeners, and listeners that throw
+
+A `Muster` can have several listeners, for example one that logs and one that measures.
+They hear of a start in the order they were added, and of an end in the reverse order, so a span that one opens inside another's closes first.
+
+A listener that throws stops the check, like a rule that throws, and the other listeners still hear that it ended.
+Keep a listener from throwing unless stopping the check is what it means to do.

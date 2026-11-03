@@ -21,7 +21,11 @@ in `docs/`, `npm ci` once, then `npm run build`, which writes the site to `docs/
 warning, such as a broken cross reference, fails the build. Every code sample in the documentation
 is included from `muster-examples` through the symbolic links in `docs/modules/ROOT/examples`; on
 Windows, enable symbolic links in Git (`core.symlinks`) before cloning, or the links are checked
-out as files and the build fails on the first include.
+out as files and the build fails on the first include. A sample is a tagged region of an example,
+`// tag::check-all[]` to `// end::check-all[]`, named after the code it holds rather than the page
+that shows it, and included with `tag=check-all,indent=0`; a tag that is not found fails the build.
+The examples check what the guides say, so a sample that changes what Muster does changes the
+example's assertions too.
 
 ## Code
 
