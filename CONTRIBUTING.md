@@ -26,7 +26,10 @@ out as files and the build fails on the first include. A sample is a tagged regi
 that shows it, and included with `tag=check-all,indent=0`; a tag that is not found fails the build.
 An output that an example compares with what it gets, such as a JSON answer or a log, is a file of
 its own, included whole. The examples check what the guides say, so a sample that changes what
-Muster does changes the example's assertions too.
+Muster does changes the example's assertions too. The reference of the starter's properties is
+written from its `spring-configuration-metadata.json`, which IDEs read too: after changing the
+metadata, run `./gradlew :muster-spring-boot-starter:propertyReference`; `check` fails while the
+reference is out of date.
 
 ## Code
 
