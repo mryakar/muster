@@ -1,0 +1,59 @@
+= Çağıran ve yerel ayar
+:description: Bir kuralın, girdisi dışında bir çağrı hakkında neyi bildiği, Spring olmadan bu bilginin nereden geldiği ve bir çağrının yerel ayarının ne işe yaradığı.
+
+Bir kural, girdisinin yanı sıra çağrıyı kimin yaptığını ve çağrının hangi yerel ayarda (locale) yapıldığını bilir.
+Bağlamda (context) başka hiçbir şey yoktur: araçlar ya da bir `Clock` her çağrı için aynıdır; bu yüzden kural onları constructor'ında alır ve bir test oraya sabit bir saat verebilir.
+
+== Nereden gelirler
+
+Muster, bir kontrol başladığında, kontrolü yapan thread üzerinde çağıranı (caller) ve yerel ayarı ister.
+Spring olmadan, çağrıyı karşılayan kod (örneğin bir isteğin handler'ı) ikisini de bilir ve onları Muster'ın sağlayıcılarının (supplier) okuyabileceği bir yere koyar; örneğin bir `ThreadLocal`'a:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/CurrentCall.java[tag=current-call,indent=0]
+----
+
+xref:core/checking.adoc#_building_muster[Muster'ı kurmak] bölümündeki builder onları `CurrentCall::caller` ve `CurrentCall::locale` ile okur.
+Kontrol yapan her thread bu sağlayıcıları çağırır; bu yüzden sağlayıcıların, bir `ThreadLocal` gibi, aynı anda birçok thread'den güvenle çağrılabilmesi gerekir.
+
+Bir `ThreadLocal` kendi thread'inde kalır.
+Bir executor'a, paralel bir stream'e ya da bir `CompletableFuture`'a verilen iş başka bir thread'de çalışır; orada yapılan bir kontrol hiçbir çağıran görmez ve varsayılan yerel ayarı kullanır.
+Çağrının bilgilerini o thread'de yeniden ayarlayın ya da kontrolü işi devretmeden önce yapın.
+Sağlayıcı verilmezse hiçbir kontrolün çağıranı olmaz ve her kontrol JVM'in varsayılan yerel ayarını kullanır.
+
+== Çağıran
+
+Çağıran bir `java.security.Principal`'dır; anonim bir çağrıda ya da sistemin yaptığı bir çağrıda ise çağıran yoktur.
+Bir aracı yalnızca sahibi yeniden adlandırabilir:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+Çağıranın bir rolü olup olmadığına, çağrı servise ulaşmadan önce uygulamanın güvenlik katmanı karar verir.
+Kural ise veriye bağlı olanı kontrol eder: kullanıcının araçları yeniden adlandırma yetkisi olup olmadığını değil, bu aracın onun olup olmadığını.
+
+[[locale]]
+== Yerel ayar
+
+Mesajlar için kuralda yerel ayara gerek yoktur: ihlal bir kod ve argümanlar taşır, mesajı da xref:core/messages.adoc[] sayfasında anlatıldığı gibi uygulamanın dış katmanı (istemciye cevap veren kod) çağıranın dilinde yazar.
+Yerel ayar, çağıranın diline ya da bölgesine bağlı iş mantığı içindir.
+Plakanın biçimi ülkeye bağlıdır ve ülkeyi yerel ayarın bölgesi söyler:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehiclePlateFormat.java[tag=locale,indent=0]
+----
+
+Türkiye'deki ya da Almanya'daki bir çağıran için kural plakayı kontrol eder.
+Yerel ayarı başka bir bölgeyi gösteren ya da hiçbir bölge göstermeyen bir çağıran için ise `appliesTo` kuralın uygulanmadığını söyler ve plaka kontrol edilmez.
+`appliesTo` yalnızca bağlamı görür; bu yüzden komutun kendisiyle ilgili bir koşul `check` içinde kalır.
+
+Benzersiz olması gereken veri bunun tam tersidir: onu çağıranın yerel ayarında değil, her zaman tek ve sabit bir yerel ayarda karşılaştırın.
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Vehicles.java[tag=name-key,indent=0]
+----

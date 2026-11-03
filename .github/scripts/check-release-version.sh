@@ -36,14 +36,17 @@ fi
 # prerelease key of the main branch and names the version the installation snippets show. A
 # pre-release has no version on the site and leaves both alone.
 if [[ "$version" != *-* ]]; then
-  if grep -qE '^prerelease:' docs/antora.yml; then
-    echo "docs/antora.yml marks the documentation as a prerelease; the release commit drops that key" >&2
-    exit 1
-  fi
-  if ! grep -qE "^[[:space:]]*muster-version:[[:space:]]*${version//./\\.}[[:space:]]*$" docs/antora.yml; then
-    echo "docs/antora.yml does not set muster-version to $version" >&2
-    exit 1
-  fi
+  # The documentation in English and in Turkish.
+  for component in docs/antora.yml docs/tr/antora.yml; do
+    if grep -qE '^prerelease:' "$component"; then
+      echo "$component marks the documentation as a prerelease; the release commit drops that key" >&2
+      exit 1
+    fi
+    if ! grep -qE "^[[:space:]]*muster-version:[[:space:]]*${version//./\\.}[[:space:]]*$" "$component"; then
+      echo "$component does not set muster-version to $version" >&2
+      exit 1
+    fi
+  done
 fi
 # The section becomes the notes of the GitHub Release; the script fails if there is none.
 notes="$(.github/scripts/release-notes.sh "$version")"

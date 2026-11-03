@@ -1,0 +1,34 @@
+= Yapılandırma
+:description: Spring Boot starter'ının yeni bir derleme gerektirmeden değişebilen ayarları ve uygulamanın, starter'ınkilerin yerini alan bean'leri.
+include::partial$javadoc.adoc[]
+
+Starter ayarlarını uygulamanın yapılandırmasından okur; bu yüzden bir ortam değişkeni ya da bir property dosyası, yeni bir derleme gerekmeden bu ayarları değiştirir.
+Tanımlanmış ama boş bırakılmış bir ayar, kimsenin seçmediği bir varsayılana geri dönmek yerine uygulamayı durdurur.
+
+== Kip
+
+`muster.mode`, varsayılan olan `fail-fast` (ilk hatada durma) ya da `collect-all` (hepsini toplama) değerini alır; bu değer, kendi kipini link:{javadoc-starter}/Rules.html[`@Rules`] ile belirlemeyen metotlardaki her kontrol için geçerlidir.
+İki kipi xref:core/modes.adoc[Kipler ve kuralları kapatmak] anlatır.
+
+== Kuralları kapatmak
+
+`muster.rules.<rule id>.enabled=false` bir kuralı kapatır; örneğin plakalar yeni biçime taşınırken `muster.rules.vehicle.plate-format.enabled=false` bu işi görür.
+Aynı şey, Spring Boot'un esnek adlandırmasıyla (relaxed names) bir ortam değişkeni olarak da çalışır; örneğin `MUSTER_RULES_VEHICLE_PLATEFORMAT_ENABLED=false`.
+`muster.rules` altında hiçbir kuralı kapatmayan bir anahtar, örneğin yanlış yazılmış bir kimlik, uygulamayı durdurur; böylece hiçbir işe yaramayan bir anahtar asla gözden kaçmaz.
+
+== Kurallar ve bean'ler
+
+link:{javadoc-core}/rule/BusinessRule.html[`BusinessRule`] arayüzünü uygulayan her bean bir kuraldır; sınıfını starter uygulamanın paketlerinde bulmuş olabilir ya da uygulama onu, örneğin bir kütüphanenin kural sınıfı için, `@Bean` ya da `@Import` ile tanımlamış olabilir.
+Bir kural bean'i singleton'dır, çünkü Muster her kuralı bir kez oluşturur ve saklar.
+
+Uygulamanın bean'leri, starter'ınkilerin yerini alır ya da onlara katılır:
+
+* Bir link:{javadoc-core}/Muster.html[`Muster`] bean'i, starter'ın oluşturduğunun yerini alır.
+Bu durumda uygulama onu kendi kuralları, dinleyicileri, çağıranı ve yerel ayarıyla kendisi oluşturur, çünkü starter, kendi oluşturmadığı bir `Muster`'a bunların hiçbirini kaydetmez; bu `Muster`'ın kontrolleri de gözlemlenmez (observation).
+Böyle bir uygulama, `muster.mode` ayarını ya da `muster.rules` altında bir anahtarı da belirlerse başlamaz, çünkü bunları yalnızca starter'ın `Muster`'ı okur.
+* Bir link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean'i, xref:spring/problem-details.adoc#_messages[Mesajlar] bölümünün anlattığı gibi starter'ınkinin yerini alır.
+* `Supplier<Principal>` ve `Supplier<Locale>` bean'leri, xref:spring/caller-and-locale.adoc#_from_elsewhere[Çağıran ve yerel ayar] sayfasının anlattığı gibi çağıranın ve yerel ayarın kaynağını değiştirir.
+* link:{javadoc-core}/spi/CheckListener.html[`CheckListener`] bean'leri, xref:spring/observability.adoc#listeners[Kontrolleri gözlemlemek] sayfasının anlattığı gibi dinleyicilere katılır.
+
+Diğer ayarlar, yani `muster.problem-details.mixed-status`, iki `reorder-advisor` ayarı ve `muster.self-invocation`, değiştirdikleri şeyle birlikte anlatılır.
+Her ayarı varsayılan değeriyle birlikte xref:reference/properties.adoc[Yapılandırma özellikleri] listeler.

@@ -1,0 +1,59 @@
+= Spring Boot ile başlarken
+:description: Bir Spring Boot uygulamasında ilk iş kuralı: bir kural sınıfı, bir komut, bu komutu kontrol eden bir servis metodu ve istemcinin aldığı cevap.
+include::partial$javadoc.adoc[]
+
+Spring Boot starter ile bir servis metodu, ilk satırı çalışmadan önce ve kendi transaction'ı içinde kurallarını kontrol eder; ihlal edilen bir kural istemciye, istemcinin dilinde bir problem details cevabı olarak ulaşır.
+Servis, Muster'dan hiçbir şey çağırmaz.
+
+Bu kılavuz, bir filonun araçlarını veritabanında tutan bir Spring Boot uygulamasını izler; filo, xref:core/rules.adoc[Spring'siz kılavuzdaki] filonun aynısıdır.
+Her örnek bu uygulamanın bir parçasıdır; uygulama Muster'ın her derlemesinde çalışır, kendini HTTP üzerinden çağırır ve bir cevap bu kılavuzun gösterdiğinden farklıysa hata verir.
+
+== Kurulum
+
+Starter'ı xref:index.adoc#_installation[ana sayfada] gösterildiği gibi ekleyin.
+Starter, Spring Boot 4.0.9 ya da daha yenisini ve Java 21 ya da daha yenisini gerektirir; desteklediği en eski Spring Boot sürümüyle derlenir, bu yüzden bir uygulamayı hiçbir zaman daha yeni bir Spring Boot sürümüne çekmez.
+
+== Bir kural
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleNameUnique.java[tag=rule,indent=0]
+----
+
+Starter, Spring Boot'un entity'leri bulduğu gibi, kural sınıflarını da uygulamanın paketlerinde bulur ve her birini bir bean olarak oluşturur.
+Bir kurala `@Component` gerekmez; kural, repository'yi diğer bean'ler gibi constructor'ından alır.
+Sınıfın geri kalanını xref:core/rules.adoc[Kural yazmak] anlatır.
+
+[#_a_command_and_a_service]
+== Bir komut ve bir servis
+
+Araç oluşturan komut, `VehicleFields` arayüzünü uygular.
+`VehicleFields` bir link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`] (kural hedefi) olduğu için komutu o türün kurallarına bağlar:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+Bir `@Service` sınıfının böyle bir komut alan her public metodu, çalışmadan önce kuralları kontrol eder:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=service,indent=0]
+----
+
+Metot, işlemin ne yaptığını içerir; işlemin çalışabilmesi için önceden doğru olması gereken şeylerden hiçbirini içermez.
+Araçlar için yeni bir kural, yeni bir sınıf demektir; servise tek bir satır bile eklenmez.
+Komutun kısıtları (constraint), örneğin adın boş bırakılamaması, önce kontrol edilir; bunu xref:spring/transactions.adoc[] anlatır.
+
+== Cevap
+
+Filoda Ilgaz adında bir araç zaten var ve adlar büyük-küçük harf farkı gözetilmeden karşılaştırılır.
+Cevabı Türkçe isteyerek ilgaz adlı bir araç oluşturmak isteyen bir istemci şu cevabı alır:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/name-taken.json[]
+----
+
+Durum kodu (status) ihlalin kategorisine göre belirlenir, mesaj ise istemcinin istediği dildedir; bunu xref:spring/problem-details.adoc[] anlatır.

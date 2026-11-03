@@ -1,0 +1,41 @@
+= Kontrolleri izlemek
+:description: Bir dinleyicinin, hangi kuralların çalıştığını, her birinin nasıl bittiğini ve ne kadar sürdüğünü loglamak için Muster'ın her kontrolünü nasıl izlediği.
+include::partial$javadoc.adoc[]
+
+Bir dinleyici (listener), bir link:{javadoc-core}/Muster.html[`Muster`]'ın yaptığı her kontrolü ve o kontroldeki her kuralı görür; bunun için ne kurallarda ne de kontrol eden kodda değişiklik gerekir.
+Örnekteki dinleyici her kuralı loglar:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/CheckLog.java[tag=listener,indent=0]
+----
+
+xref:core/checking.adoc#_building_muster[Muster'ı kurmak] bölümündeki builder onu `listener` ile kaydeder.
+Var olmayan bir araç yeniden adlandırıldığında dinleyici şu satırları loglar; her satırın ardından kuralın ne kadar sürdüğü gelir, örneğin `in 950 ns`:
+
+[source]
+----
+include::example$plain-java/resources/example/plain/rename-missing.log[]
+----
+
+Kontrol, bağlamanın adını alır; bir zincirde ya da adı olmayan bir bağlamada ise kontrol ettiği türün adını alır.
+Yeniden adlandırma bağlaması hepsini toplar (collect-all); bu yüzden ad yine de kontrol edilir, ama sahip kontrol edilmez, çünkü araç yoktur.
+Bir kural `PASSED`, `FAILED` ya da `SKIPPED` ile biter; içinde bir şey ters gittiğinde, örneğin bir exception çıktığında, `ERROR` ile biter.
+
+== Her kontrol için bir gözlemci
+
+`checkStarted`, yalnızca o kontrole ait bir gözlemci (observer) döndürür.
+Muster bu gözlemciye, kontrolü yapan thread üzerinde, her kuralı ve kontrolün bitişini bildirir.
+Gözlemci, başlattığı bir zamanlayıcı gibi ihtiyaç duyduğu şeyleri saklayabilir; bir kontrolü diğerinden ayırt etmesi gerekmez, çünkü ona başka hiçbir kontrol ulaşmaz.
+Bunun yerine `null` döndürmek kontrolü izlenmeden bırakır; bu, örneğin dinleyicinin ilgilenmediği kontroller için kullanışlıdır.
+
+Dinleyicinin kendisi ise bütün thread'lerdeki bütün kontroller tarafından paylaşılır; ona verilen her şey de öyle.
+`CheckLog`, bir logger'a yazacağı gibi, birçok thread'den güvenle kullanılabilen bir listeye yazar.
+
+== Birden çok dinleyici ve exception fırlatan dinleyiciler
+
+Bir `Muster`'ın birkaç dinleyicisi olabilir; örneğin biri loglayan, biri ölçüm yapan.
+Dinleyiciler bir kontrolün başladığını eklendikleri sırayla, bittiğini ise ters sırayla duyar; böylece iç içe açılan span'ler doğru sırayla kapanır: içteki önce.
+
+Exception fırlatan bir dinleyici, exception fırlatan bir kural gibi kontrolü durdurur; diğer dinleyiciler kontrolün bittiğini yine de duyar.
+Kontrolü durdurmak bir dinleyicinin asıl amacı değilse, onun exception fırlatmasını önleyin.

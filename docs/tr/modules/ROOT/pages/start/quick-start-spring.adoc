@@ -1,0 +1,134 @@
+= Spring Boot ile hızlı başlangıç
+:description: Bir Spring Boot uygulamasında dört adımda ilk iş kuralı: bir kural sınıfı, bir komut, bir servis metodu ve istemcinin okuduğu mesaj; serviste Muster'a tek bir çağrı bile yok.
+include::partial$javadoc.adoc[]
+
+Bu sayfa, bir Spring Boot uygulamasına dört küçük adımda bir iş kuralı ekler.
+Java 21 ya da daha yenisine ve Spring Boot 4.0.9 ya da daha yenisine ihtiyacınız var.
+Örnek, çoğu Spring Boot uygulaması gibi araçlarını bir veritabanında tutar; Muster'ın kendisinin veritabanına ihtiyacı yoktur.
+Burada kullanılan her kelimeyi xref:start/concepts.adoc[] açıklar; perde arkasında ne olduğunu da xref:start/quick-start-java.adoc[Spring olmadan hızlı başlangıç] gösterir.
+
+Uygulama bir filonun araçlarını tutar; kural da şudur: iki aracın adı aynı olamaz.
+Bu sayfadaki her örnek, bir örnek uygulamanın parçasıdır.
+Bu uygulama Muster'ın her derlemesinde çalışır, kendini HTTP üzerinden çağırır ve bir cevap bu sayfadakinden farklıysa hata verir.
+
+== Adım 1: starter'ı ekleyin
+
+xref:index.adoc#_installation[Ana sayfada] gösterildiği gibi, Muster'ın Spring Boot starter'ını derlemenize ekleyin: BOM'u ve sürüm yazmadan `muster-spring-boot-starter`'ı.
+Yapılandırılacak hiçbir şey yoktur: starter kendiliğinden devreye girer.
+
+== Adım 2: kuralı yazın
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleNameUnique.java[tag=rule,indent=0]
+----
+
+Yukarıdan aşağıya okuyun:
+
+* link:{javadoc-core}/rule/Rule.html[`@Rule(id = "vehicle.name-unique")`] kurala kimliğini verir; istemci bu kimliği ihlalin kodu olarak alır.
+* link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`] kuralın hangi girdiyi kontrol ettiğini söyler: bir aracın alanlarını taşıyan her şeyi.
+* Starter, Spring Boot'un entity'leri bulduğu gibi, kural sınıflarını da uygulamanızın paketlerinde bulur ve her birini bir bean olarak oluşturur.
+Bu yüzden kuralın `@Component`'e ihtiyacı yoktur ve repository'yi de diğer her bean gibi constructor'ından alır.
+* `check` repository'ye sorar ve ya `passed()` ile ya da bir ihlalle cevap verir; ihlal alanı (`name`), bir mesajın ihtiyaç duyduğu değeri ve sorunun türünü söyler: HTTP 409 durum koduna dönüşen link:{javadoc-core}/rule/Category.html[`CONFLICT`].
+
+Her singleton bean gibi, kuralın tek bir nesnesi bütün thread'lerden gelen her çağrıya hizmet eder.
+Kural okuduğunu kilitlemez; aynı anda aynı adı seçen iki istemcinin ikisi de kuraldan geçebilir.
+Son güvence tablonun unique kısıtı olarak kalır; xref:spring/transactions.adoc[] bunu anlatır.
+
+== Adım 3: komutu işaretleyin ve servisi yazın
+
+Kural, bir araçla ilgili her komutun taşıdığı alanları, yani `VehicleFields`'ı kontrol eder.
+`VehicleFields`, kuralların bir türe bağlanmasını sağlayan işaret arayüzü link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]'ı genişletir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleFields.java[tag=fields,indent=0]
+----
+
+Bir araç oluşturan komut onu uygular; böylece kural bu komutu kontrol eder:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+Servis metodu komutu alır.
+Yapması gereken tek şey budur:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=service,indent=0]
+----
+
+İçinde Muster'a hiçbir çağrı yoktur.
+Burada gösterilmeyen constructor repository'yi alır; `owner()` oturum açmış kullanıcıyı Spring Security'den okur: bu örneğin kendi tercihidir, Muster'ın buna ihtiyacı yoktur.
+Bir `@Service`'in kural hedefi alan her public metodu, o hedefin kurallarını *ilk satırından önce* ve *kendi transaction'ının içinde* çalıştırır.
+Bir kural takılırsa metot çalışmaz ve hiçbir şey yazılmaz.
+İleride araçlar için bir kural eklemek bir sınıf eklemek demektir; servise tek bir satır bile eklenmez.
+
+Sınıftaki `@Validated` ve parametredeki `@Valid` Jakarta Bean Validation'ı çalıştırır; bunun için `spring-boot-starter-validation` gerekir.
+Komuttaki `@NotBlank` gibi tek bir alanın biçimine dair kontroller orada kalır ve kurallardan önce çalışır.
+
+Her Spring uygulamasında olduğu gibi, bir controller isteğin gövdesini servise iletir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleController.java[tag=create,indent=0]
+----
+
+== Adım 4: mesajları yazın
+
+Bir ihlal hiçbir metin taşımaz.
+Starter mesajı uygulamanızın message source'undan yazar.
+Message source varsayılan olarak `messages.properties`'i ve her dil için bir dosyayı okur; anahtar ihlalin kodudur:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=messages]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=messages]
+----
+
+== Deneyin
+
+Filoda Ilgaz adlı bir araç zaten var ve adlar büyük-küçük harf farkı gözetilmeden karşılaştırılır.
+ece olarak oturum açmış bir istemci, cevabı Türkçe isteyerek ilgaz adlı bir araç daha ister (örnek uygulama kullanıcılarını Spring Security ile oturum açtırır; oturum başlığı burada gösterilmemiştir):
+
+[source,http]
+----
+POST /vehicles HTTP/1.1
+Accept-Language: tr-TR
+Content-Type: application/json
+
+{"name": "ilgaz", "plate": "06 ANK 43"}
+----
+
+Uygulamada tek satır hata işleme kodu yokken istemci şu cevabı alır:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/name-taken.json[]
+----
+
+* `409 Conflict` ihlalin kategorisinden gelir.
+* `message` istemcinin istediği dildedir.
+* `target` bir forma hangi alanı işaretleyeceğini söyler.
+* `code` bir istemcinin, dil ne olursa olsun, kendi kodunda belirli bir kurala tepki vermesini sağlar.
+
+== Kısaca ne oldu
+
+. Koşulu kimliği olan küçük bir sınıf olarak yazdınız; starter onu buldu ve bir bean yaptı.
+. Komut bir kural hedefi olduğunu söyledi; servis metodu ise hiçbir şey söylemedi.
+. Metot çağrıldığında starter kuralı transaction'ın içinde, metottan önce çalıştırdı; kural takıldı ve metot hiç çalışmadı.
+. Starter ihlali, istemcinin dilinde bir mesajla birlikte bir HTTP cevabına dönüştürdü.
+
+== Sırada ne var
+
+* xref:spring/getting-started.adoc[], aynı uygulamayı daha ileriye taşır.
+* xref:spring/methods.adoc[], `@Rules` ile bir metodun tam olarak hangi kuralları çalıştıracağını seçmeyi ve komut listelerini kontrol etmeyi gösterir.
+* xref:spring/problem-details.adoc[], cevabın her alanını ve onun nasıl değiştirileceğini açıklar.
+* xref:spring/testing.adoc[], bir kuralı tek başına ve veritabanıyla birlikte test etmeyi gösterir.
+* xref:start/learning-path.adoc[], basitten ileri düzeye her kılavuzu listeler.

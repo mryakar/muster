@@ -1,0 +1,50 @@
+= Mesajlar
+:description: Spring kullanmayan bir uygulamanın dış katmanının, bir ihlalin kodunu ve istemci argümanlarını çağıranın dilinde bir mesaja nasıl dönüştürdüğü.
+include::partial$javadoc.adoc[]
+
+Kurallar kodlar ve argümanlar bildirir; bunları bir mesaja uygulamanın dış katmanı (istemciye cevap veren kod) dönüştürür.
+Böylece kuralın ne bir metne ne de bir dile ihtiyacı olur ve aynı ihlal her çağıranın kendi dilinde okunur.
+
+== Resource bundle'lardan
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=messages,indent=0]
+----
+
+Bundle'lar her kod için bir şablon tutar; şablondaki `+{name}+`, `name` istemci argümanının değeriyle değiştirilir:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=messages,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=messages,indent=0]
+----
+
+`name` istemci argümanı `Atlas` olan alınmış ad ihlali `The name Atlas is taken` diye, yerel ayarı Türkçe olan bir çağıran için ise `Atlas adı kullanılıyor` diye okunur.
+Lambda, `ResourceBundle.getBundle`'ı uygulamanın kendi modülünden çağırır; bundle'ları modül yolunda (module path) bulabilmesini sağlayan da budur.
+
+Dili için bundle bulunmayan bir çağıran, temel bundle'ı, yani adında yerel ayar olmayan bundle'ı okur.
+Bu, sunucunun kendi varsayılan yerel ayarı Türkçe olsa bile böyledir: örnek, böyle bir sunucuda Fransızca konuşan bir çağıranın İngilizce okuduğunu kontrol eder.
+Temel bundle yoksa `ofResourceBundles` bu bundle ailesini kabul etmez.
+
+== Şablonlar
+
+Bir argümanın değeri mesaja, `String.valueOf`'un yazdığı hâliyle girer.
+Bu yüzden kural ya olduğu gibi iyi okunan bir değer verir ya da dış katman, mesaj yazılmadan önce değeri biçimlendirir.
+Şablon metni okunacağı gibi yazılır, kesme işaretleri de dahil.
+`+{{+` ya da `+}}+`, aksi hâlde bir yer tutucunun (placeholder) parçası gibi okunacak bir yerde süslü parantez yazar.
+İhlalin taşımadığı bir ad mesajda olduğu gibi kalır, şablonu olmayan bir kod da kodun kendisi olarak okunur; böylece şablondaki bir hata çağrıyı başarısız kılmak yerine cevapta görünür.
+
+== Başka kaynaklardan
+
+Bir veritabanı tablosunda ya da bir framework'ün message source'unda tutulan şablonlar, Muster'a link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver.ofTemplates`] üzerinden ulaşır; bu metot, bir kodun bir yerel ayardaki şablonunu ister ve onu aynı şekilde doldurur.
+Mesaj yazmanın kendine özgü bir yolu olan bir uygulama, `MessageResolver`'ı kendisi uygular.
+
+== İstemci argümanları ve iç argümanlar
+
+Mesaj yalnızca istemci argümanlarından (client arguments) oluşturulur.
+Çağıranın yeniden adlandıramadığı bir aracın sahibi gibi iç argümanlar (internal arguments) mesaja asla ulaşmaz.

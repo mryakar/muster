@@ -1,0 +1,62 @@
+= Kuralları kontrol eden metotlar
+:description: Bir Spring Boot uygulamasında hangi metotların iş kurallarını kontrol ettiği, @Rules'un kuralları nasıl listelediği ve kipi nasıl belirlediği, bir koleksiyon alan metodun nasıl kontrol edildiği.
+include::partial$javadoc.adoc[]
+
+== Bir servisin metotları
+
+Bir `@Service` bean'inin kural hedefi alan her public metodu, çalışmadan önce o türün kurallarını kontrol eder; araç oluşturan metot da böyle yapar.
+Komut, metodun tek parametresidir: başka parametrelerin yanında bir kural hedefi de alan bir metot, uygulamayı daha başlarken durdurur, çünkü starter hangisini kontrol edeceğini bilemez.
+Birbirine ait değerler, örneğin bir yeniden adlandırmadaki kimlik (id) ve yeni ad, komutta birlikte taşınır.
+
+== Kuralları listelemek ve kipi belirlemek
+
+link:{javadoc-starter}/Rules.html[`@Rules`], bir metodun neyi kontrol ettiğini değiştirir.
+Bir aracı yeniden adlandıran metot, komut türünün kurallarını hepsini toplama (collect-all) kipinde kontrol eder; böylece istemci, adın başka bir araçta kullanıldığını ve aracı yeniden adlandıramayacağını aynı anda öğrenir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
+----
+
+`@Rules` ayrıca kural listeler; listelenen kurallar ilk sırada ve listelendikleri sırayla çalışır.
+`@Rules`, türe göre bağlanacak kuralları dışarıda da bırakabilir.
+`@Rules` konan bir public metot, yalnız bir `@Service` içinde değil, herhangi bir bean içinde de kuralları kontrol eder.
+Girdi kural hedefi değilse, örneğin bir kimlikse (id), metot yalnızca listelediği kuralları kontrol eder, başka hiçbirini değil.
+
+`@Rules`, tıpkı `@Transactional` gibi, servisin uyguladığı bir arayüz metodunun üzerine ya da bir kural kümesini temsil eden, sizin tanımladığınız bir anotasyonun üzerine konabilir.
+Proxy yalnızca override edebildiği public instance metotlarına yapılan çağrıları görür; bu yüzden starter, static, final ya da public olmayan bir metottaki `@Rules`'u görmezden gelmek yerine reddeder.
+
+== Koleksiyonlar
+
+Kural hedeflerinden oluşan bir koleksiyon alan metot, çalışmadan önce tek bir çağrıda hem her elemanın kurallarını hem de koleksiyonun bütününün kurallarını kontrol eder:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=create-all,indent=0]
+----
+
+Araç sayısına konan sınır, hiçbir kural veritabanını sorgulamadan önce çalışsın diye listelenmiştir.
+Bu, koleksiyonun bütününe ait bir kuraldır ve sınırı, her bean'in yapabileceği gibi, uygulamanın yapılandırmasından alır:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/BatchLimit.java[tag=whole,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=batch-limit,indent=0]
+----
+
+Bir elemana ait ihlal, o elemanın listedeki konumunu belirtir; böylece istemci hangi aracı düzelteceğini bilir:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/batch-name-taken.json[]
+----
+
+Eleman kurallarının ve koleksiyon kurallarının nasıl çalıştığını xref:core/collections.adoc[Koleksiyonu kontrol etmek] anlatır.
+Starter kuralları bildirilen eleman türünden seçer; bu yüzden `List<CreateVehicle>` işe yarar, ama ham (raw) bir `List` ya da bir `List<?>` ona dayanacak hiçbir bilgi vermez.
+Böyle bir parametre, `@Rules` taşıyan bir metotta uygulamayı durdurur; `@Rules` taşımayan bir `@Service` metodu ise böyle bir parametreyle hiçbir kuralı kontrol etmez.
+Bir çağrıdaki kural hedefi elemanların hepsi aynı sınıftan olmalıdır, çünkü kurallar o sınıfa bağlanır.
+Dizi (array), starter için bir koleksiyon değildir: `@Rules` taşıyan bir metot diziyi tek bir girdi olarak kontrol eder; dizi alan ve `@Rules` taşımayan bir `@Service` metodu ise hiçbir kuralı kontrol etmez.

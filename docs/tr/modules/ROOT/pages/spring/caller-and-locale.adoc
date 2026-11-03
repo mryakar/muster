@@ -1,0 +1,39 @@
+= Çağıran ve yerel ayar
+:description: Bir Spring Boot uygulamasında kuralların, çağrıyı kimin ve hangi yerel ayarda (locale) yaptığını nereden öğrendiği ve bir uygulamanın bunları nasıl değiştirebileceği.
+
+== Çağıran
+
+Uygulamada Spring Security varsa, starter çağıranı Spring Security'den okur: çağıran, oturum açmış kullanıcıdır; örnek uygulamada bu, HTTP Basic ile giriş yapan kullanıcıdır.
+Bir aracı yalnızca sahibi yeniden adlandırabilir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+Çağıran, isteğin `Authentication` nesnesidir; bu yüzden `getName()` kullanıcı adını verir.
+Daha fazlasına ihtiyaç duyan bir kural onu cast eder (tür dönüşümü yapar).
+Anonim ya da kimliği doğrulanmamış bir çağrının çağıranı yoktur.
+Starter güvenlik bağlamını (security context), varsa uygulamanın `SecurityContextHolderStrategy` bean'i üzerinden okur.
+
+== Yerel ayar
+
+Yerel ayar (locale), isteğin yerel ayarıdır ve `LocaleContextHolder`'dan okunur.
+Uygulama onu başka türlü çözmüyorsa, Spring MVC bu değeri `Accept-Language` başlığından doldurur.
+Plakanın biçimi, o yerel ayarın bölgesine (region) göre belirlenir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehiclePlateFormat.java[tag=locale,indent=0]
+----
+
+`tr-TR` yerel ayarındaki bir isteğin plakası Türkiye biçimine göre kontrol edilir; yalnızca `en` olan bir istekte ise plaka hiç kontrol edilmez.
+Bir isteğin dışında, örneğin zamanlanmış bir işte (scheduled job), yerel ayar JVM'in varsayılan yerel ayarıdır.
+Yerel ayarın ne için olduğunu ve ne için olmadığını, Spring'siz kılavuzdaki xref:core/context.adoc#locale[Yerel ayar] bölümü anlatır.
+
+[#_from_elsewhere]
+== Başka bir kaynaktan
+
+Uygulamanın tanımladığı bir `Supplier<Principal>` bean'i çağıranın nereden geldiğini, bir `Supplier<Locale>` bean'i de yerel ayarın nereden geldiğini değiştirir; bu, örneğin kullanıcılarının oturumunu Spring Security olmadan açan bir uygulama için işe yarar.
+Bean'in türü tam olarak belirtilmelidir, örneğin `Supplier<Locale>`: ham (raw) bir `Supplier` hiçbirinin yerini almaz.
+Sağlayıcıyı her istek thread'i çağırır; bu yüzden sağlayıcı, bir isteğin başka bir istek için üzerine yazabileceği bir alanı değil, isteğe özgü durumu, örneğin bir `ThreadLocal`'ın tuttuğu değeri okur.

@@ -1,0 +1,12 @@
+= Sürüm notları
+:description: Muster'ın her sürümünün neyi değiştirdiğinin nerede bulunacağı.
+
+ifeval::["{page-component-version}" == "next"]
+Bu, henüz yayımlanmamış main dalının belgesidir.
+En son sürümden bu yana neyin değiştiği https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased[değişiklik günlüğünün Unreleased bölümünde] (İngilizce) yazar.
+endif::[]
+ifeval::["{page-component-version}" != "next"]
+{page-component-version} sürümünün neyi değiştirdiği https://github.com/mryakar/muster/blob/v{page-component-version}/CHANGELOG.md[sürümün değişiklik günlüğünde] (İngilizce) yazar; bu metin aynı zamanda https://github.com/mryakar/muster/releases/tag/v{page-component-version}[GitHub Release'inin] metnidir.
+endif::[]
+
+Değişiklik günlüğü ilk sürümden bu yana her değişikliği listeler ve kodu ya da yapılandırmayı bozan her değişikliği, neyin değiştirilmesi gerektiğiyle birlikte *Breaking* olarak işaretler.

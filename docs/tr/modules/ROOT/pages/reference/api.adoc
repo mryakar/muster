@@ -1,0 +1,9 @@
+= Javadoc
+:description: Muster'ın her modülünün, bu sayfanın sürümüne ait API belgeleri.
+
+Kılavuzlar Muster'ın nasıl kullanılacağını açıklar; Javadoc ise bu sayfanın sürümü için her türü ve metodu tanımlar.
+
+* link:{site-url}/api/{page-component-version}/muster-core/index.html[`muster-core`]: kurallar, onları kontrol eden motor ve genişletme noktaları; `me.yakar.muster` Java modülünde.
+* link:{site-url}/api/{page-component-version}/muster-spring-boot-starter/index.html[`muster-spring-boot-starter`]: `@Rules` ve otomatik yapılandırma (auto-configuration).
+
+Kılavuzlardaki bir sayfa bir türün adını ilk kez tek başına andığında, o adı türün sayfasına bağlar.

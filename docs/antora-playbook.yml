@@ -1,9 +1,10 @@
-# Builds the documentation site from this repository: the pages under docs/ of the main branch and
-# of each release tag from v0.4.0 on. The main branch is the prerelease called next; a tag vX.Y.Z
-# is the version X.Y.Z. Once a release is tagged, the newest release is served under current and
-# the prerelease under next, so that links to them survive the next release; until then the
-# prerelease, being the only version, is served under current. Every code sample is included from
-# muster-examples, which the build compiles, through the examples directory of the module.
+# Builds the documentation site from this repository: the pages under docs/, in English, and under
+# docs/tr/, in Turkish, of the main branch and of each release tag from v0.4.0 on. The main branch
+# is the prerelease called next; a tag vX.Y.Z is the version X.Y.Z. Once a release is tagged, the
+# newest release is served under current and the prerelease under next, so that links to them
+# survive the next release; until then the prerelease, being the only version, is served under
+# current. Every code sample is included from muster-examples, which the build compiles, through the
+# examples directory of the module.
 antora:
   extensions:
     - require: '@antora/lunr-extension'
@@ -17,7 +18,7 @@ content:
       branches: HEAD
       # The earlier releases have no docs/; pre-release tags are left out.
       tags: [v*, '!v*-*', '!v0.1.*', '!v0.2.*', '!v0.3.*']
-      start_path: docs
+      start_paths: [docs, docs/tr]
       version:
         v(?<version>+({0..9}).+({0..9}).+({0..9})): $<version>
         '*': next
@@ -27,7 +28,8 @@ urls:
 ui:
   bundle:
     url: ./ui/ui-bundle.zip
-  # The default UI's header, with its placeholder menu replaced by links to the repository.
+  # The default UI's header, with its placeholder menu replaced by links to the repository and to
+  # the same page in the other language, and its layout, with the language of the page.
   supplemental_files: ./supplemental-ui
 output:
   dir: build/site

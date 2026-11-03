@@ -1,0 +1,85 @@
+= Koleksiyonu kontrol etmek
+:description: Muster'ın bir koleksiyonun elemanlarını ve koleksiyonun bütününü tek çağrıda nasıl kontrol ettiği ve bir kuralın her elemanı tek sorguda nasıl kontrol ettiği.
+
+Birçok araç oluşturan bir çağrı, araçlardan hiçbiri oluşturulmadan önce bir kez kontrol edilir: hem her aracın kurallarıyla hem de çağrının bütününe ait kurallarla.
+Herhangi bir kural herhangi bir araçta sorun bulursa araçların hiçbiri oluşturulmaz.
+
+== Koleksiyon için tek çağrı
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=check-all,indent=0]
+----
+
+`checkAll`, elemanların sınıfı için, `check`'in tek bir eleman için çalıştırdığı kuralları ve bütün koleksiyonun kurallarını çalıştırır.
+Zincirin ve bağlamanın da bir `checkAll` metodu vardır; tek bir eleman için çalıştıracakları kuralları çalıştırır.
+Servis birçok aracı bir koleksiyon bağlaması (collection binding) üzerinden oluşturur.
+Bu bağlama, araçların sayısına konan sınırı da listeler; böylece bu sınır, herhangi bir kural araçları sorgulamadan önce çalışır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=collection-binding,indent=0]
+----
+
+Hepsini toplama (collect-all) kipinde her eleman gidebildiği yere kadar gider: bir kural bir elemanı reddettiğinde, o kuralı gerektiren kurallar diğer elemanları yine de kontrol eder.
+Türe göre kontrol edildiğinde elemanların tek bir sınıftan olması gerekir, çünkü kurallar o sınıfa bağlanır.
+Boş bir koleksiyon geçer ve hiçbir kural çalışmaz.
+Kurallar koleksiyonun bir kopyasını görür; çağıranın kendi koleksiyonunda sonradan yapılan değişiklikler bu kopyaya ulaşmaz.
+
+== Bir elemanın ihlalleri
+
+Bir elemanla ilgili ihlalin hedefi, o elemanın konumuyla başlar: `[1].name` ikinci aracın adıdır, `[1]` ise bütünüyle ikinci araçtır.
+Böylece istemci, mesajları araçlarla eşleştirmeye uğraşmadan formunun doğru satırını işaretleyebilir.
+
+== Her elemanı tek seferde kontrol eden kural
+
+Araçlar tek tek kontrol edilseydi, benzersiz ad kuralı her yeni araç için araçları bir kez sorgulardı.
+Bunun yerine kural hepsini tek seferde kontrol eder:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=check-all,indent=0]
+----
+
+Tek bir sorgu, alınmış adları bulur.
+Aynı döngü, aynı ada sahip iki yeni aracı da bulur; bunu tek bir aracın hiçbir kontrolü göremez.
+`ctx.element(i)`, listenin `i` indeksindeki girdinin bağlamıdır: bu bağlamdan oluşturulan bir ihlalin hedefinin önüne o aracın konumu eklenir.
+Liste yalnızca bu kuralın gerektirdiği kurallardan geçmiş elemanları tutar; bu yüzden listedeki bir indeks ile koleksiyondaki bir konum farklı olabilir; ikisini bağlam eşler.
+Doğrudan `ctx`'ten oluşturulan bir ihlal ise çağrının bütünüyle ilgilidir; bu durumda bu kuralı gerektiren kurallar elemanların hiçbirini kontrol etmez.
+
+`checkAll`'ı override etmeyen bir kural elemanları tek tek kontrol eder ve ilk hatada durma (fail-fast) kipinde reddettiği ilk elemanda durur.
+Muster bu durum için bir kez uyarır, çünkü override'ın var olma nedeni, eleman başına bir sorgudan kaçınmaktır.
+Plaka biçimini kontrol etmenin araç başına bir maliyeti yoktur; bu yüzden bu kural tek tek kontrolü bilerek korur ve bunu açıkça belirtir:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehiclePlateFormat.java[tag=one-by-one,indent=0]
+----
+
+Bu, uyarıyı kaldırır; kural artık bütün listeyi kendisi kontrol ettiği için, ilk hatada durma kipinde de plakası yanlış olan her aracı bildirir.
+
+== Bütün koleksiyonun kuralları
+
+Tek bir çağrının kaç araç oluşturabileceğine konan sınır, herhangi bir araçla değil, çağrının kendisiyle ilgilidir:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/BatchLimit.java[tag=whole,indent=0]
+----
+
+Girdisi elemanlardan oluşan bir `List`, `SequencedCollection` ya da `Collection` olan bir kural, koleksiyonu bir bütün olarak kontrol eder.
+Böyle bir kural, her eleman bu kuralın gerektirdiği kurallardan geçene kadar bekler; ihlalleri de belirli bir elemana değil, koleksiyonun bütününe aittir.
+Her elemanın kuralları gibi o da türe göre, o elemanların sınıfından oluşan koleksiyonlara bağlanır; bu yüzden `muster.checkAll` onu da çalıştırır.
+
+[[testing]]
+== Her elemanı tek seferde kontrol eden kuralı test etmek
+
+Bir `checkAll` testi, tıpkı Muster'ın verdiği gibi, her girdinin kontrol edilen koleksiyonda hangi konumda durduğunu bilen bir bağlam verir:
+
+[source,java]
+----
+include::example$plain-java-test/java/example/plain/VehicleNameUniqueTest.java[tag=test-check-all,indent=0]
+----
+
+İki girdi, 0 ve 2 konumlarındaki araçları temsil eder; sanki 1 konumundaki araç bu kuralın gerektirdiği bir kurala takılmış gibi.
+Bu yüzden ikinci girdiyle ilgili ihlal `[2]` hakkındadır.

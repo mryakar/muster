@@ -1,0 +1,126 @@
+= Girdileri kontrol etmek
+:description: Spring kullanmayan bir uygulamanın Muster'ı nasıl kurduğu ve bir girdiyi bir kural zincirine, türünün kurallarına ya da ikisine birden karşı nasıl kontrol ettiği.
+include::partial$javadoc.adoc[]
+
+Bir uygulama, kurallarıyla birlikte tek bir link:{javadoc-core}/Muster.html[`Muster`] kurar ve her girdiyi bu kuralların bir kısmına karşı kontrol eder: listelediği kurallara, girdinin türüne bağlanan kurallara ya da ikisine birden.
+
+[#_building_muster]
+== Muster'ı kurmak
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=muster,indent=0]
+----
+
+Uygulama kurallarını oluşturur ve onları builder'a verir.
+Kuralları uygulama değil de bir bağımlılık enjeksiyonu konteyneri oluşturuyorsa, builder kuralların sınıflarını ve bir link:{javadoc-core}/spi/RuleFactory.html[`RuleFactory`] alır; `RuleFactory`, `Muster` kurulurken her kuralı konteynerden ister.
+Çağıran (caller) ve yerel ayar (locale), xref:core/context.adoc[] sayfasında anlatılan sağlayıcılardan (supplier) gelir; dinleyici (listener) ise xref:core/listeners.adoc[] sayfasının konusudur.
+
+Kurulumdaki bir hata, örneğin aynı kimliğe sahip iki kural ya da kimsenin kaydetmediği bir kuralı gerektiren bir kural, uygulamayı o hataya rastlayacak ilk çağrıda değil, `Muster` kurulurken ya da bir zincir veya bağlama oluşturulurken durdurur.
+`Muster`, uygulama çalıştığı sürece yaşamak ve bütün thread'ler tarafından paylaşılmak üzere tasarlanmıştır.
+
+== Kural zinciri
+
+Araç oluşturan servis, yeni bir aracın geçmesi gereken kuralları çalışmaları gereken sırayla listeler:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=chain,indent=0]
+----
+
+Bir zincir (chain) hazırlanırken kurallar bulunur ve sıralanır.
+Bu yüzden servis bunu bir kez, kendi constructor'ında yapar ve her çağrı aynı zinciri yeniden kullanır.
+Metot, hiçbir şeyi değiştirmeden önce komutu kontrol eder:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=check-first,indent=0]
+----
+
+Geçen bir komut repository'ye ilerler; geçmeyen bir komut ise `check`'in exception fırlatmasına yol açar ve araç hiç eklenmez.
+Veritabanı olan bir uygulamada kontrol, işlemin transaction'ı içindeki ilk adımdır; böylece kurallar, işlemin hemen ardından değiştireceği veriyi okur.
+
+Kural veriyi okur ama kilitlemez; bu yüzden aynı anda Atlas adlı bir araç oluşturan iki çağrının ikisi de kontrolden geçebilir.
+Son güvence veritabanındaki unique kısıtı olarak kalır; olağan durumda istemciye açık bir cevap veren ise kuraldır.
+
+[#_rules_of_a_type]
+== Bir türün kuralları
+
+Bunun yerine kurallar girdinin türüne de bağlanabilir.
+Filonun komutları `VehicleFields`'ı uygular; bu da onları kural hedefi (rule target) olarak işaretler:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleFields.java[tag=target,indent=0]
+----
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=check-by-type,indent=0]
+----
+
+Girdi türüne `CreateVehicle`'ın uyduğu her kayıtlı kural onu kontrol eder: `VehicleFields`'ın kuralı, `CreateVehicle`'ın kuralı ve sonradan eklenecek her kural; üstelik kontrol eden kodda hiçbir değişiklik gerekmez.
+Bir türün buna link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`] ile açıkça katılması gerekir; böylece `Long` gibi yaygın bir tür için yazılmış bir kural yalnızca listelendiği yerde çalışır.
+
+Bağlama (binding) ikisini birleştirir: önce listelediği kurallar, sonra türün kuralları çalışır.
+Servis, aracı yeniden adlandıran komutu yalnızca kendi türünün kurallarına bağlar ve bağlamaya bir ad ve bir kip verir:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=binding,indent=0]
+----
+
+Ad, loglarda ve dinleyicilerde görünür; kip (mode) ise xref:core/modes.adoc[] sayfasının konusudur.
+Bir bağlama, türe göre bağlanacak bir kuralı `exclude` ile dışarıda da bırakabilir.
+
+== Başka kuralları gerektiren kurallar
+
+Aracın var olduğu bilinmeden, çağıranla karşılaştırılacak bir sahip de yoktur:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,indent=0]
+----
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
+----
+
+link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`], `VehicleExists`'i `VehicleOwnedByCaller`'ın önüne koyar ve araç yoksa `VehicleOwnedByCaller`'ın çalışmasını engeller; böylece `VehicleOwnedByCaller`, aracın varlığını yeniden kontrol etmeden sahibine bakabilir.
+Var olmayan bir aracı yeniden adlandırmak isteyen çağırana, aracı yeniden adlandıramayacağı değil, aracın var olmadığı söylenir.
+Yalnızca `VehicleOwnedByCaller`'ı listeleyen bir zincir `VehicleExists`'i de çalıştırır ve onu eklediğini loglar.
+
+[#_the_order_of_rules]
+== Kuralların sırası
+
+Bir zincirin sırası, listesinin sırasıdır; yalnızca her kuralın gerektirdiği kurallar o kuralın önüne alınır.
+Bir türün kurallarının listesi yoktur; bu yüzden kimliklerinin sırasıyla çalışırlar; gerektirdikleri kurallar yine önlerine alınır.
+Bir bağlama, listelediği kuralları bunlardan önce çalıştırır.
+Sıra, çağrıdan çağrıya değişmez.
+Sıra, ilk hatada durma (fail-fast) kipinde önemlidir, çünkü bu kip ihlal edilen ilk kuralda durur.
+Plaka biçimi gibi maliyeti olmayan kuralları, veritabanını sorgulayan kurallardan önce listeleyin.
+
+Muster seçtiği sırayı size söyler; burada, yalnızca sahip kuralını listeleyen bir zincir için:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=rule-ids,indent=0]
+----
+
+ve şimdiye kadar kontrol edilmiş sınıflara türe göre bağlanan kurallar için:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=bound-rule-ids,indent=0]
+----
+
+Sormak hiçbir şeyi bağlamaz; bir sınıf, o sınıftan bir girdi kontrol edildikten sonra listede görünür.
+
+== Loglama
+
+Muster, `me.yakar.muster` adlı `System.Logger` üzerinden loglar; uygulama onu başka bir yere yönlendirmedikçe bu logger `java.util.logging`'e yazar:
+
+* `INFO` düzeyinde: listelenen bir kural gerektirdiği için bir zincirin ya da bağlamanın eklediği kurallar ve dışarıda bırakılan bir kuralı gerektirdikleri için dışarıda bıraktığı kurallar.
+* `DEBUG` düzeyinde (`java.util.logging` buna `FINE` der ve açılmadıkça gizler): türe göre bağlanan her sınıfın kuralları, o sınıf ilk kez kontrol edildiğinde.
+* `WARNING` düzeyinde: hiçbir kuralın bağlanmadığı bir sınıf (bu genellikle bir kuralın hiç kaydedilmediği anlamına gelir) ve kapatılmış her kural.

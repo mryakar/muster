@@ -1,0 +1,38 @@
+= `this` üzerinden çağrılar
+:description: Bir Spring Boot uygulamasında this üzerinden yapılan bir çağrının neden hiçbir kuralı kontrol etmediği, starter'ın bu çağrıları uygulama başlarken nasıl bulduğu ve bir metodun kendi bean'i üzerinden nasıl çağrılacağı.
+
+Bir servis metodu kurallarını, Spring'in bean'in etrafına koyduğu proxy içinde kontrol eder.
+Bean'in bir metodundan diğerine `this` üzerinden yapılan bir çağrı, proxy'yi atlayarak doğrudan metoda gider ve hiçbir kuralı kontrol etmez: bu, kurallarda sessiz bir deliktir ve metodu tek başına test eden hiçbir test onu ortaya çıkarmaz.
+
+== Uygulama başlarken bulunur
+
+Starter, metotları kural kontrol eden her sınıfın bytecode'unu, üst sınıfları ve arayüzleriyle birlikte, bean'i hazırlarken okur; çoğu bean için bu an, uygulamanın başladığı andır.
+Bu metotlara `this` üzerinden yapılan çağrıları, lambda gövdelerinde ve metot referanslarında da bulur; sonra uygulamayı, bulduğu her çağrıyı ve onu düzeltmenin yollarını belirten bir mesajla durdurur.
+Lazy (tembel) bir bean ilk çağrıldığında hazırlanır; bu durumda uygulama yerine o ilk çağrı başarısız olur.
+
+Düzeltilmekte olan bir uygulama için `muster.self-invocation=warn`, uygulamayı durdurmak yerine her çağrı için bir uyarı loglar; `muster.self-invocation=off` ise taramayı atlar.
+
+== Bean üzerinden çağırmak
+
+Bir aracı plakasıyla adlandırmak bir yeniden adlandırmadır ve yeniden adlandırmanın kurallarına tabidir.
+Servis kendi `rename` metodunu, bir `ObjectProvider`'dan aldığı kendi bean'i üzerinden çağırır:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=self,indent=0]
+----
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=name-after-plate,indent=0]
+----
+
+Aracı yeniden adlandırma izni olmayan bir kullanıcı, onu plakasıyla da adlandıramaz.
+`ObjectProvider`, bean'i aramayı çağrı anına, yani proxy oluştuktan sonraya erteler; bean'in kendisini `@Lazy` ile enjekte etmek de aynı işi görür.
+Diğer çıkış yolu, metotlardan birini başka bir bean'e taşımaktır.
+
+== Taramanın görmedikleri
+
+Tarama, Java derleyicisinin yazdığını okur.
+Reflection üzerinden yapılan bir çağrıyı, bean'in iç içe (nested) bir sınıfından yapılan bir çağrıyı ya da Groovy gibi bir dilin dinamik çağrıya derlediği bir çağrıyı görmez.
+Native image'da okunacak class dosyası yoktur: starter açılışta bu tür çağrıları aramadığını bildiren bir uyarı verir; `muster.self-invocation=off` bu uyarıyı kaldırır.

@@ -1,0 +1,150 @@
+= Spring olmadan hızlı başlangıç
+:description: Düz Java ile, altı adımda Muster'lı ilk program: bir girdi, iki kural, bir Muster, geçen ve takılan birer kontrol ve kullanıcının okuduğu mesaj.
+include::partial$javadoc.adoc[]
+
+Bu sayfa, düz bir Java programında iki iş kuralını altı küçük adımda çalıştırır.
+Java 21 ya da daha yenisine ve Gradle ya da Maven ile derlenen bir projeye ihtiyacınız var.
+Burada kullanılan her kelimeyi xref:start/concepts.adoc[] açıklar.
+
+Program bir üyelik işlemidir: yeni bir kullanıcı bir kullanıcı adı ve yaşını gönderir, iki kural da onun üye olup olamayacağına karar verir.
+Bu sayfadaki her örnek, Muster'ın her derlemesinde çalışan bir örnek programın parçasıdır; Muster bu sayfada söylendiği gibi cevap vermezse o program hata verir.
+Örneklerde import satırları yok: bir kuralın türleri `me.yakar.muster.rule` paketinde, `Muster` ve exception'ı `me.yakar.muster`'da, `MessageResolver` da `me.yakar.muster.spi`'dadır.
+
+== Adım 1: Muster'ı ekleyin
+
+Muster'ın core modülünü derlemenize ekleyin: Muster modüllerinin sürümlerini birbirine uygun tutan BOM'u ve sürüm yazmadan `muster-core`'u.
+Gradle ile:
+
+[source,kotlin,subs="+attributes"]
+----
+dependencies {
+  implementation(platform("me.yakar.muster:muster-bom:{muster-version}"))
+  implementation("me.yakar.muster:muster-core")
+}
+----
+
+Maven ile aynısını xref:index.adoc#_installation[ana sayfa] gösterir.
+Core'un çalışma zamanında başka hiçbir bağımlılığı yoktur.
+Projenizde bir `module-info.java` varsa, içine `requires me.yakar.muster;` ekleyin.
+
+== Adım 2: girdiyi tanımlayın
+
+Girdi, kullanıcının gönderdiklerini tutan bir record'dur:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/SignUp.java[tag=input,indent=0]
+----
+
+link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`] boş bir işaret arayüzüdür.
+Onu uygulamak Muster'a, kuralların bu türe bağlanabileceğini söyler; böylece `muster.check(signUp)` kuralları kendiliğinden bulur.
+
+== Adım 3: kuralları yazın
+
+Her kural, tek türden bir girdiyi kontrol eden ve bir kimliği olan bir sınıftır.
+İlki yalnızca yetişkinlerin üye olmasına izin verir:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/AdultsOnly.java[tag=rule,indent=0]
+----
+
+Yukarıdan aşağıya okuyun:
+
+* link:{javadoc-core}/rule/Rule.html[`@Rule(id = "signup.adult")`] kurala kimliğini verir; bu kimlik kuralın cevaplarda, loglarda ve yapılandırmada adıdır.
+* link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<SignUp>`] kuralın hangi girdiyi kontrol ettiğini söyler.
+* `check` girdiyi ve bir bağlamı alıp cevap verir.
+Yaş uygunsa link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`] döndürür.
+Değilse bağlamdan oluşturulmuş bir ihlal içeren başarısız bir sonuç döndürür: yaş, mesajda kullanılmak üzere istemci argümanı olarak eklenir; `age` de kullanıcının düzeltmesi gereken alandır.
+
+İkinci kural, alınmış bir kullanıcı adını reddeder.
+Gerçek bir uygulama bunu veritabanına sorardı; bu örnek ise alınmış adları constructor'ında alır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/UsernameFree.java[tag=rule,indent=0]
+----
+
+Her kuralın tek bir nesnesi, bütün thread'lerden gelen her kontrole hizmet eder; bu yüzden kural değişebilen hiçbir şey tutmaz; burada tuttuğu, alınmış adların değiştirilemez bir kopyasıdır.
+Veritabanına soran bir kural okuduğunu kilitlemez; aynı anda aynı adı seçen iki kullanıcının ikisi de kuraldan geçebilir.
+Son güvence veritabanının unique kısıtı olarak kalır; xref:core/checking.adoc[] bunu anlatır.
+
+link:{javadoc-core}/rule/Category.html[`Category.CONFLICT`] sorunun türünü söyler: bir şey zaten var.
+Bir HTTP uygulaması buna 409 durum koduyla cevap verir; xref:core/errors.adoc[] bunu gösterir.
+
+== Adım 4: Muster'ı oluşturun
+
+Program başlarken kuralları bir kez oluşturup link:{javadoc-core}/Muster.html[`Muster`]'ın builder'ına verin:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=build,indent=0]
+----
+
+`muster` artık hazırdır ve programın bütün thread'leri arasında güvenle paylaşılabilir.
+Kurallarda bir sorun varsa, örneğin aynı kimliğe sahip iki kural ya da kimsenin kaydetmediği bir kuralı gerektiren bir kural, `Muster` oluşturulurken hemen hata alırsınız, sonradan bir kullanıcının çağrısında değil.
+
+== Adım 5: bir girdiyi kontrol edin
+
+`muster.check(input)`, girdinin türüne ait her kuralı çalıştırır.
+Hepsi geçerse hiçbir şey döndürmez; biri takılırsa link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır.
+Küçük bir metot bunu bir değere dönüştürür, böylece sonuca bakmak kolaylaşır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=sign-up,indent=0]
+----
+
+Üç kullanıcı üye olmayı dener:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=try,indent=0]
+----
+
+* 30 yaşındaki Deniz iki kuraldan da geçer: ihlal yok.
+* 30 yaşındaki Ece, alınmış bir kullanıcı adı seçmiştir.
+İhlal, hangi kuralın takıldığını (`signup.username-free`), hangi alanın düzeltileceğini (`username`) ve bir mesajın ihtiyaç duyduğu değeri (`ece`) söyler.
+* 16 yaşındaki Deniz çok küçüktür: `signup.adult`.
+
+Gerçek bir servis metodunda `muster.check(command)`'ı metodun ilk satırı olarak çağırırsınız ve exception'ın kullanıcıya cevap veren koda kadar yukarı çıkmasına izin verirsiniz; kontrolden sonraki satır yalnızca her kural geçtiğinde çalışır.
+
+== Adım 6: kullanıcıya bildirin
+
+Bir ihlal hiçbir metin taşımaz; böylece tek bir kural her dildeki kullanıcıya hizmet eder.
+Program mesajlarını her dil için bir properties dosyasında tutar; anahtar ihlalin kodudur, istemci argümanları da süslü parantez içinde yazılır.
+Dosyalar `src/main/resources/example/plain/quickstart/` içindedir: varsayılan dil olan İngilizce için `messages.properties`, Türkçe için `messages_tr.properties`.
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/quickstart/messages.properties[tag=messages]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/quickstart/messages_tr.properties[tag=messages]
+----
+
+Bu dosyaları bir mesaj çözümleyici, link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] okur; `ResourceBundle.getBundle`'a verdiği ad, dosyaların noktalarla yazılmış ve dil eki olmayan yoludur:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=messages,indent=0]
+----
+
+Bütün döngü bu kadar: bir girdi, ona bakan kurallar, hatalı bir girdiyi durduran bir kontrol ve kullanıcının dilinde bir mesaj.
+
+== Kısaca ne oldu
+
+. Her koşulu, bir metodun içindeki bir `if` yerine, kimliği olan küçük bir sınıf olarak yazdınız.
+. Kuralları bir kez, bir `Muster` içinde kaydettiniz.
+. Tek bir çağrı, `muster.check(input)`, girdinin her kuralını çalıştırdı ve takılan ilk kuralda durdu: bu, varsayılan kip olan ilk hatada durma (fail-fast) kipidir.
+. İhlal neyin yanlış olduğunu sabit kutucuklarla söyledi; programın dış katmanı da onu bir cümleye çevirdi.
+
+== Sırada ne var
+
+* xref:core/rules.adoc[], bir kuralın her parçasını ve bir kuralın nasıl test edileceğini açıklar.
+* xref:core/checking.adoc[], hangi kuralların çalışacağını seçmenin diğer yollarını gösterir: zincirler, bağlamalar ve başka kuralları gerektiren kurallar.
+* xref:core/modes.adoc[], ilk ihlal yerine bütün ihlallerin nasıl bir kerede bildirileceğini gösterir.
+* xref:start/quick-start-spring.adoc[], bütün bunları `check`'i kendiniz çağırmadığınız bir Spring Boot uygulamasında yapar.
+* xref:start/learning-path.adoc[], basitten ileri düzeye her kılavuzu listeler.

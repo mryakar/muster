@@ -1,0 +1,34 @@
+= Test etmek
+:description: Bir Spring Boot uygulamasında iş kurallarının ve etraflarındaki kodun nasıl test edileceği: tek başına bir kural, veritabanına karşı bir kural ve web katmanı.
+
+== Tek başına bir kural
+
+Kural sıradan bir nesnedir; Spring'den hiçbir şeye ihtiyaç duymayan bir test onu oluşturur ve `check` metodunu çağırır.
+xref:core/rules.adoc#_testing_a_rule[Kuralı test etmek] bunu gösterir.
+
+== Veritabanına karşı bir kural
+
+Veritabanını sorgulayan bir kural, veritabanına karşı test edilir; bunun için uygulamanın, veritabanını ve repository'yi içeren ama web katmanını içermeyen bir test dilimi (test slice) kullanılır:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleNameUniqueTest.java[tag=jdbc-test,indent=0]
+----
+
+`@JdbcTest`, gömülü veritabanını uygulamanın şemasıyla başlatır ve her testten sonra değişiklikleri geri alır (rollback).
+
+== Web katmanı
+
+Bir `@WebMvcTest`, starter'ın ihlallere verdiği cevabı ve mesaj çözücüsünü (message resolver) getirir ama kuralları kontrol eden hiçbir şeyi getirmez: dilime import edilen bir servis hiçbir kuralı kontrol etmez.
+Bir controller testi, mock'lanmış servise, nasıl cevaplandığını görmek istediği ihlali fırlattırır:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleControllerTest.java[tag=web-mvc-test,indent=0]
+----
+
+Bu cevap, bir istemcinin aldığı cevabın aynısıdır; mesajı da uygulamanın message source'undan gelir.
+
+== Uygulamanın tamamı
+
+Uygulamanın tamamını başlatan bir test, örneğin `@SpringBootTest` ile, kuralları production'daki gibi kontrol eder: örnek uygulamanın kendisi de başlar, kendi uç noktalarını HTTP üzerinden çağırır ve cevapları bu kılavuzun gösterdikleriyle karşılaştırır.

@@ -1,0 +1,9 @@
+= Yapılandırma özellikleri
+:description: Muster Spring Boot starter'ının her yapılandırma özelliği, varsayılan değeriyle.
+
+Spring Boot starter bu özellikleri, `application.properties` ya da ortam değişkenleri gibi, uygulamanın yapılandırmasından okur.
+Onları ne zaman değiştirmeniz gerektiğini xref:spring/configuration.adoc[Yapılandırma] sayfası açıklar.
+
+Aşağıdaki tablo starter'ın metadata'sından otomatik olarak üretilir ve İngilizcedir.
+
+include::partial$properties.adoc[]
