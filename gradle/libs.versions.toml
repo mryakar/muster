@@ -37,6 +37,7 @@ pitest-junit5-plugin = { module = "org.pitest:pitest-junit5-plugin", version.ref
 
 # Gradle plugins used by the convention plugins in build-logic
 cyclonedx-gradle-plugin = { module = "org.cyclonedx:cyclonedx-gradle-plugin", version = "3.4.1" }
+japicmp-gradle-plugin = { module = "me.champeau.gradle:japicmp-gradle-plugin", version = "0.4.6" }
 maven-publish-gradle-plugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.37.0" }
 pitest-gradle-plugin = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version = "1.19.0" }
 sonarqube-gradle-plugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version = "7.5.0.8588" }
