@@ -16,8 +16,8 @@
 #
 # Puts the Javadoc of the documentation site under <site>/api/<version>/<module>/: for each stable
 # release whose tag has documentation, the javadoc jars of its GitHub Release, which the release
-# checked against what Maven Central serves, so the site never builds them again; for next, the
-# Javadoc of the checked-out commit. Needs the tags, and gh with a token that can read the releases.
+# built from the tag and checked against the tested build, so the site never builds them again; for
+# next, the Javadoc of the checked-out commit. Needs the tags, and gh with a token that can read the releases.
 set -euo pipefail
 
 site="$(realpath -m "${1:?usage: javadoc-site.sh <site directory>}")"
