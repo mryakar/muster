@@ -103,6 +103,12 @@ supports; the second command records the newest, which CI tests the starter agai
 ./gradlew --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --rerun-tasks :muster-spring-boot-starter:check -PspringBootVersion=latest
 ```
 
+Writing the metadata adds entries but removes none: to drop the versions that nothing resolves any
+more, delete their entries and run the commands again, which add back what the build needs. Next to
+the file, `gradle/osv-scanner.toml` lists the known vulnerabilities that scanners, OpenSSF
+Scorecard's among them, find in it and that the build cannot remove yet, each with why it does not
+apply and when it goes; remove an entry when its versions leave the metadata.
+
 The examples have a file of their own, `muster-examples/gradle/verification-metadata.xml`. Their
 Spring Boot application uses the Spring Boot version of `gradle/libs.versions.toml` and the
 versions that Spring Boot manages, such as those of H2 and JUnit; the tests of the plain Java

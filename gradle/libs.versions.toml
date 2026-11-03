@@ -30,6 +30,11 @@ spock-bom = { module = "org.spockframework:spock-bom", version.ref = "spock" }
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "spring-boot" }
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 
+# Versions that the tools of the build would otherwise take older, with known vulnerabilities:
+# Jackson 2 through the CycloneDX plugin, Guava through it and Error Prone.
+guava = { module = "com.google.guava:guava", version = "33.7.2-jre" }
+jackson2-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.22.3" }
+
 # Tools that the build runs. They are declared as libraries only so that Dependabot updates their
 # versions; the build reads the versions.
 error-prone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "error-prone" }
