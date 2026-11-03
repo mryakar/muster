@@ -1,0 +1,12 @@
+= Release notes
+:description: Where to find what each release of Muster changed.
+
+ifeval::["{page-component-version}" == "next"]
+This is the documentation of the main branch, which is not released yet.
+What it changes since the latest release is in the https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased[Unreleased section of the changelog].
+endif::[]
+ifeval::["{page-component-version}" != "next"]
+What {page-component-version} changed is in https://github.com/mryakar/muster/blob/v{page-component-version}/CHANGELOG.md[the changelog of the release], which is also the text of https://github.com/mryakar/muster/releases/tag/v{page-component-version}[its GitHub Release].
+endif::[]
+
+The changelog lists every change since the first release, and marks each change that breaks code or configuration as *Breaking*, with what to change.

@@ -1,5 +1,6 @@
 = Getting started with Spring Boot
 :description: A first business rule in a Spring Boot application: a rule class, a command, a service method that checks it, and the answer a client gets.
+include::partial$javadoc.adoc[]
 
 With the Spring Boot starter, a service method checks its rules before its first line runs, inside its transaction, and a violated rule reaches the client as problem details in its language.
 The service calls nothing of Muster.
@@ -25,7 +26,7 @@ xref:core/rules.adoc[Writing a rule] explains the rest of the class.
 
 == A command and a service
 
-The command that creates a vehicle implements `VehicleFields`, a `RuleTarget`, which binds it to the rules of that type:
+The command that creates a vehicle implements `VehicleFields`, a link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`], which binds it to the rules of that type:
 
 [source,java]
 ----

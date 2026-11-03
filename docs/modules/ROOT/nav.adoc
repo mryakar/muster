@@ -19,3 +19,7 @@
 ** xref:core/messages.adoc[]
 ** xref:core/errors.adoc[]
 ** xref:core/listeners.adoc[]
+* Reference
+** xref:reference/properties.adoc[]
+** xref:reference/release-notes.adoc[]
+** xref:reference/api.adoc[]

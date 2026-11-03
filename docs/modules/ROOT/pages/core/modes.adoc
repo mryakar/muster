@@ -1,5 +1,6 @@
 = Modes and switches
 :description: Whether a check stops at the first rule that finds a problem or runs them all, and how an application switches rules off without a change to its code.
+include::partial$javadoc.adoc[]
 
 == Fail-fast and collect-all
 
@@ -16,7 +17,7 @@ include::example$plain-java/java/example/plain/Main.java[tag=collect-all,indent=
 ----
 
 `withMode` leaves the chain it is called on as it was, and returns a second chain that collects all.
-The builder of `Muster` sets the mode of every check with `mode`, a binding has its own in its builder, as the binding of renames has in xref:core/checking.adoc#_rules_of_a_type[Rules of a type], and a single check of a rule target by type can take one as a second argument to `check`.
+The builder of link:{javadoc-core}/Muster.html[`Muster`] sets the mode of every check with `mode`, a binding has its own in its builder, as the binding of renames has in xref:core/checking.adoc#_rules_of_a_type[Rules of a type], and a single check of a rule target by type can take one as a second argument to `check`.
 
 A rule that is skipped, because it does not apply or because a rule it requires failed, does not end a fail-fast check: the next rule runs.
 Which violation a fail-fast check reports depends on the order of the rules, which xref:core/checking.adoc#_the_order_of_rules[Checking inputs] describes.

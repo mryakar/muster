@@ -1,5 +1,6 @@
 = Messages
 :description: How the edge of an application without Spring turns the code and the client arguments of a violation into a message in the language of the caller.
+include::partial$javadoc.adoc[]
 
 Rules report codes and arguments, and the edge of the application, where it answers the caller, turns them into a message.
 A rule then needs no text and no language, and the same violation reads in the language of each caller.
@@ -37,7 +38,7 @@ A name that the violation does not carry stays in the message as it is, and a co
 
 == From elsewhere
 
-Templates kept in a database table, or in the message source of a framework, reach Muster through `MessageResolver.ofTemplates`, which asks for the template of a code in a locale and fills it in the same way.
+Templates kept in a database table, or in the message source of a framework, reach Muster through link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver.ofTemplates`], which asks for the template of a code in a locale and fills it in the same way.
 An application with its own way of writing messages implements `MessageResolver` itself.
 
 == Client and internal arguments

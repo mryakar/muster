@@ -1,0 +1,4 @@
+// The Javadoc of the version a page belongs to, which the published site serves under api/.
+// Included in the header of a page that links to it, since only a page knows its version.
+:javadoc-core: {site-url}/api/{page-component-version}/muster-core/me.yakar.muster/me/yakar/muster
+:javadoc-starter: {site-url}/api/{page-component-version}/muster-spring-boot-starter/me/yakar/muster/spring

@@ -1,7 +1,8 @@
 = Observing checks
 :description: How a listener observes every check of Muster, to log which rules ran, how each ended and how long it took.
+include::partial$javadoc.adoc[]
 
-A listener sees every check that a `Muster` makes, and every rule in it, without a change to the rules or to the code that checks.
+A listener sees every check that a link:{javadoc-core}/Muster.html[`Muster`] makes, and every rule in it, without a change to the rules or to the code that checks.
 The example logs each rule:
 
 [source,java]

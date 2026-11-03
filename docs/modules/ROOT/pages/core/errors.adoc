@@ -1,9 +1,10 @@
 = Rejected calls
 :description: What a check throws when rules are violated, and how an application without Spring answers it, such as with an HTTP status.
+include::partial$javadoc.adoc[]
 
 == The exception
 
-A rejected call ends in a `BusinessRuleViolationException`, which `check` throws once the rules that should run have run.
+A rejected call ends in a link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`], which `check` throws once the rules that should run have run.
 In fail-fast mode it holds what the first rule to find a problem found, and in collect-all mode what every rule found, in the order the rules ran.
 
 A rejected call is an ordinary outcome, not a bug, so the exception is cheap to throw: it carries no stack trace.
@@ -12,7 +13,7 @@ Catch it where the call came in, and answer the caller from its violations.
 
 Other exceptions mean something else:
 
-* A mistake in the setup fails when `Muster`, a chain or a binding is built, with an `IllegalArgumentException` or an `IllegalStateException` that names the mistake.
+* A mistake in the setup fails when link:{javadoc-core}/Muster.html[`Muster`], a chain or a binding is built, with an `IllegalArgumentException` or an `IllegalStateException` that names the mistake.
 * A mistake in a rule fails the check itself: a rule that returns `null` causes a `NullPointerException`, and a rule that reports a violation created for another rule an `IllegalStateException`.
 * A collection with a `null` element, or with elements of different classes where rules bind by class, fails with a `NullPointerException` or an `IllegalArgumentException`.
 * An exception that a rule throws, such as one of a database that cannot be reached, comes out of the check as it is.

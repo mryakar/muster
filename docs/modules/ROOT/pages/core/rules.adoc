@@ -1,5 +1,6 @@
 = Writing a rule
 :description: A business rule of Muster: a class with an id that checks one kind of input and reports what is wrong with it as violations.
+include::partial$javadoc.adoc[]
 
 A business rule is a class of its own that checks one kind of input and reports what is wrong with it.
 This guide follows an application without Spring that creates and renames the vehicles of a fleet.
@@ -15,7 +16,7 @@ include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=rule,i
 ----
 
 The rule checks `VehicleFields`, which both the command that creates a vehicle and the one that renames it carry, so one rule guards both.
-Muster reads the type from `implements BusinessRule<VehicleFields>`, which is why a rule is a class with a name rather than a lambda.
+Muster reads the type from link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`], which is why a rule is a class with a name rather than a lambda.
 
 `vehicle.name-unique` is how the rest of the application refers to the rule: the client receives it as the code of the violation, the configuration names it to switch the rule off, and the logs print it.
 Moving or renaming the class changes none of that, so choose the id as carefully as a column name.
@@ -23,7 +24,7 @@ Moving or renaming the class changes none of that, so choose the id as carefully
 The rule gets the vehicles in its constructor and asks them on each call.
 One instance serves every call, from every thread that checks, so the rule and what it is given must be thread-safe, and nothing of one call stays in its fields.
 
-`check` answers with `RuleResult.passed()`, or with a failed result that holds the violations.
+`check` answers with link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`], or with a failed result that holds the violations.
 Rejecting the call is Muster's job, once every rule that should run has run, as xref:core/errors.adoc[] describes.
 When the vehicles cannot be read at all, the exception of the repository propagates as it is: that is a failure of the application, not an answer about the name.
 
@@ -63,14 +64,14 @@ A rule that does not apply is skipped, which is neither a pass nor a failure, an
 
 == Testing a rule
 
-A rule is a plain object, so a test creates it with what it needs and calls `check` without a `Muster`:
+A rule is a plain object, so a test creates it with what it needs and calls `check` without a link:{javadoc-core}/Muster.html[`Muster`]:
 
 [source,java]
 ----
 include::example$plain-java-test/java/example/plain/VehicleNameUniqueTest.java[tag=test,indent=0]
 ----
 
-`RuleContext.forRule` makes a context for the rule with no caller and the root locale, so the test does not depend on the language of the machine it runs on.
+link:{javadoc-core}/rule/RuleContext.html[`RuleContext.forRule`] makes a context for the rule with no caller and the root locale, so the test does not depend on the language of the machine it runs on.
 A test that needs a caller or a locale builds its context:
 
 [source,java]
