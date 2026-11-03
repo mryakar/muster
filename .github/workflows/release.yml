@@ -24,6 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       jars-sha256: ${{ steps.jars.outputs.sha256 }}
+      files-sha256: ${{ steps.jars.outputs.files }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,13 +54,21 @@ jobs:
         run: .github/scripts/run-examples.sh "$VERSION"
         env:
           VERSION: ${{ steps.version.outputs.version }}
+      # The jars, which Maven Central must serve as they are, and every file the release publishes
+      # but the signatures, which only the publish job makes, and the SBOM, which records when it
+      # was built: the publish job builds again and must get the same bytes.
       - id: jars
-        name: Record the checksums of the tested jars
+        name: Record the checksums of the tested files
+        shell: bash
         run: |
           cd ~/.m2/repository/me/yakar/muster
           {
             echo 'sha256<<EOF'
             for jar in $JARS; do sha256sum "$jar/$VERSION/$jar-$VERSION.jar"; done
+            echo EOF
+            echo 'files<<EOF'
+            find . -path "./*/$VERSION/*" -type f ! -name '*.asc' ! -name '*-cyclonedx.*' \
+              ! -name 'maven-metadata*' | LC_ALL=C sort | xargs --no-run-if-empty sha256sum
             echo EOF
           } >> "$GITHUB_OUTPUT"
         env:
@@ -94,12 +103,16 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-      - name: Check that the jars are the ones that were tested
+      # The same files, no more and no fewer, with the same bytes.
+      - name: Check that the files are the ones that were tested
+        shell: bash
         run: |
           cd ~/.m2/repository/me/yakar/muster
-          sha256sum --check <<< "$TESTED"
+          sha256sum --check --strict <<< "$TESTED"
+          diff <(cut -c67- <<< "$TESTED") <(find . -path "./*/$VERSION/*" -type f ! -name '*.asc' \
+            ! -name '*-cyclonedx.*' ! -name 'maven-metadata*' | LC_ALL=C sort)
         env:
-          TESTED: ${{ needs.verify.outputs.jars-sha256 }}
+          TESTED: ${{ needs.verify.outputs.files-sha256 }}
       - name: Collect the release files
         run: |
           mkdir -p release

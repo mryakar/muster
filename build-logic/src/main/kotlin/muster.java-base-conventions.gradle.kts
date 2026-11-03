@@ -38,3 +38,11 @@ spotless {
     )
   }
 }
+
+// The same sources give the same archives, byte for byte, which the release checks: no timestamps
+// and a fixed order of entries. Gradle's defaults since 9.0, set here so that no change of default
+// can undo them.
+tasks.withType<AbstractArchiveTask>().configureEach {
+  isPreserveFileTimestamps = false
+  isReproducibleFileOrder = true
+}
