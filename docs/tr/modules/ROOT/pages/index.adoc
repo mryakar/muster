@@ -1,0 +1,78 @@
+= Muster
+:description: Katmanlı Java uygulamaları için iş kuralları: servis metodu çalışmadan önce, transaction'ın içinde ve servis kodunun dışında kontrol edilir.
+
+İsteğiniz kurallara uyuyor mu?
+
+[TIP]
+====
+Muster'da yeni misiniz?
+Önce xref:start/what-is-muster.adoc[] sayfasını okuyun, sonra bir hızlı başlangıç seçin: xref:start/quick-start-spring.adoc[Spring Boot ile] ya da xref:start/quick-start-java.adoc[düz Java ile].
+Her biri yaklaşık beş dakika sürer.
+====
+
+Servis metotları genellikle bir yığın kontrolle başlar: bu kayıt var mı, bu ad zaten alınmış mı, görev doğru durumda mı.
+Muster bu kontrollerin her birini kendi kural sınıfına taşır.
+Spring Boot starter ile kurallar, servis metodunun ilk satırından önce ve metodun transaction'ının içinde çalışır.
+Böylece bir kural eklemek hiçbir zaman servisi değiştirmek anlamına gelmez; ihlal edilen bir kural da istemciye, istemcinin dilinde bir problem details cevabı olarak ulaşır.
+
+Tek bir alanın biçimine dair kontroller (boş mu, negatif mi, biçimi doğru mu gibi) Jakarta Bean Validation'da kalır.
+Muster, veritabanına ve işlemin bağlamına ihtiyaç duyan kurallar içindir.
+
+== Durum
+
+Muster geliştirmenin erken aşamasındadır ve API'si 1.0.0'a kadar değişecektir.
+En son sürüm: {muster-version}; core'u ve Spring Boot starter'ı içerir.
+Bundan sonra neyin geleceğini https://github.com/mryakar/muster/blob/main/ROADMAP.md[yol haritası] (İngilizce) anlatır.
+
+[#_installation]
+== Kurulum
+
+Muster, Maven Central'dadır.
+Muster modüllerinin sürümlerini birbiriyle uyumlu tutan BOM'u içe aktarın; ardından Spring Boot starter'ı ya da Spring olmadan yalnızca core'u, sürüm yazmadan ekleyin.
+
+Gradle:
+
+[source,kotlin,subs="+attributes"]
+----
+dependencies {
+  implementation(platform("me.yakar.muster:muster-bom:{muster-version}"))
+  implementation("me.yakar.muster:muster-spring-boot-starter") // ya da Spring olmadan muster-core
+}
+----
+
+Maven:
+
+[source,xml,subs="+attributes"]
+----
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>me.yakar.muster</groupId>
+      <artifactId>muster-bom</artifactId>
+      <version>{muster-version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <dependency>
+    <groupId>me.yakar.muster</groupId>
+    <artifactId>muster-spring-boot-starter</artifactId> <!-- ya da Spring olmadan muster-core -->
+  </dependency>
+</dependencies>
+----
+
+Muster, Java 21 ya da daha yenisini; starter ise Spring Boot 4.0.9 ya da daha yenisini gerektirir.
+Core, `me.yakar.muster` adlı Java modülüdür; Maven ya da Gradle olmadan kullanıldığında derleme için `org.jspecify:jspecify` de gerekir.
+Sürümler imzalıdır; nasıl doğrulanacaklarını https://github.com/mryakar/muster/blob/main/SECURITY.md#verifying-a-release[SECURITY.md] (İngilizce) anlatır.
+
+== Nereye gidilir
+
+* xref:start/learning-path.adoc[Öğrenme yolu], ilk kuraldan production'a kadar her kılavuzu okunacağı sırayla listeler.
+* xref:spring/getting-started.adoc[Spring Boot starter kılavuzu], Muster'ı bir Spring Boot uygulamasında ilk kuraldan production'da kontrolleri gözlemlemeye kadar kullanır.
+* xref:core/rules.adoc[Spring'siz kılavuz], Muster'ı düz bir Java uygulamasında ilk kuraldan reddedilen bir çağrıya verilen cevaba kadar kullanır.
+* https://github.com/mryakar/muster[Depo], kodu, issue'ları ve örnek uygulamaları barındırır.
+* https://github.com/mryakar/muster/blob/main/CHANGELOG.md[Değişiklik günlüğü] (İngilizce), her sürümün neyi değiştirdiğini anlatır.
+* https://github.com/mryakar/muster/blob/main/docs/benchmarks/README.md[Benchmark'lar] (İngilizce), Muster'ın bir çağrıya ve bir uygulamanın açılışına ne kadar yük eklediğini ve bir değişikliğin uyması gereken bütçeyi verir.

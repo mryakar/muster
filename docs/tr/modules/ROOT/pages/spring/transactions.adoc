@@ -1,0 +1,53 @@
+= Transaction'lar ve doğrulama
+:description: Bir Spring Boot servis metodunun kurallarının, proxy'sinin diğer advice'ları arasında nerede çalıştığı: transaction'ın içinde, metot doğrulamasından sonra.
+
+Bir servis bean'inin proxy'si, metodun etrafında o metodun advice'larını çalıştırır: transaction, metot doğrulaması, metot güvenliği (method security), önbellekleme (caching).
+Starter, kuralları bunların arasında ait oldukları yere yerleştirir.
+
+== Transaction'ın içinde
+
+Bir `@Transactional` metodun kuralları o metodun transaction'ı içinde çalışır; böylece kural, metodun ardından değiştireceği veriyi okur ve transaction'ları birbirinden yalıtan (isolation) bir veritabanı, başka bir çağrının yarım kalmış değişikliklerini kuraldan uzak tutar.
+Spring bu iki advice'ı rastgele bir sırayla dizerdi; bu yüzden starter, uygulama başlarken transaction advice'ını kendi advice'ının önüne alır.
+Transaction advice'ına `@EnableTransactionManagement(order = ...)` ile kendi sırasını veren bir uygulama bu sırayı korur; `muster.transaction.reorder-advisor=false` ise sıralamayı Spring'e bırakır.
+Muster, uygulama başladıktan sonra sırayı bir kez kontrol eder ve transaction kuralların içinde çalışacaksa uygulamayı durdurur; AspectJ ile örülen (woven) transaction'lar da uygulamayı durdurur, çünkü bir proxy'nin etrafında çalışamazlar.
+
+Bir kural okuduğu veriyi kilitlemez; bu yüzden aynı anda Atlas adında bir araç oluşturmaya çalışan iki çağrının ikisi de kuraldan geçebilir.
+Son sözü, bir unique kısıtı (unique constraint) ile veritabanı söyler:
+
+[source,sql]
+----
+include::example$spring-boot/resources/schema.sql[tag=schema,indent=0]
+----
+
+Olağan durumu kural, anlaşılır bir ihlalle; nadir görülen yarış durumunu (race condition) ise kısıt, bir hatayla cevaplar.
+
+== Metot doğrulamasından sonra
+
+Bir komutun kısıtları (constraint), örneğin adın boş bırakılamaması, komutun kurallarından önce ve transaction'ı başlamadan önce kontrol edilir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/CreateVehicle.java[tag=command,indent=0]
+----
+
+Servis, xref:spring/getting-started.adoc#_a_command_and_a_service[Başlarken] sayfasında görüldüğü gibi `@Validated` ile işaretlidir ve metotları `@Valid` işaretli komutlar alır.
+Plakası boş olan bir komut, adı da başka bir araçta kullanılıyor olsa bile, hiçbir kural çalışmadan reddedilir ve onun için hiçbir transaction açılmaz.
+Spring metot doğrulamasını bir proxy'nin zaten sahip olduğu advice'lardan sonra ekler; bu yüzden starter onu, yalnızca kural kontrol eden proxy'lerde, kuralların önüne alır; metot güvenliği ve uygulamanın diğer advice'ları Spring'in sırasını korur.
+`muster.validation.reorder-advisor=false` ayarıyla kurallar kısıtlardan önce çalışır.
+
+Bir servis metodunda bir kısıt sağlanmadığında `ConstraintViolationException` fırlatılır; örnek uygulama bunu 400 ile cevaplar:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/ConstraintViolations.java[tag=advice,indent=0]
+----
+
+[#_other_advice]
+== Diğer advice'lar
+
+Diğer advice'lar Spring'in sırasıyla çalışır ve bazıları kuralların ne zaman çalışacağını, hatta çalışıp çalışmayacağını değiştirir:
+
+* Cevabını önbellekte bulan bir `@Cacheable` metot çalışmaz ve hiçbir kuralı kontrol etmez.
+* Bir `@Async` metot kurallarını, onu çalıştıran thread üzerinde kontrol eder; bu yüzden bir ihlal, çoktan geri dönmüş olan çağırana ulaşmaz.
+Kurallar da çağıranı göremez ve JVM'in varsayılan yerel ayarını (locale) görür, çünkü ikisi de isteğin (request) thread'ine aittir.
+* Bean'in bir metodundan diğerine bean üzerinden yapılan bir çağrı ikisinin de kurallarını kontrol eder; `this` üzerinden yapılan bir çağrı ise hiçbirini kontrol etmez: xref:spring/self-invocation.adoc[] bunu anlatır.

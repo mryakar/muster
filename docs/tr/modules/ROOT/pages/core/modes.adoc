@@ -1,0 +1,43 @@
+= Kipler ve kuralları kapatmak
+:description: Bir kontrolün sorun bulan ilk kuralda mı durduğu yoksa bütün kuralları mı çalıştırdığı ve bir uygulamanın kodunu değiştirmeden kuralları nasıl kapattığı.
+include::partial$javadoc.adoc[]
+
+== İlk hatada durma (fail-fast) ve hepsini toplama (collect-all)
+
+Atlas adında ve plakası plakaya hiç benzemeyen bir araç oluşturma komutu iki kuralı çiğner.
+Çağıranın bunlardan kaçını duyacağı, kontrolün kipine (mode) bağlıdır:
+
+* Varsayılan kip olan ilk hatada durma kipinde kontrol, sorun bulan ilk kuralda durur.
+Ondan sonraki kurallar hiç çalışmaz; böylece onların sorguları da yapılmaz.
+* Hepsini toplama kipinde uygulanan her kural çalışır ve çağıran bütün sorunları tek seferde duyar; her yanlış alanı işaretleyen bir form da tam olarak bunu ister.
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=collect-all,indent=0]
+----
+
+`withMode`, çağrıldığı zinciri olduğu gibi bırakır ve hepsini toplayan ikinci bir zincir döndürür.
+link:{javadoc-core}/Muster.html[`Muster`]'ın builder'ı her kontrolün kipini `mode` ile belirler.
+Bir bağlamanın ise kendi builder'ında belirlenen kendi kipi vardır; xref:core/checking.adoc#_rules_of_a_type[Bir türün kuralları] bölümündeki yeniden adlandırma bağlamasında olduğu gibi.
+Bir kural hedefinin türüne göre yapılan tek bir kontrolde de kip, `check`'e ikinci argüman olarak verilebilir.
+
+Uygulanmadığı için ya da gerektirdiği bir kural takıldığı için atlanan bir kural, ilk hatada durma kipindeki bir kontrolü bitirmez: sıradaki kural çalışır.
+İlk hatada durma kipindeki bir kontrolün hangi ihlali bildireceği kuralların sırasına bağlıdır; bu sırayı xref:core/checking.adoc#_the_order_of_rules[Girdileri kontrol etmek] anlatır.
+Koleksiyonlar bir adım daha ekler ve bu adım xref:core/collections.adoc[] sayfasında anlatılır: elemanları tek tek kontrol eden bir kural, reddettiği ilk elemanda durur.
+
+== Kuralları kapatmak
+
+Bir kural, kodda hiçbir değişiklik yapmadan kapatılabilir; örneğin kontrol ettiği araçların verisi taşınırken:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=disable,indent=0]
+----
+
+Kimlikler, uygulama yapılandırmasını nerede tutuyorsa oradan gelir; örneğin bir ortam değişkeninden.
+Bu durumda plaka hiç kontrol edilmez ve Muster, kural unutulmasın diye, uygulama başlarken kuralın kapalı olduğu konusunda uyarır.
+
+Muster kuralı yine de oluşturur ve kurulumunu kontrol eder; böylece bir ay kapalı kalmış bir kural, yeniden açıldığı gün kurulum hatasıyla karşınıza çıkmaz.
+Hiçbir kurala ait olmayan bir kimlik verilirse `Muster` kurulamaz.
+Gerektirdiği bir kural kapalıyken açık kalan bir kural varsa `Muster` yine kurulamaz: o kurala bağlı kuralları da kapatın.
+Kuralların kümesi `Muster` kurulduğunda sabitlenir; uygulama çalışırken bir kuralı açıp kapatmak için yeni bir `Muster` kurun.

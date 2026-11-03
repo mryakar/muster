@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="{{#if (eq page.component.name 'muster-tr')}}tr{{else}}en{{/if}}">
+  <head>
+{{> head defaultPageTitle='Untitled'}}
+  </head>
+  <body class="article{{#with (or page.attributes.role page.role)}} {{{this}}}{{/with}}">
+{{> header}}
+{{> body}}
+{{> footer}}
+  </body>
+</html>

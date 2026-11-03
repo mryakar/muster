@@ -1,0 +1,54 @@
+= İhlalleri cevaplamak
+:description: Spring Boot starter'ının, kuralların reddettiği bir çağrıyı problem details ile nasıl cevapladığı; mesajların uygulamanın message source'undan, isteğin dilinde nasıl alındığı.
+include::partial$javadoc.adoc[]
+
+== Problem details
+
+Bir Spring MVC uygulamasında kuralların reddettiği bir çağrı, RFC 9457'nin tanımladığı biçimde problem details ile cevaplanır.
+Çağıranın yeniden adlandıramayacağı bir araç için cevap:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/not-owner.json[]
+----
+
+Durum kodu (status) kategoriye göre belirlenir: `FORBIDDEN` için 403, `NOT_FOUND` için 404, `CONFLICT` için 409, `INVALID_STATE` için ya da kategori yoksa 422.
+Farklı kategorilerden ihlaller, `muster.problem-details.mixed-status` ayarındaki durum kodunu alır; bu ayar 400 ile 499 arasında bir değer alır ve belirtilmezse 422'dir.
+
+Her ihlal kendi kodunu, mesajını, varsa hedefini ve kategorisini, bir de istemci argümanlarını taşır.
+Cevapta kural kimliği, iç argüman ve önem derecesi (severity) yoktur: aracın sahibi uygulamanın içinde kalır; uygulama her ihlali bu üçüyle birlikte `DEBUG` düzeyinde loglar.
+Problem details bir `type` taşımaz; bu, `about:blank` anlamına gelir.
+İstemci argümanlarını uygulamanın JSON kütüphanesi yazar; bu yüzden bir kural istemci argümanı olarak string ve sayı gibi değerler verir, asla entity vermez.
+
+[#_messages]
+== Mesajlar
+
+Mesaj, uygulamanın message source'undan (mesaj kaynağı), anahtar olarak kod kullanılarak, isteğin yerel ayarında (locale) alınır:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=messages,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=messages,indent=0]
+----
+
+`+{name}+`, aynı adı taşıyan istemci argümanının değerini alır; mesajı olmayan bir kod, kodun kendisi olarak görünür.
+Spring Boot'un message source'u, mesajı bulamadığında JVM'in varsayılan yerel ayarına geri döner; bu yüzden varsayılan yerel ayarı Türkçe olan bir sunucu, Fransızca bir istemciye Türkçe cevap verirdi.
+Örnek uygulama ise böyle bir istemciye `messages.properties` dosyasından cevap verir:
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=messages,indent=0]
+----
+
+`spring.messages.always-use-message-format=true` uygulamayı durdurur, çünkü `MessageFormat`, `+{name}+` biçimindeki yer tutucuları reddeder.
+Mesajları başka bir yerden almak için uygulamanın tanımladığı bir link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean'i, starter'ınkinin yerini alır.
+
+== İhlalleri kendiniz cevaplamak
+
+Spring Boot'un kendi problem details handler'ı gibi, starter'ın handler'ının sırası (order) da 0'dır; bu yüzden her `Exception`'ı ele alan ve sırası belirtilmemiş bir controller advice, ihlalleri sunucu hatasına çevirmez.
+Bir `@ExceptionHandler` içinde link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] adını veren bir controller advice, yalnızca bazı controller'lara uygulansa bile, her controller için starter'ın handler'ının yerini alır; mesajları çözmek için starter'ın `MessageResolver` bean'ini enjekte edebilir.
+Controller'ın kendi içindeki bir handler ise her durumda önce gelir.

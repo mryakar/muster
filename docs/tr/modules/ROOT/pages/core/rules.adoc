@@ -1,0 +1,86 @@
+= Kural yazmak
+:description: Muster'da bir iş kuralı: kimliği olan, tek türden bir girdiyi kontrol eden ve o girdide neyin yanlış olduğunu ihlaller olarak bildiren bir sınıf.
+include::partial$javadoc.adoc[]
+
+İş kuralı (business rule), tek türden bir girdiyi kontrol eden ve o girdide neyin yanlış olduğunu bildiren, kendi başına bir sınıftır.
+Bu kılavuz, bir filonun araçlarını oluşturan ve yeniden adlandıran, Spring kullanmayan bir uygulamayı adım adım izler.
+Her örnek bu uygulamanın bir parçasıdır; uygulama Muster'ın her derlemesinde çalışır ve Muster kılavuzda yazıldığı gibi cevap vermezse derleme başarısız olur.
+
+== Bir kural
+
+Filoda aynı ada sahip iki araç olmamalıdır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=rule,indent=0]
+----
+
+Kural `VehicleFields`'ı kontrol eder.
+Bu türü hem araç oluşturan komut hem de aracı yeniden adlandıran komut uygular; böylece tek bir kural ikisini birden korur.
+Muster, kuralın hangi türü kontrol ettiğini link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`] ifadesinden okur; bu yüzden bir kural lambda değil, adı olan bir sınıftır.
+
+Uygulamanın geri kalanı kurala `vehicle.name-unique` diye başvurur: istemci bunu ihlalin kodu olarak alır, yapılandırma kuralı kapatmak için bu adı kullanır, loglar da bunu yazdırır.
+Sınıfı başka bir pakete taşımak ya da yeniden adlandırmak bunların hiçbirini değiştirmez; bu yüzden kimliği, bir veritabanı sütununun adını seçer gibi özenle seçin.
+
+Kural, araçları constructor'ında alır ve her çağrıda onlara sorar.
+Kontrol yapan her thread'den gelen her çağrıya aynı tek nesne hizmet eder.
+Bu yüzden kural ve ona verilenler thread-safe (birden çok thread'den güvenle kullanılabilir) olmalı, bir çağrıya ait hiçbir şey kuralın alanlarında kalmamalıdır.
+
+`check`, link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`] ile ya da ihlalleri taşıyan başarısız bir sonuçla cevap verir.
+Çağrıyı reddetmek Muster'ın işidir; Muster bunu, çalışması gereken her kural çalıştıktan sonra yapar; xref:core/errors.adoc[] bunu anlatır.
+Araçlar hiç okunamıyorsa, repository'nin fırlattığı exception olduğu gibi yukarı iletilir: bu, ad hakkında bir cevap değil, uygulamanın bir arızasıdır.
+
+== İhlaller
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=violation,indent=0]
+----
+
+İhlal (violation), kuralın bağlamından (context) oluşturulur; bağlam ihlale kuralın kimliğini basar.
+İhlal hiçbir metin tutmaz: mesajı, ihlalin taşıdıklarından yola çıkarak ve çağrıyı yapanın dilinde, uygulamanın dış katmanı (istemciye cevap veren kod) yazar.
+İhlalin taşıdıkları şunlardır:
+
+* Kod (code): burada kuralın kimliği.
+İki farklı nedenle takılabilen bir kural, `ctx.violation(code)` ile her nedene kendi kodunu verir.
+* İstemci argümanları (client arguments): mesajın sözünü ettiği ve istemcinin aldığı değerler, örneğin alınmış olan ad.
+* İç argümanlar (internal arguments): yalnızca uygulamanın kendi loglarında ve kodunda gördüğü değerler.
+* Hedef (target): burada `name`, yani komutta istemcinin düzeltmesi gereken alan.
+* Kategori (category): burada `CONFLICT`, yani sorunun türü; HTTP'ye cevap veren bir dış katman durum kodunu buna göre seçer.
+* Önem derecesi (severity): bugün her ihlal için `ERROR`'dur; her ihlal çağrıyı reddeder.
+
+İç argümanlar, kuralın bilmesi gereken şeyi çağırandan (caller) saklar:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+Aracı yeniden adlandırmasına izin verilmeyen bir kullanıcıya bu söylenir, ama aracın kime ait olduğu asla söylenmez; uygulamanın loglarında ise sahibin kim olduğu yine de bulunur.
+Hiçbir kategori uymuyorsa kural kategoriyi boş bırakır; her kategoriye nasıl cevap verildiğini xref:core/errors.adoc[] gösterir.
+
+== Uygulanmayan kurallar
+
+Bazı kurallar yalnızca bazı çağrılar için anlamlıdır ve bunu, girdi okunmadan önce çağrının bağlamı söyler.
+xref:core/context.adoc#locale[Plaka biçimi] yalnızca kuralın biçimi bildiği yerlerde kontrol edilir.
+Uygulanmayan bir kural atlanır (skipped); bu ne geçmek ne de takılmaktır; o kuralı gerektiren kurallar da atlanır.
+
+[#_testing_a_rule]
+== Kuralı test etmek
+
+Kural sıradan bir nesnedir; bu yüzden bir test, kuralı ihtiyaç duyduklarıyla oluşturur ve bir link:{javadoc-core}/Muster.html[`Muster`] olmadan `check`'i çağırır:
+
+[source,java]
+----
+include::example$plain-java-test/java/example/plain/VehicleNameUniqueTest.java[tag=test,indent=0]
+----
+
+link:{javadoc-core}/rule/RuleContext.html[`RuleContext.forRule`], kural için çağıranı olmayan ve kök yerel ayarı (root locale) kullanan bir bağlam oluşturur; böylece test, üzerinde çalıştığı makinenin diline bağlı olmaz.
+Çağırana ya da yerel ayara ihtiyaç duyan bir test kendi bağlamını kurar:
+
+[source,java]
+----
+include::example$plain-java-test/java/example/plain/VehicleOwnedByCallerTest.java[tag=test-caller,indent=0]
+----
+
+Bütün bir koleksiyonu tek seferde kontrol eden bir kuralın nasıl test edildiğini xref:core/collections.adoc#testing[Koleksiyonu kontrol etmek] gösterir.

@@ -1,0 +1,56 @@
+= Muster nedir
+:description: Muster'ın çözdüğü sorun, sade bir dille: bir servis metodunu okunmaz hâle getiren kontroller, metottan önce çalışan küçük kural sınıflarına taşınır.
+include::partial$javadoc.adoc[]
+
+Bu sayfayı okumak için Muster hakkında hiçbir şey bilmeniz gerekmez.
+Muster'ın hangi sorunu çözdüğünü ve ne zaman kullanmamanız gerektiğini anlatır.
+
+== Sorun
+
+Çoğu uygulamada veriyi değiştiren metotlar vardır: bir kullanıcı oluşturmak, bir aracın adını değiştirmek, bir sipariş vermek.
+Böyle bir metodun işini yapabilmesi için önce birkaç şeyin doğru olması gerekir:
+
+* Kullanıcı adı henüz alınmamıştır.
+* Araç vardır ve adını değiştirmek isteyen kişiye aittir.
+* Müşteri bu ay limitinden fazla sipariş vermemiştir.
+
+Bunlar *iş kurallarıdır* (business rules): programlama dilinden değil, işin kendisinden gelirler ve çoğunu cevaplamak için veritabanı gerekir.
+
+Bir kütüphane olmadan her metot, asıl işi yapan satırdan önce bu kontrollerle, art arda dizilmiş `if`'lerle başlar.
+Tek bir metot için bu işe yarar.
+Bir yıl sonra aynı kontrol üç metoda kopyalanmış, dördüncüsünde unutulmuştur ve bir metodun gerçekte ne yaptığını kimse bir bakışta göremez.
+
+== Muster ne yapar
+
+Muster her kontrolü, *kural* (rule) adı verilen kendi sınıfına taşır.
+Bir kural tek türden bir girdiyi kontrol eder ve ya "sorun yok" ya da "bu yanlış, nedeni de şu" der.
+
+Kurallarınızı bir kez kaydedersiniz.
+Sonra, bir metot işini yapmadan önce Muster o metodun girdisine ait kuralları çalıştırır:
+
+. Her kural "sorun yok" derse metot çalışır.
+. Bir kural bir sorun bulursa metot çalışmaz; çağırana da hangi kuralın takıldığını, hangi alanın düzeltilmesi gerektiğini ve bir mesajın ihtiyaç duyduğu değerleri söyleyen bir cevap döner.
+
+Spring Boot starter ile Muster'ı kendiniz çağırmanız bile gerekmez: bir `@Service` metodu kurallarını ilk satırından önce, kendi transaction'ının içinde çalıştırır; reddedilen bir çağrı da istemciye, istemcinin dilinde anlaşılır bir HTTP cevabı olarak ulaşır.
+
+== Ne kazanırsınız
+
+* *Kısa servis metotları.* Bir metot yalnızca işlemin ne yaptığını içerir; çalışabilmesi için önceden neyin doğru olması gerektiğine dair hiçbir şey içermez.
+* *Her kural için tek bir yer.* Bir kural bir kez yazılır ve kendi girdisini alan her metodu kontrol eder.
+* *Tek başına test edilebilen kurallar.* Bir kural sıradan bir nesnedir: oluşturun, çağırın, cevaba bakın.
+* *İstemcinin anladığı cevaplar.* Her ihlal bir kodu, ilgili olduğu alanı ve bir mesajın ihtiyaç duyduğu değerleri taşır; mesajın kendisi çağıranın dilinde, uygulamanın dış katmanında (istemciye cevap veren kodda) yazılır.
+* *Başlangıçta yakalanan hatalar.* Aynı kimliğe sahip iki kural ya da kimsenin kaydetmediği bir kuralı gerektiren bir kural, uygulamayı onlarla karşılaşan ilk çağrıda değil, uygulama başlarken durdurur.
+
+== Muster ne zaman kullanılmaz
+
+* *Tek bir alanın biçimine dair kontroller*, örneğin "boş olamaz", "geçerli bir e-posta" ya da "negatif olamaz", Jakarta Bean Validation'a aittir (`@NotBlank`, `@Email`, …).
+Muster onunla yan yana çalışır: Spring ile önce doğrulama (validation), sonra kurallar çalışır.
+* *Veriyi değiştiren kurallar.* Bir kural yalnızca bakar; işi metot yapar.
+* *Güvenlik.* Bir kullanıcının bir metodu çağırıp çağıramayacağı, güvenlik yapılandırmanızın işidir.
+Bir kural veriye bağlı olanı kontrol eder; örneğin bu aracın çağırana ait olup olmadığını.
+
+== Sırada ne var
+
+* xref:start/concepts.adoc[], bu belgenin kullandığı birkaç kelimeyi her biri için gündelik bir örnekle açıklar.
+* xref:start/quick-start-java.adoc[], ilk kurallarınızı beş dakikada düz Java ile çalıştırır.
+* xref:start/quick-start-spring.adoc[], aynısını bir Spring Boot uygulamasında yapar.

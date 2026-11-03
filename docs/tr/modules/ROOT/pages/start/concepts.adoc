@@ -1,0 +1,111 @@
+= Muster'ın kullandığı kelimeler
+:description: Bu belgedeki her kelime, kural ve ihlalden zincir, bağlama ve kipe kadar, sade bir dille ve gündelik bir örnekle.
+include::partial$javadoc.adoc[]
+
+Muster birkaç fikir üzerine kuruludur ve her birinin bir adı vardır.
+Bu sayfayı bir kez okuyun; başka bir sayfadaki bir kelime anlaşılmadığında buraya geri dönün.
+Sayfa boyunca örnek, yeni kullanıcıların bir kullanıcı adı ve yaşlarıyla üye olduğu bir web sitesidir; xref:start/quick-start-java.adoc[hızlı başlangıçtaki] örnekle aynıdır.
+
+== Girdi
+
+*Girdi* (input), bir çağrının yapmak istediği şeyin veri hâlidir: birinin üye olurken verdiği kullanıcı adı ve yaş.
+Java'da genellikle bir record'dur ve çoğu zaman *komut* (command) diye adlandırılır, örneğin `SignUp(String username, int age)`.
+
+== İş kuralı
+
+Bir *iş kuralı* (business rule), kısaca *kural*, girdinin karşılaması gereken tek bir koşuldur ve gerekçesini iş verir: "yalnızca yetişkinler üye olabilir", "bir kullanıcı adı alınmış olmamalı".
+Muster'da bir kural, link:{javadoc-core}/rule/BusinessRule.html[`BusinessRule`] arayüzünü uygulayan küçük bir sınıftır ve tek bir metodu vardır: girdiye bakıp cevap veren `check`.
+
+Bir kural yalnızca bakar: veriyi asla değiştirmez.
+
+== Kural kimliği
+
+Her kuralın, link:{javadoc-core}/rule/Rule.html[`@Rule`] anotasyonunda sizin seçtiğiniz bir *kimliği* (id) vardır, örneğin `signup.adult`.
+Kimlik, kodun dışındaki her yerde kuralın adıdır: istemcinin aldığı cevapta, bir kuralı kapatan yapılandırmada ve loglarda.
+Onu bir veritabanı sütununun adı kadar dikkatle seçin, çünkü zamanla istemciler ona bağımlı hâle gelebilir.
+
+== Sonuç: geçti ya da takıldı
+
+`check` bir *sonuçla* (result) cevap verir: girdi sorunsuzsa link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`], değilse bir ya da daha fazla ihlal taşıyan başarısız bir sonuç.
+
+== İhlal
+
+Bir *ihlal* (violation), neyin yanlış olduğunu hiçbir metin içermeden söyler.
+Bir memurun doldurduğu form gibi, sabit kutucukları vardır:
+
+* *Kod*: normalde kuralın kimliğidir, örneğin `signup.username-free`.
+* *Hedef*: düzeltilmesi gereken alan, örneğin `username`.
+* *İstemci argümanları*: bir mesajın kullanıcıya gösterebileceği değerler, örneğin alınmış olan kullanıcı adı.
+* *İç argümanlar*: yalnızca uygulamanın kendi loglarında gördüğü değerler, örneğin kullanıcının göremeyeceği bir kaydın kime ait olduğu.
+* *Kategori*: sorunun ne tür bir sorun olduğu, örneğin `CONFLICT` (bir şey zaten var) ya da `NOT_FOUND`; Spring ile cevabın HTTP durum kodunu bu belirler.
+
+== Mesaj
+
+*Mesaj*, bir insanın okuduğu cümledir, örneğin İngilizcede "The username ece is taken", Türkçede "ece kullanıcı adı alınmış".
+Kurallar mesaj yazmaz.
+Uygulamanın dış katmanı, yani istemciye cevap veren kod, mesajı ihlalin kodundan ve istemci argümanlarından, istemcinin dilinde yazar; bunu genellikle her dil için bir properties dosyasından yapar.
+Böylece tek bir kural her dildeki kullanıcıya hizmet eder.
+
+== Muster
+
+link:{javadoc-core}/Muster.html[`Muster`], bütün kurallarınızı tutan nesnedir.
+Onu uygulama başlarken bir kez oluşturursunuz ve uygulamanın her parçası onu paylaşır.
+Spring Boot ile starter onu sizin yerinize oluşturur.
+
+== Kontrol
+
+Bir *kontrol* (check), kuralları bir girdiye karşı çalıştırır.
+Her kural geçerse hiçbir şey olmaz ve kodunuz devam eder.
+Herhangi bir kural takılırsa kontrol, ihlalleri taşıyan link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır; böylece kontrolden sonraki kod hatalı bir girdiyle asla çalışmaz.
+
+== Kural hedefi
+
+Muster bir girdiye hangi kuralların ait olduğunu nereden bilir?
+En basit yol şudur: girdi, boş bir işaret arayüzü olan link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]'ı uygular.
+O zaman `muster.check(input)`, girdi türü bu girdiye uyan her kayıtlı kuralı çalıştırır.
+Sonradan eklenen bir kural, kontrolü yapan kodda hiçbir değişiklik gerekmeden kendiliğinden devreye girer.
+
+== Zincir ve bağlama
+
+Bir metot, "türün bütün kuralları" yerine tam olarak hangi kuralların çalışacağını da söyleyebilir:
+
+* Bir *zincir* (chain), tek bir girdi türü için sabit bir kural listesidir, örneğin "önce plakanın biçimi, sonra adın benzersiz olması".
+* Bir *bağlama* (binding), listelediği kuralları, sonra girdinin türüne ait kuralları çalıştırır; loglar için bir adı ve istenirse kendine ait bir kipi vardır (aşağıya bakın).
+
+Zincirleri ve bağlamaları bir kez oluşturur, her çağrıda yeniden kullanırsınız.
+xref:core/checking.adoc[] ikisini de gösterir.
+
+== Kip: ilk hatada durma ya da hepsini toplama
+
+İki kural takıldığında çağıran kaç tanesini öğrenir?
+
+* *İlk hatada durma* (fail-fast), yani varsayılan kip, takılan ilk kuralda durur: ondan sonraki kurallar hiç çalışmaz, böylece onların veritabanı sorguları da yapılmaz.
+* *Hepsini toplama* (collect-all), her kuralı çalıştırır ve bütün ihlalleri bir kerede bildirir; her yanlış alanı işaretleyen bir formun ihtiyacı budur.
+
+== Sıra ve gerekli kurallar
+
+Kurallar sabit bir sırayla çalışır.
+Bir kural, link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`] ile başka bir kuralı *gerektirebilir*: "aracın kime ait olduğunu kontrol etmeden önce aracın var olduğunu kontrol et".
+Gerekli kural önce çalışır; takılırsa onu gerektiren kural atlanır, böylece o kural hiçbir zaman var olmayan bir araçla uğraşmak zorunda kalmaz.
+
+== Bağlam: çağıran ve yerel ayar
+
+Bir kural, girdinin yanında bir *bağlam* (context) da alır: link:{javadoc-core}/rule/RuleContext.html[`RuleContext`].
+Bağlam, çağrıyı kimin yaptığını (*çağıran*, caller) ve onun dilini ve ülkesini (*yerel ayar*, locale) söyler.
+Bir kural bunları, kimin sorduğuna bağlı mantık için kullanır, örneğin "bir aracın adını yalnızca sahibi değiştirebilir"; ihlallerini de bu bağlamdan oluşturur.
+
+== Koleksiyon kontrolü
+
+`checkAll`, bütün bir girdi listesini tek bir çağrıda kontrol eder, örneğin aynı anda içe aktarılan yüz üyelik.
+Her eleman tek tek, liste de bir bütün olarak kontrol edilir, örneğin "bir seferde en fazla yüz"; ihlaller hangi elemanla ilgili olduklarını `[3].username` biçiminde söyler.
+
+== Dinleyici
+
+Bir *dinleyici* (listener), her kontrol ve her kural çalışırken bundan haberdar edilir; böylece bir uygulama onları loglayabilir, sürelerini ölçebilir ya da sayabilir.
+Spring Boot ile starter bunları, Spring'in metrik kütüphanesi Micrometer'a bildirir.
+
+== Sırada ne var
+
+* xref:start/quick-start-java.adoc[], bu kelimeleri düz Java ile iş başında gösterir.
+* xref:start/quick-start-spring.adoc[], aynısını Spring Boot ile yapar.
+* xref:start/learning-path.adoc[], kılavuzları basitten ileri düzeye doğru listeler.

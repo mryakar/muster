@@ -1,0 +1,42 @@
+= Reddedilen çağrılar
+:description: Kurallar ihlal edildiğinde bir kontrolün ne fırlattığı ve Spring kullanmayan bir uygulamanın buna, örneğin bir HTTP durum koduyla, nasıl cevap verdiği.
+include::partial$javadoc.adoc[]
+
+== Exception
+
+Reddedilen bir çağrı bir link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] ile biter; `check` bu exception'ı, çalışması gereken kurallar çalıştıktan sonra fırlatır.
+İlk hatada durma (fail-fast) kipinde exception, sorun bulan ilk kuralın bulduklarını tutar.
+Hepsini toplama (collect-all) kipinde ise her kuralın bulduklarını, kuralların çalıştığı sırayla tutar.
+
+Reddedilen bir çağrı bir hata (bug) değil, olağan bir sonuçtur; bu yüzden bu exception'ı fırlatmak ucuzdur: stack trace taşımaz.
+Ayrıca argümanların değerlerini kendi mesajının dışında tutar ve mesajında yalnızca kodları sayar; böylece exception'ı loglamak hiçbir bilgiyi sızdırmaz.
+Exception'ı çağrının geldiği yerde yakalayın ve çağırana, exception'ın taşıdığı ihlallerden yola çıkarak cevap verin.
+
+Diğer exception'ların anlamı başkadır:
+
+* Kurulumdaki bir hata, link:{javadoc-core}/Muster.html[`Muster`], bir zincir ya da bir bağlama kurulurken ortaya çıkar; hatayı açıkça söyleyen bir `IllegalArgumentException` ya da `IllegalStateException` fırlatılır.
+* Bir kuraldaki hata kontrolün kendisini durdurur: `null` döndüren bir kural `NullPointerException`'a, başka bir kural için oluşturulmuş bir ihlali bildiren bir kural ise `IllegalStateException`'a yol açar.
+* `null` eleman içeren ya da kurallar sınıfa göre bağlanırken farklı sınıflardan elemanlar içeren bir koleksiyon, `NullPointerException` ya da `IllegalArgumentException` ile başarısız olur.
+* Bir kuralın fırlattığı bir exception, örneğin ulaşılamayan bir veritabanının exception'ı, kontrolden olduğu gibi dışarı çıkar.
+
+== HTTP üzerinden cevap vermek
+
+Bir ihlalin kategorisi, ona hangi durum kodunun uyduğunu söyler; HTTP'ye cevap veren bir dış katman, durum kodunu Spring Boot starter'ın seçtiği şekilde seçer:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Problems.java[tag=status,indent=0]
+----
+
+Yanlış biçimdeki bir plakanın kategorisi yoktur ve ona 422 ile cevap verilir.
+Farklı türden sorunlar yüzünden reddedilen bir çağrıya da, örneğin aynı anda hem alınmış bir ad hem de yanlış bir plaka varsa, 422 ile cevap verilir, çünkü ikisine birden uyan tek bir durum kodu yoktur.
+
+Cevap, her ihlali, çağıranın dilindeki mesajıyla birlikte listeler; mesaj xref:core/messages.adoc[] sayfasında anlatıldığı gibi yazılır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Problems.java[tag=problem,indent=0]
+----
+
+İsteğin handler'ı exception'ı yakalar, durum koduyla cevap verir ve record'ları kendi JSON kütüphanesiyle yazar; starter da aynı alanları problem details içinde gönderir.
+İhlalin kendisi gönderilmez: iç argümanları uygulamaya aittir ve loglar için tasarlanmış `toString` metodu onları da yazdırır.

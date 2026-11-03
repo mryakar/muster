@@ -1,0 +1,47 @@
+= Kontrolleri gözlemlemek
+:description: Spring Boot starter'ının her kontrolü ve kuralı Micrometer Observation ile nasıl gözlemlediği ve actuator uç noktasının her metodun kurallarını nasıl listelediği.
+include::partial$javadoc.adoc[]
+
+== Gözlemler
+
+Uygulamanın bir `ObservationRegistry`'si olduğunda, örneğin Spring Boot actuator kullanan bir uygulamada olduğu gibi, her kontrol Micrometer Observation ile gözlemlenir; uygulamanın zaten topladığı zamanlayıcılar (timer), izler (trace) ya da loglar Muster'ın kontrollerini ve kurallarını da kapsar.
+Örnek uygulama bunları göstermek için metrics uç noktasını dışarı açar:
+
+[source,properties]
+----
+include::example$spring-boot/resources/application.properties[tag=actuator,indent=0]
+----
+
+Her kontrol `muster.check` adında bir gözlem (observation) açar; bu gözlemin `name` etiketi metodu (örneğin `VehicleService.create(CreateVehicle)`), metot yoksa kontrol edilen türü taşır.
+Her kural bir alt gözlem açar: `muster.rule`; bunun `rule` etiketi kural kimliğini taşır.
+İkisi de bittiğinde bir `outcome` etiketi alır: kontrol için `passed`, `failed` ya da `error`; kural için bunlara ek olarak `skipped`.
+Bir hata kendi exception'ını taşır; ihlal ise bir hata değildir.
+
+Her gözlem, çalıştığı süre boyunca kapsam (scope) içinde kalır; böylece bir kuralın çağırdığı şey, uygulama onu gözlemliyorsa, kuralın altında görünür, örneğin uygulamanın gözlemlediği bir repository.
+Hiçbir etiket bir kod, hedef ya da argüman taşımaz; taşısaydı her çağrı kendi başına ayrı bir seri olurdu.
+Adlar ve etiketler sabittir; registry'de `muster.check`'i dışarıda bırakan bir `ObservationPredicate`, kontrolü bütünüyle dışarıda bırakır.
+
+== Actuator uç noktası
+
+`muster` actuator uç noktası her metodun kurallarını listeler; böylece neyin çalıştığı hiçbir zaman tahmine kalmaz.
+Actuator'ın kendi uç noktaları nasıl dışarı açılıyorsa bu uç nokta da öyle açılır (yukarıdaki özellik bunu yapar) ve `/actuator/muster` adresinde cevap verir:
+
+[source,json]
+----
+include::example$spring-boot/resources/responses/actuator-muster.json[]
+----
+
+Uç nokta Muster'ın kipini, yapılandırmanın kapattığı kuralları ve kural kontrol eden her metodu listeler: metodun girdi türünü, kipini, listelediği ve dışarıda bıraktığı kuralları, `ruleIds` içinde de çalışan kuralları, sınıfa göre ayrılmış olarak ve çalıştıkları sırayla.
+Birçok aracı birden oluşturan metot, sınırı listelediği için önce onu çalıştırır; yeniden adlandırma ise `vehicle.exists` kuralını, onu gerektiren `vehicle.owned-by-caller` kuralından önce çalıştırır.
+`types` ve `collections` ise böyle metotların dışındaki kontroller için link:{javadoc-core}/Muster.html[`Muster`] nesnesinin türe göre bağladığı kuralları listeler; örnek uygulama böyle bir kontrol yapmaz.
+
+Uç nokta, Muster'ın hazırladığını okur; kendisi hiçbir şey bağlamaz.
+Final bir girdi türünün (örneğin bir record) ya da kural hedefi olmayan bir türün kuralları en baştan listelenir; diğer kural hedefi sınıflarının kuralları ise o sınıftan bir nesne kontrol edildikten sonra listelenir.
+Henüz kimsenin çağırmadığı lazy bir bean ise listelenmez.
+Uç nokta sınıfların ve kural kimliklerinin adlarını verir, hiçbir girdiyi göstermez ve yalnızca okur.
+
+[[listeners]]
+== Dinleyiciler
+
+Uygulamanın link:{javadoc-core}/spi/CheckListener.html[`CheckListener`] bean'leri de her kontrolü gözlemler; bunu xref:core/listeners.adoc[] anlatır.
+Bu dinleyiciler starter'ın kendi dinleyicisinden önce eklenir; bu yüzden bir kontrolün ya da kuralın başladığını gözlem açılmadan önce, bittiğini de gözlem kapandıktan sonra duyarlar.

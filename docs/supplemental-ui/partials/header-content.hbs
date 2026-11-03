@@ -17,6 +17,11 @@
     </div>
     <div id="topbar-nav" class="navbar-menu">
       <div class="navbar-end">
+        {{#if (eq page.component.name 'muster-tr')}}
+        <a class="navbar-item" href="{{{relativize (other-language page)}}}" hreflang="en" lang="en">English</a>
+        {{else if (eq page.component.name 'muster')}}
+        <a class="navbar-item" href="{{{relativize (other-language page)}}}" hreflang="tr" lang="tr">Türkçe</a>
+        {{/if}}
         <a class="navbar-item" href="https://github.com/mryakar/muster">GitHub</a>
         <a class="navbar-item" href="https://github.com/mryakar/muster/releases">Releases</a>
         <a class="navbar-item" href="https://central.sonatype.com/namespace/me.yakar.muster">Maven Central</a>

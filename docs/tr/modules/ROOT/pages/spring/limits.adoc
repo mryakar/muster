@@ -1,0 +1,15 @@
+= Bilinen sınırlar
+:description: Muster Spring Boot starter'ının henüz yapmadığı ya da göremediği şeyler, tek bir yerde.
+
+* *Native image'lar.* Bir test, uygulamayı native image'ın yaptığı gibi AOT (derleme zamanında işleme) aşamasının ürettiği koddan başlatır: kısıtlar kurallardan önce kontrol edilir, kurallar transaction'ın içinde çalışır, uygulamanın transaction advice'ına verdiği sıra korunur ve transaction advice'ı kuralların içinde çalışacak olan bir uygulama başlamaz.
+Transaction advice'ı, uygulama bu aşamada işlenirken taşınır; bu yüzden `muster.transaction.reorder-advisor`, Spring Boot'un koşullarında (conditions) olduğu gibi, o andaki değeriyle hesaba katılır, açılıştaki değeriyle değil.
+Native image'ın kendisi test edilmez.
+Native image'da, `this` üzerinden çağrıları arayan taramanın okuyacağı class dosyası yoktur; bu yüzden starter açılışta bu çağrıları aramadığını bildiren bir uyarı verir: xref:spring/self-invocation.adoc[] bunu anlatır.
+* *Taramanın görmediği çağrılar.* Reflection üzerinden yapılan, bean'in iç içe (nested) bir sınıfından yapılan ya da Groovy'deki gibi dinamik çağrıya derlenmiş bir çağrı hiçbir kuralı kontrol etmez ve raporlanmaz; bunu xref:spring/self-invocation.adoc[] anlatır.
+* *`@Cacheable` ve `@Async`.* Önbellekten gelen bir cevap hiçbir kuralı kontrol etmez; bir `@Async` metot ise kuralları kendi thread'inde kontrol eder ve orada oluşan bir ihlal çağırana ulaşmaz: xref:spring/transactions.adoc#_other_advice[Diğer advice'lar] bunu anlatır.
+* *İki sınırı (bound) olan eleman türleri.* `T extends A & B` iken `List<T>` gibi bir parametrede, elemanların ilk sınır olan `A` türünden olduğu kabul edilir.
+* *Farklı sınıflardan elemanlar.* Bir çağrıdaki kural hedefleri tek bir sınıftan olmalıdır, çünkü kurallar sınıfa bağlanır; kural hedefi olmayan elemanlarla da karıştırılamazlar.
+Bu iki koşuldan birini bozan bir çağrı `IllegalArgumentException` ile başarısız olur.
+* *Koleksiyonların koleksiyonları.* Elemanları kendileri de koleksiyon olan bir koleksiyonda, `Collection<?>` için yazılmış bir kural her zaman koleksiyonun bütününe ait bir kuraldır.
+* *WebFlux.* Starter çağıranı thread'in güvenlik bağlamından, yerel ayarı ise `LocaleContextHolder`'dan okur; bir WebFlux uygulaması bunları doldurmaz, bu yüzden kuralları çağıranı göremez ve JVM'in varsayılan yerel ayarını görür.
+Problem details yalnızca Spring MVC'de yazılır; bu yüzden bir WebFlux uygulaması exception'ı kendisi cevaplamalıdır, yoksa istemci bir sunucu hatası alır.
