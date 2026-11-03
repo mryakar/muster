@@ -106,7 +106,9 @@ public final class RuleGraph {
       var dependents = new ArrayList<String>();
       for (var rule : byId(rules.values())) {
         if (!disabled.contains(rule.ruleClass())
-            && firstRequired(rule, off.ruleClass()::equals, rules::get) != null) {
+            && firstRequired(
+                    rule, off.ruleClass()::equals, required -> requireNonNull(rules.get(required)))
+                != null) {
           dependents.add("'" + rule.id() + "'");
         }
       }
@@ -178,7 +180,7 @@ public final class RuleGraph {
     }
     path.add(rule);
     for (var required : rule.requires()) {
-      requireNoCycle(rules.get(required), rules, finished, path);
+      requireNoCycle(requireNonNull(rules.get(required)), rules, finished, path);
     }
     path.removeLast();
     finished.add(rule.ruleClass());
@@ -209,10 +211,10 @@ public final class RuleGraph {
     Comparator<Class<?>> requiredFirst =
         Comparator.<Class<?>>comparingInt(
                 ruleClass -> positions.getOrDefault(ruleClass, Integer.MAX_VALUE))
-            .thenComparing(ruleClass -> byClass.get(ruleClass).id());
+            .thenComparing(ruleClass -> requireNonNull(byClass.get(ruleClass)).id());
     var ordered = new LinkedHashMap<Class<?>, RuleDefinition>();
     for (var ruleClass : listed) {
-      addAfterRequired(byClass.get(ruleClass), byClass, requiredFirst, ordered);
+      addAfterRequired(requireNonNull(byClass.get(ruleClass)), byClass, requiredFirst, ordered);
     }
     var rest = byClass.values().stream().filter(rule -> !ordered.containsKey(rule.ruleClass()));
     var all = new ArrayList<>(ordered.values());
@@ -232,7 +234,7 @@ public final class RuleGraph {
     var required = new ArrayList<>(rule.requires());
     required.sort(requiredFirst);
     for (var requiredClass : required) {
-      addAfterRequired(byClass.get(requiredClass), byClass, requiredFirst, ordered);
+      addAfterRequired(requireNonNull(byClass.get(requiredClass)), byClass, requiredFirst, ordered);
     }
     ordered.put(rule.ruleClass(), rule);
   }

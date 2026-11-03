@@ -239,8 +239,8 @@ public final class RuleCatalog {
       return null;
     }
     return RuleGraph.firstRequired(
-        rules.get(ruleClass).definition(),
+        requireNonNull(rules.get(ruleClass)).definition(),
         excluded::contains,
-        required -> rules.get(required).definition());
+        required -> requireNonNull(rules.get(required)).definition());
   }
 }

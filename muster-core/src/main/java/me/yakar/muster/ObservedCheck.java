@@ -15,6 +15,8 @@
  */
 package me.yakar.muster;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Duration;
 import java.util.List;
 import me.yakar.muster.internal.rule.PreparedRule;
@@ -134,7 +136,7 @@ final class ObservedCheck {
 
   private void ruleEnded(Outcome outcome, List<Violation> violations, @Nullable Throwable error) {
     // Closed before the observer is told, so that an exception it throws does not end it again.
-    var ended = rule;
+    var ended = requireNonNull(rule); // only a rule that started ends
     rule = null;
     observer.ruleEnded(new RuleEnd(ended.id(), outcome, took(ruleStart), violations, error));
   }

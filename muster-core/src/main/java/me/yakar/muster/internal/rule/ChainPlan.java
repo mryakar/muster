@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.internal.rule;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
 import java.lang.System.Logger.Level;
@@ -207,7 +208,7 @@ public final class ChainPlan {
                 + " is one; a rule of the whole collection checks a list, so what it requires"
                 + " checks lists or each element");
       }
-      steps.add(new Step(included.get(definition.ruleClass()), requires, whole));
+      steps.add(new Step(requireNonNull(included.get(definition.ruleClass())), requires, whole));
     }
     return List.copyOf(steps);
   }
