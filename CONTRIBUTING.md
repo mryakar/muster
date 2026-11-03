@@ -18,10 +18,11 @@ nullness check needs, and a running Docker daemon for the integration tests.
 | `./gradlew publishToMavenLocal`, then `.github/scripts/run-examples.sh` | Runs the example applications against what the build publishes (see [Releases](#releases)) |
 
 The documentation site is built with [Antora](https://antora.org/) from `docs/`, with Node.js 24:
-in `docs/`, `npm ci` once, then `npm run build`, which writes the site to `docs/build/site`. A
-warning, such as a broken cross reference, fails the build. Every code sample in the documentation
-is included from `muster-examples` through the symbolic links in `docs/modules/ROOT/examples`; on
-Windows, enable symbolic links in Git (`core.symlinks`) before cloning, or the links are checked
+in `docs/`, `npm ci --ignore-scripts` once, since no package needs its install scripts, then
+`npm run build`, which writes the site to `docs/build/site`. A warning, such as a broken cross
+reference, fails the build. Every code sample in the documentation is included from
+`muster-examples` through the symbolic links in `docs/modules/ROOT/examples`; on Windows, enable
+symbolic links in Git (`core.symlinks`) before cloning, or the links are checked
 out as files and the build fails on the first include. A sample is a tagged region of an example,
 `// tag::check-all[]` to `// end::check-all[]`, named after the code it holds rather than the page
 that shows it, and included with `tag=check-all,indent=0`; a tag that is not found fails the build.

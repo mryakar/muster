@@ -10,7 +10,9 @@ on:
     - cron: "17 4 * * 1"
   branch_protection_rule:
 
-permissions: read-all
+# Nothing beyond reading the code by default; the job asks for what it needs.
+permissions:
+  contents: read
 
 jobs:
   analysis:
