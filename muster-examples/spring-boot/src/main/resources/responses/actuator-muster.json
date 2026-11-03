@@ -1,0 +1,52 @@
+{
+  "mode": "FAIL_FAST",
+  "disabled": [],
+  "methods": [
+    {
+      "method": "VehicleService.create(CreateVehicle)",
+      "target": "example.spring.VehicleService",
+      "input": "example.spring.CreateVehicle",
+      "collection": false,
+      "mode": "FAIL_FAST",
+      "rules": [],
+      "excluded": [],
+      "ruleIds": {
+        "example.spring.CreateVehicle": ["vehicle.name-unique", "vehicle.plate-format"]
+      }
+    },
+    {
+      "method": "VehicleService.createAll(List)",
+      "target": "example.spring.VehicleService",
+      "input": "example.spring.CreateVehicle",
+      "collection": true,
+      "mode": "FAIL_FAST",
+      "rules": ["vehicle.batch-limit"],
+      "excluded": [],
+      "ruleIds": {
+        "example.spring.CreateVehicle": [
+          "vehicle.batch-limit",
+          "vehicle.name-unique",
+          "vehicle.plate-format"
+        ]
+      }
+    },
+    {
+      "method": "VehicleService.rename(RenameVehicle)",
+      "target": "example.spring.VehicleService",
+      "input": "example.spring.RenameVehicle",
+      "collection": false,
+      "mode": "COLLECT_ALL",
+      "rules": [],
+      "excluded": [],
+      "ruleIds": {
+        "example.spring.RenameVehicle": [
+          "vehicle.exists",
+          "vehicle.name-unique",
+          "vehicle.owned-by-caller"
+        ]
+      }
+    }
+  ],
+  "types": {},
+  "collections": {}
+}

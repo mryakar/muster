@@ -15,7 +15,10 @@
  */
 package example.spring;
 
-import me.yakar.muster.rule.RuleTarget;
+import jakarta.validation.constraints.NotBlank;
 
-/** The command to create a vehicle, checked by every rule whose input type accepts it. */
-public record CreateVehicle(String name) implements RuleTarget {}
+// tag::command[]
+/** The command to create a vehicle. A blank field is for validation, not for a business rule. */
+public record CreateVehicle(@NotBlank String name, @NotBlank String plate)
+    implements VehicleFields {}
+// end::command[]

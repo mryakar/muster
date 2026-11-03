@@ -1,0 +1,3 @@
+VehicleService.rename: vehicle.exists FAILED
+VehicleService.rename: vehicle.name-unique PASSED
+VehicleService.rename: vehicle.owned-by-caller SKIPPED

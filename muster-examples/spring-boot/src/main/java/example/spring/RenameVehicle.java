@@ -15,11 +15,8 @@
  */
 package example.spring;
 
-import org.springframework.stereotype.Service;
+import jakarta.validation.constraints.NotBlank;
 
-/** A service whose rules bind to its command by type, without a call to Muster. */
-@Service
-public class Vehicles {
-
-  public void create(CreateVehicle command) {}
-}
+/** The command to rename a vehicle. */
+public record RenameVehicle(long vehicleId, @NotBlank String name)
+    implements VehicleFields, ExistingVehicle {}

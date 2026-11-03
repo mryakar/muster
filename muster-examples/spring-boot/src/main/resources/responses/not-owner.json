@@ -1,0 +1,13 @@
+{
+  "title": "Forbidden",
+  "status": 403,
+  "instance": "/vehicles/1/name",
+  "violations": [
+    {
+      "code": "vehicle.owned-by-caller",
+      "message": "Bu aracı yalnız sahibi değiştirebilir",
+      "category": "FORBIDDEN",
+      "args": {}
+    }
+  ]
+}

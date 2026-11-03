@@ -15,22 +15,45 @@
  */
 package example.spring;
 
+import java.util.List;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Creates vehicles over HTTP. */
+/** The vehicles of the fleet over HTTP. It only translates: the service checks the rules. */
 @RestController
+@RequestMapping("/vehicles")
 public class VehicleController {
 
-  private final Vehicles vehicles;
+  private final VehicleService vehicles;
 
-  public VehicleController(Vehicles vehicles) {
+  public VehicleController(VehicleService vehicles) {
     this.vehicles = vehicles;
   }
 
-  @PostMapping("/vehicles")
-  public void create(@RequestBody CreateVehicle command) {
-    vehicles.create(command);
+  @PostMapping
+  public Vehicle create(@RequestBody CreateVehicle command) {
+    return vehicles.create(command);
   }
+
+  @PostMapping("/batch")
+  public List<Vehicle> createAll(@RequestBody List<CreateVehicle> commands) {
+    return vehicles.createAll(commands);
+  }
+
+  @PutMapping("/{id}/name")
+  public void rename(@PathVariable("id") long id, @RequestBody NewName body) {
+    vehicles.rename(new RenameVehicle(id, body.name()));
+  }
+
+  @PostMapping("/{id}/name-after-plate")
+  public void nameAfterPlate(@PathVariable("id") long id) {
+    vehicles.nameAfterPlate(id);
+  }
+
+  /** The body of a rename. */
+  public record NewName(String name) {}
 }
