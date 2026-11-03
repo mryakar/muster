@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- In a native image, which has no class files to read, the starter warns at startup that it does not look for calls through `this`; `muster.self-invocation=off` leaves the warning out.
+
 ### Fixed
 
 - In an application processed ahead of time, the starter no longer overrides an order that the application gives the transaction advice, as with `@EnableTransactionManagement(order = ...)`, when it starts from the generated code.

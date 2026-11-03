@@ -35,4 +35,4 @@ Moving one of the methods to another bean is the other way out.
 
 The scan reads what the Java compiler writes.
 It does not see a call through reflection, a call from a nested class of the bean, or a call that a language such as Groovy compiles to a dynamic call.
-In a native image there are no class files to read, and the scan finds nothing, as xref:spring/limits.adoc[] notes.
+In a native image there are no class files to read: the starter warns at startup that it does not look for such calls, and `muster.self-invocation=off` leaves the warning out.

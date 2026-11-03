@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
+import org.springframework.core.NativeDetector;
 import org.springframework.core.env.Environment;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 
@@ -50,7 +51,12 @@ public final class AdviceConfiguration {
       ObjectProvider<TransactionGuard> transactions,
       Environment environment) {
     return new RulesInterceptor(
-        musterAdviceTable, muster, transactions, Settings.selfInvocation(environment));
+        musterAdviceTable,
+        muster,
+        transactions,
+        Settings.selfInvocation(environment)
+            // Not when GraalVM's tracing agent runs the application on the JVM, with class files.
+            .inNativeImage(NativeDetector.inNativeImage(NativeDetector.Context.RUN)));
   }
 
   // Infrastructure, so that the proxy creator that transaction management registers applies it.

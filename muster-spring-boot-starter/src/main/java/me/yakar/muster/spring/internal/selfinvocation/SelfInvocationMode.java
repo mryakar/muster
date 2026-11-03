@@ -72,6 +72,26 @@ public enum SelfInvocationMode {
     }
   }
 
+  /**
+   * Returns the mode the scan runs in: this one, or {@link #OFF} in a native image, which has no
+   * class files to read. There, a mode other than {@link #OFF} logs a warning that the calls are
+   * not looked for.
+   *
+   * @param nativeImage whether the application runs as a native image
+   * @return the mode to scan in
+   */
+  public SelfInvocationMode inNativeImage(boolean nativeImage) {
+    if (!nativeImage || this == OFF) {
+      return this;
+    }
+    LOGGER.log(
+        WARNING,
+        "In a native image, Muster cannot read class files, so it does not look for methods that"
+            + " call an advised method through this, which checks no rules; set"
+            + " muster.self-invocation=off to leave this warning out");
+    return OFF;
+  }
+
   private static List<SelfInvocation> sorted(List<SelfInvocation> found) {
     return found.stream()
         .sorted(comparing(SelfInvocation::caller).thenComparing(SelfInvocation::callee))
