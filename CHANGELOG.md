@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- Releases carry attestations of their build provenance, which `gh attestation verify` checks: SECURITY.md says how.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added
