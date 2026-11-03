@@ -52,7 +52,7 @@ public class CollectionBenchmark {
   private static final Logger MUSTER_LOGGER = Logger.getLogger("me.yakar.muster");
 
   /** How many elements the collection holds. */
-  @Param({"1", "10", "100"})
+  @Param({"1", "5", "10", "100"})
   public int elements;
 
   private List<Rules.IndexedRule> selected;

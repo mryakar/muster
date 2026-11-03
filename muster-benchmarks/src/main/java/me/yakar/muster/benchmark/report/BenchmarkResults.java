@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -33,10 +34,14 @@ import me.yakar.muster.benchmark.CheckBenchmark;
 import me.yakar.muster.benchmark.CollectionBenchmark;
 import me.yakar.muster.benchmark.ListenerBenchmark;
 import me.yakar.muster.benchmark.StarterBenchmark;
+import me.yakar.muster.benchmark.StartupBenchmark;
 import me.yakar.muster.benchmark.ViolationBenchmark;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
@@ -51,6 +56,9 @@ import tools.jackson.databind.JsonNode;
  * other code than the others, nearly always slower. The published time of a benchmark is therefore
  * the median of its forks' averages; the summary also gives the range and the forks more than 10%
  * from the median.
+ *
+ * <p>Most benchmarks measure the average time of a call, in ns; {@link StartupBenchmark} measures
+ * one start in each fork, in ms, and has a summary of its own.
  */
 final class BenchmarkResults {
 
@@ -65,7 +73,8 @@ final class BenchmarkResults {
           BindingBenchmark.class,
           StarterBenchmark.class,
           ListenerBenchmark.class,
-          CollectionBenchmark.class);
+          CollectionBenchmark.class,
+          StartupBenchmark.class);
 
   private BenchmarkResults() {}
 
@@ -73,14 +82,16 @@ final class BenchmarkResults {
    * One benchmark with one set of parameters, over its forks.
    *
    * @param benchmark the class and method, as in {@code CheckBenchmark.chain}
+   * @param mode how the class measures: the average time of a call, or a single shot
    * @param params the parameters, in the order JMH lists them
-   * @param forks the average time of each fork, in ns
+   * @param forks the average time of each fork, in the time unit of the class
    * @param median the median of all the forks' averages, the published time
    * @param outliers the forks, counted from 1, whose average is more than 10% from the median
    * @param allocated the median of the forks' allocation per call, in bytes
    */
   record Run(
       String benchmark,
+      Mode mode,
       Map<String, String> params,
       List<Double> forks,
       double median,
@@ -106,26 +117,28 @@ final class BenchmarkResults {
 
   /**
    * Reads every run from JMH's results. The results replace the published ones, so they must come
-   * from a full run in the default mode, with as many forks as each benchmark declares.
+   * from a full run in the mode and time unit, and with as many forks, as each benchmark declares.
    */
   static List<Run> read(Path results, JsonNode root) {
     var runs = new ArrayList<Run>();
     for (var node : root) {
       var name = node.get("benchmark").asString();
       var metric = node.get("primaryMetric");
-      if (!node.get("mode").asString().equals("avgt")
-          || !metric.get("scoreUnit").asString().equals("ns/op")) {
+      var benchmarkClass = benchmarkClass(name.substring(0, name.lastIndexOf('.')));
+      var mode = mode(benchmarkClass);
+      var unit = TimeValue.tuToString(benchmarkClass.getAnnotation(OutputTimeUnit.class).value());
+      if (!node.get("mode").asString().equals(mode.shortLabel())
+          || !metric.get("scoreUnit").asString().equals(unit + "/op")) {
         throw new IllegalArgumentException(
-            name + " was not measured as average time in ns/op, as the published results are");
+            name + " was not measured as " + mode.longLabel() + " in " + unit + "/op, as declared");
       }
       var forks = averages(metric.get("rawData"));
-      var benchmarkClass = benchmarkClass(name.substring(0, name.lastIndexOf('.')));
       var declared = benchmarkClass.getAnnotation(Fork.class).value();
       if (forks.size() != declared) {
         throw new IllegalArgumentException(
             results + " has " + forks.size() + " forks of " + name + ", not " + declared);
       }
-      requireDeclared(results, name, node, benchmarkClass);
+      requireDeclared(results, name, node, benchmarkClass, mode);
       var median = median(forks);
       var outliers = new ArrayList<Integer>();
       for (var i = 0; i < forks.size(); i++) {
@@ -147,6 +160,7 @@ final class BenchmarkResults {
       runs.add(
           new Run(
               benchmarkClass.getSimpleName() + name.substring(name.lastIndexOf('.')),
+              mode,
               params,
               forks,
               median,
@@ -157,18 +171,29 @@ final class BenchmarkResults {
     return runs;
   }
 
-  /** Returns the summary that docs/benchmarks links to: one line per benchmark and parameters. */
-  static String csv(List<Run> runs) {
+  /**
+   * Returns a summary that docs/benchmarks links to: one line per benchmark and parameters, of the
+   * runs in one mode. Average times are in ns and allocations in B; single shots, which are starts,
+   * in ms and MB.
+   */
+  static String csv(List<Run> runs, Mode mode) {
+    var singleShot = mode == Mode.SingleShotTime;
+    var time = singleShot ? "ms" : "ns";
     var csv =
         new StringBuilder(
-            "Benchmark,Parameters,Median (ns),Min (ns),Max (ns),Forks over 10% from the median: fork (ns),"
-                + "Allocated (B)\n");
+            format(
+                "Benchmark,Parameters,Median (%1$s),Min (%1$s),Max (%1$s),"
+                    + "Forks over 10%% from the median: fork (%1$s),Allocated (%2$s)\n",
+                time, singleShot ? "MB" : "B"));
     for (var run : runs) {
+      if (run.mode() != mode) {
+        continue;
+      }
       var params = new ArrayList<String>();
       run.params().forEach((name, value) -> params.add(name + "=" + value));
       csv.append(
           format(
-              "%s,%s,%.1f,%.1f,%.1f,%s,%.0f\n",
+              singleShot ? "%s,%s,%.1f,%.1f,%.1f,%s,%.1f\n" : "%s,%s,%.1f,%.1f,%.1f,%s,%.0f\n",
               run.benchmark(),
               String.join(" ", params),
               run.median(),
@@ -177,7 +202,7 @@ final class BenchmarkResults {
               run.outliers().stream()
                   .map(fork -> format("%d (%.1f)", fork, run.forks().get(fork - 1)))
                   .collect(Collectors.joining(" ")),
-              run.allocated()));
+              singleShot ? run.allocated() / 1_000_000 : run.allocated()));
     }
     return csv.toString();
   }
@@ -209,6 +234,16 @@ final class BenchmarkResults {
         : (sorted.get(middle - 1) + sorted.get(middle)) / 2;
   }
 
+  /** Returns how a benchmark class measures; each declares one mode. */
+  private static Mode mode(Class<?> benchmark) {
+    var modes = benchmark.getAnnotation(BenchmarkMode.class).value();
+    if (modes.length != 1) {
+      throw new IllegalStateException(
+          benchmark.getSimpleName() + " declares " + modes.length + " modes, not one");
+    }
+    return modes[0];
+  }
+
   private static Class<?> benchmarkClass(String className) {
     Class<?> benchmark;
     try {
@@ -231,10 +266,10 @@ final class BenchmarkResults {
 
   /**
    * Requires that a benchmark ran with the warm-up, measurement and threads that its class
-   * declares, as a full run in the default mode does.
+   * declares, as a full run in the default mode does. A single shot has no time to declare.
    */
   private static void requireDeclared(
-      Path results, String name, JsonNode node, Class<?> benchmark) {
+      Path results, String name, JsonNode node, Class<?> benchmark, Mode mode) {
     var warmup = benchmark.getAnnotation(Warmup.class);
     var measurement = benchmark.getAnnotation(Measurement.class);
     var threads = benchmark.getAnnotation(Threads.class);
@@ -247,10 +282,10 @@ final class BenchmarkResults {
     var declared =
         Map.of(
             "warmupIterations", String.valueOf(warmup.iterations()),
-            "warmupTime", new TimeValue(warmup.time(), warmup.timeUnit()).toString(),
+            "warmupTime", time(mode, warmup.time(), warmup.timeUnit()),
             "warmupBatchSize", String.valueOf(batchSize(warmup.batchSize())),
             "measurementIterations", String.valueOf(measurement.iterations()),
-            "measurementTime", new TimeValue(measurement.time(), measurement.timeUnit()).toString(),
+            "measurementTime", time(mode, measurement.time(), measurement.timeUnit()),
             "measurementBatchSize", String.valueOf(batchSize(measurement.batchSize())),
             "threads", String.valueOf(declaredThreads));
     for (var setting : new TreeMap<>(declared).entrySet()) {
@@ -268,6 +303,11 @@ final class BenchmarkResults {
                 + setting.getValue());
       }
     }
+  }
+
+  /** Returns the time of an iteration as JMH writes it: none for a single shot. */
+  private static String time(Mode mode, int time, TimeUnit unit) {
+    return mode == Mode.SingleShotTime ? "single-shot" : new TimeValue(time, unit).toString();
   }
 
   /** Returns the batch size that a declared one means: JMH's default, the blank -1, means 1. */
