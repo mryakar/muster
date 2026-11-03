@@ -23,7 +23,17 @@ dependencies {
   implementation(platform(libs.spring.boot.dependencies))
   implementation("me.yakar.muster:muster-spring-boot-starter")
   implementation("org.springframework.boot:spring-boot-starter-webmvc")
+  implementation("org.springframework.boot:spring-boot-starter-jdbc")
+  implementation("org.springframework.boot:spring-boot-starter-validation")
+  implementation("org.springframework.boot:spring-boot-starter-actuator")
+  runtimeOnly("com.h2database:h2")
+  testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+  testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
+  testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+tasks.test { useJUnitPlatform() }
 
 tasks.withType<JavaCompile>().configureEach {
   options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
