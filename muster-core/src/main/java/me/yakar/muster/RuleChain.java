@@ -57,11 +57,21 @@ public final class RuleChain<I> {
   /** The position of no element: the result is of the whole collection, or of a single input. */
   private static final int NO_ELEMENT = -1;
 
+  /** No rule: what a rule that requires none requires. */
+  private static final int[] NO_RULES = new int[0];
+
   /** What a listener is told a check is of: the name of the binding, or of the input type. */
   private final String name;
 
   private final Class<?> inputType;
   private final List<Step> steps;
+
+  /**
+   * Whether a rule of the chain requires the rule at each position, so that a check of a collection
+   * records which elements passed it.
+   */
+  private final boolean[] required;
+
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
   private final CheckMode mode;
@@ -78,6 +88,12 @@ public final class RuleChain<I> {
     this.name = name;
     this.inputType = inputType;
     this.steps = List.copyOf(steps);
+    this.required = new boolean[this.steps.size()];
+    for (var step : this.steps) {
+      for (var index : step.requires()) {
+        this.required[index] = true;
+      }
+    }
     this.caller = caller;
     this.locale = locale;
     this.mode = mode;
@@ -238,16 +254,26 @@ public final class RuleChain<I> {
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     ArrayList<Violation> found = null;
-    // Whether each element passed each rule; a rule skipped for an element did not pass it.
+    // Whether each element passed each rule that a rule requires; a rule skipped for an element did
+    // not pass it. The rules that none requires, as the last rule, record it in one array that
+    // nothing reads.
     var passed = new boolean[steps.size()][];
+    var unread = new boolean[size];
+    // The positions of every element, for the rules that require none, as the first rule. The rules
+    // share it: the context of a rule that checks at once copies it, and the rest only read it.
+    var all = eligible(NO_RULES, passed, size);
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
       var rule = step.rule();
       if (observed != null) {
         observed.ruleStarted(rule);
       }
-      passed[i] = new boolean[size];
-      var eligible = eligible(step.requires(), passed, size);
+      var marks = unread;
+      if (required[i]) {
+        marks = new boolean[size];
+        passed[i] = marks;
+      }
+      var eligible = step.requires().length == 0 ? all : eligible(step.requires(), passed, size);
       // A rule of the whole collection checks it only once every element passed what it requires.
       if (step.whole() ? eligible.length < size : eligible.length == 0) {
         if (observed != null) {
@@ -264,10 +290,10 @@ public final class RuleChain<I> {
       }
       var violations =
           step.whole()
-              ? checkWhole(rule, inputs, ctx, passed[i])
+              ? checkWhole(rule, inputs, ctx, marks)
               : rule.checksAll()
-                  ? checkAtOnce(rule, inputs, ctx, eligible, passed[i])
-                  : checkOneByOne(rule, inputs, ctx, eligible, passed[i], mode);
+                  ? checkAtOnce(rule, inputs, ctx, eligible, marks)
+                  : checkOneByOne(rule, inputs, ctx, eligible, marks, mode);
       if (violations == null) {
         if (observed != null) {
           observed.rulePassed();

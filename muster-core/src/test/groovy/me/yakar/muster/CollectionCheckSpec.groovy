@@ -286,6 +286,55 @@ class CollectionCheckSpec extends EngineSpecification {
     ran == ['task.exists'] * 3 + ['task.assignable'] * 2
   }
 
+  def 'the elements that fail a rule that no rule requires are still checked by the rules after it'() {
+    given:
+    def chain = tasks(new TaskExists(ran), new TaskLocked(ran), new TaskAssignable(ran)).build()
+        .chain(Long, TaskExists, TaskLocked, TaskAssignable)
+
+    when:
+    chain.checkAll([404L, 423L, 409L, 1L])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['task.exists [0]', 'task.locked [1]', 'task.assignable [2]']
+    ran == ['task.exists'] * 4 + ['task.locked'] * 4 + ['task.assignable'] * 3
+  }
+
+  def 'a chain checks collections from many threads at once, each with the elements it was given'() {
+    given:
+    // The rules note each check in a list that the threads share.
+    def shared = Collections.synchronizedList([])
+    def chain = tasks(new TaskExists(shared), new TaskLocked(shared), new TaskAssignable(shared)).build()
+        .chain(Long, TaskExists, TaskLocked, TaskAssignable)
+
+    when:
+    def mismatches = concurrently { n ->
+      def mismatched = []
+      1000.times { i ->
+        // Each thread fails other elements, so that a check that saw another's would differ.
+        def inputs = (0..<((n + i) % 4 + 1)).collect { it == n % 4 ? 409L : it == 0 ? 404L : 1L }
+        def expected = inputs.withIndex().findResults { input, position ->
+          input == 404L ? "task.exists [$position]" as String : null
+        } + inputs.withIndex().findResults { input, position ->
+          input == 409L ? "task.assignable [$position]" as String : null
+        }
+        def found = []
+        try {
+          chain.checkAll(inputs)
+        } catch (BusinessRuleViolationException e) {
+          found = described(e)
+        }
+        if (found != expected) {
+          mismatched << [inputs: inputs, found: found, expected: expected]
+        }
+      }
+      mismatched
+    }
+
+    then:
+    mismatches.every { it.isEmpty() }
+  }
+
   def 'a rule that overrides checkAll gets the whole collection once, and can find conflicts within it'() {
     given:
     def rule = new NamesFree()

@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - The starter requires Spring Boot 4.0.9 or later, which fixes vulnerabilities of Spring Boot 4.0.8's embedded Tomcat.
+- Checking a collection allocates less for each rule that no rule requires: with 20 such rules, a collection of one element costs about one and a half times a check of the element, down from more than twice.
 
 ### Fixed
 
