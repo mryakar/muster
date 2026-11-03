@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Looks up message templates in a family of resource bundles, with the code as the key, and never
@@ -59,7 +60,7 @@ public final class ResourceBundleTemplates implements BiFunction<String, Locale,
     }
   }
 
-  private static String noBase(String detail) {
+  private static String noBase(@Nullable String detail) {
     return "the resource bundles have no base bundle ("
         + detail
         + "); add one without a locale, such as messages.properties, for the locales that have no"
