@@ -10,7 +10,7 @@ antora:
     - require: '@antora/lunr-extension'
 site:
   title: Muster
-  url: https://muster.yakar.me
+  url: https://mryakar.github.io/muster
   start_page: muster::index.adoc
 content:
   sources:
