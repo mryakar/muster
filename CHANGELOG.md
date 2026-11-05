@@ -25,6 +25,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - An application processed ahead of time that sets `muster.mode` or a key under `muster.rules` no longer fails to start from the generated code: the starter took its own `Muster` bean for one that the application defines.
 - A web application processed ahead of time whose controller advice handles `BusinessRuleViolationException` itself no longer fails to start from the generated code.
 - The starter no longer makes each application context in one JVM, as in a test suite, generate new proxy classes for the beans it advises.
+- The error for a rule that a rule of the whole collection requires, but that checks neither each element nor the whole collection, such as a rule of `Iterable` input, gives the true reason; it said that a list of the elements was not of the rule's input type.
 
 ### Security
 

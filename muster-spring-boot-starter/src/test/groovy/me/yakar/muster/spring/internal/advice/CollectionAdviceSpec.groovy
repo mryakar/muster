@@ -163,7 +163,7 @@ class CollectionAdviceSpec extends Specification {
         .withBean(WrongRule)
         .run { context ->
           assert getMostSpecificCause(context.startupFailure).message ==
-          "${NameFree.name} checks ${FleetFields.name}, which neither java.lang.Long nor a list of java.lang.Long is; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements"
+          "${NameFree.name} checks ${FleetFields.name}: it is neither a rule of each java.lang.Long nor a rule of the whole collection; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements"
         }
   }
 
