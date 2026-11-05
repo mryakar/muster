@@ -116,8 +116,8 @@ public final class Muster {
    * @param ruleClasses the registered rules, in the order they should run
    * @param <I> the type of input
    * @return the chain
-   * @throws IllegalArgumentException if a rule is not registered, is listed twice, or does not
-   *     accept {@code inputType}
+   * @throws IllegalArgumentException if a rule is not registered, is listed twice, does not accept
+   *     {@code inputType}, or requires a rule of each element of a collection
    */
   @SafeVarargs
   public final <I> RuleChain<I> chain(

@@ -34,12 +34,13 @@ import java.lang.annotation.Target;
  *
  * <p>The rule runs after the rules it requires, and is skipped if any of them failed or did not
  * apply. A chain includes required rules it does not list. A required rule must accept the input
- * type of the rule that requires it, and rules cannot require each other in a cycle.
+ * type of the rule that requires it, or, for a rule of the whole collection, its elements, and
+ * rules cannot require each other in a cycle.
  *
  * <p>In a check of a collection, a rule of each element requires what it requires element by
- * element. A rule of the whole collection, such as one of {@code List<E>} input, that requires a
- * rule of each element, such as one of {@code Object} input, checks the collection only if every
- * element passed that rule.
+ * element. A rule of the whole collection, such as one of {@code List<E>} input, may require a rule
+ * of each element, such as one of {@code E} input: it checks the collection only if every element
+ * passed that rule, and is checked only as part of a collection.
  *
  * <p>Like {@link Rule}, the annotation is not inherited. Muster rejects a rule class that does not
  * declare it while a supertype does; a class that requires nothing declares

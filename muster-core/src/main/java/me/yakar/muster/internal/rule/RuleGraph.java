@@ -41,8 +41,9 @@ public final class RuleGraph {
 
   /**
    * Checks that every required rule is registered and accepts the input of the rule that requires
-   * it, and the elements too when both check collections, that no rules require each other in a
-   * cycle, and that no enabled rule requires a disabled rule, directly or through other rules.
+   * it, or its elements when that rule checks whole collections, and the elements too when both
+   * check collections, that no rules require each other in a cycle, and that no enabled rule
+   * requires a disabled rule, directly or through other rules.
    *
    * @param rules the registered rules, by class
    * @param disabled the classes of the disabled rules
@@ -59,7 +60,9 @@ public final class RuleGraph {
                   + requiredClass.getTypeName()
                   + ", which is not registered");
         }
-        if (!required.inputType().isAssignableFrom(rule.inputType())) {
+        var elements = wholeElements(rule);
+        if (!required.inputType().isAssignableFrom(rule.inputType())
+            && (elements == null || !required.inputType().isAssignableFrom(elements))) {
           throw new IllegalArgumentException(
               rule.ruleClass().getTypeName()
                   + " requires "
@@ -67,7 +70,8 @@ public final class RuleGraph {
                   + ", which checks "
                   + required.inputType().getTypeName()
                   + ", not "
-                  + rule.inputType().getTypeName());
+                  + rule.inputType().getTypeName()
+                  + (elements == null ? "" : " or its elements, " + elements.getTypeName()));
         }
         var requiredElements = required.elementType();
         // A rule that checks collections is required by rules that check collections only, whose
@@ -90,6 +94,16 @@ public final class RuleGraph {
       requireNoCycle(rule, rules, finished, new ArrayList<>());
     }
     requireDisabledDependents(rules, disabled);
+  }
+
+  /**
+   * Returns the type of the elements of the collections that a rule checks as a whole, whose
+   * elements a rule it requires may check instead, or {@code null} if it checks no such
+   * collections.
+   */
+  private static @Nullable Class<?> wholeElements(RuleDefinition rule) {
+    var elements = rule.elementType();
+    return elements != null && rule.inputType().isAssignableFrom(List.class) ? elements : null;
   }
 
   /**

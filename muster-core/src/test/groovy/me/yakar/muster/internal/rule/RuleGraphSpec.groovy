@@ -195,6 +195,32 @@ class RuleGraphSpec extends Specification {
     noExceptionThrown()
   }
 
+  def 'a rule of whole collections may require a rule of their elements'() {
+    when:
+    validate(byClass(rule(A, 'a', [B], List, Long), rule(B, 'b', [], Long), rule(C, 'c', [D], List, Long), rule(D, 'd', [], Number)))
+
+    then:
+    noExceptionThrown()
+  }
+
+  def 'a rule of whole collections cannot require a rule that accepts neither them nor their elements'() {
+    when:
+    validate(byClass(rule(A, 'a', [B], List, Long), rule(B, 'b', [], String)))
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${A.name} requires ${B.name}, which checks java.lang.String, not java.util.List or its elements, java.lang.Long"
+  }
+
+  def 'only a rule of whole lists may require a rule of their elements'() {
+    when:
+    validate(byClass(rule(A, 'a', [B], Set, Long), rule(B, 'b', [], Long)))
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "${A.name} requires ${B.name}, which checks java.lang.Long, not java.util.Set"
+  }
+
   def 'a required rule may accept a wider input'() {
     when:
     validate(byClass(rule(A, 'task.ready', [B], Long), rule(B, 'task.exists', [], Number)))
