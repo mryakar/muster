@@ -27,12 +27,12 @@ import tools.jackson.databind.json.JsonMapper;
  * of their medians, of calls and of starts, and the {@linkplain CheckCostChart chart} that the
  * README shows.
  */
-public final class ResultsChart {
+public final class PublishResults {
 
   /** The path of the JVM that ran a benchmark, as JMH writes it, up to its file name. */
   private static final Pattern JVM_PATH = Pattern.compile("(\"jvm\"\\s*:\\s*\")[^\"]*\"");
 
-  private ResultsChart() {}
+  private PublishResults() {}
 
   /**
    * Draws the chart and writes the summaries.
@@ -42,7 +42,7 @@ public final class ResultsChart {
    */
   public static void main(String[] args) throws IOException {
     if (args.length != 2) {
-      throw new IllegalArgumentException("usage: ResultsChart <results.json> <directory>");
+      throw new IllegalArgumentException("usage: PublishResults <results.json> <directory>");
     }
     var results = Path.of(args[0]);
     var directory = Path.of(args[1]);
