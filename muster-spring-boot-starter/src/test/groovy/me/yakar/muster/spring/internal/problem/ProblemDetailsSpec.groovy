@@ -57,11 +57,13 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration
 import org.springframework.context.annotation.Bean
+import org.springframework.context.MessageSource
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.FilterType
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Import
+import org.springframework.context.support.DelegatingMessageSource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
@@ -365,6 +367,27 @@ class ProblemDetailsSpec extends Specification {
     runner.withPropertyValues('spring.messages.use-code-as-default-message=true').run {
       assert answer(it, [nameTaken()], ['Accept-Language': 'fr']).body.title == 'Conflict'
     }
+  }
+
+  def 'without messages of the application, the title is the reason phrase'() {
+    expect:
+    // No bundle of that name, so Spring Boot defines no message source.
+    runner.withPropertyValues('spring.messages.basename=me.yakar.muster.spring.missing').run {
+      assert it.getBean(MessageSource) instanceof DelegatingMessageSource
+      assert answer(it, [nameTaken()], ['Accept-Language': 'tr-TR']).body.title == 'Conflict'
+    }
+  }
+
+  def 'a reason phrase in the title is not formatted, even where every message is'() {
+    expect:
+    // The starter allows always-use-message-format only when the application resolves its own messages.
+    runner.withUserConfiguration(OwnResolver).withPropertyValues(
+        'spring.messages.always-use-message-format=true',
+        'muster.problem-details.mixed-status=418').run {
+          def answer = answer(it, [withCategory(Category.CONFLICT), withCategory(null)], ['Accept-Language': 'fr'])
+          assert answer.status == 418
+          assert answer.body.title == "I'm a teapot"
+        }
   }
 
   def 'an application with a message source of its own next to Spring Boot\'s starts, and titles from Spring Boot\'s'() {

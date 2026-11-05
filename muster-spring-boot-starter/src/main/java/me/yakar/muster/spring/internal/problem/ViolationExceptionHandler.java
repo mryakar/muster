@@ -90,8 +90,12 @@ class ViolationExceptionHandler {
         () ->
             "Answering " + problem.getStatus() + " to the business rule violations " + violations);
     var callerLocale = locale.get();
-    // The reason phrase of the status as the default, also where a code is its own default.
-    problem.setTitle(titles.getMessage(TITLE, null, problem.getTitle(), callerLocale));
+    // Without a message, also where a code is its own default, the reason phrase of the status
+    // stays: given as the default, it would be formatted where every message is.
+    var title = titles.getMessage(TITLE, null, null, callerLocale);
+    if (title != null && !title.equals(TITLE)) {
+      problem.setTitle(title);
+    }
     problem.setProperty(
         "violations",
         violations.stream().map(violation -> entry(violation, callerLocale)).toList());
