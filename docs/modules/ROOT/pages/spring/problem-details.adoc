@@ -46,7 +46,20 @@ include::example$spring-boot/resources/application.properties[tag=messages,inden
 `spring.messages.always-use-message-format=true` stops the application, since `MessageFormat` rejects `+{name}+` placeholders.
 A link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean of the application replaces the starter's, for messages from elsewhere.
 
-The title of the problem details is the message `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` of the application's message source in the same locale, also when a `MessageResolver` bean writes the messages of the violations; Spring looks up the titles of its own problem details by codes of the same form. Without such a message, the title is the reason phrase of the status, such as `Conflict`.
+The title of the problem details is the message `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` of the application's message source in the same locale, also when a `MessageResolver` bean writes the messages of the violations; Spring looks up the titles of its own problem details by codes of the same form.
+The example gives this message in both languages:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=title,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=title,indent=0]
+----
+
+Without such a message, the title is the reason phrase of the status, such as `Conflict`.
 
 == Answering violations yourself
 

@@ -92,6 +92,19 @@ include::example$spring-boot/resources/messages.properties[tag=messages]
 include::example$spring-boot/resources/messages_tr.properties[tag=messages]
 ----
 
+Yanıtın başlığı da message source'dan gelir; anahtarı, Spring'in kendi problem detail'lerinin başlıkları için kullandığı anahtardır.
+Bu mesaj yoksa başlık, `Conflict` gibi, durumun reason phrase'idir:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=title,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=title,indent=0]
+----
+
 == Deneyin
 
 Filoda Ilgaz adlı bir araç zaten var ve adlar büyük-küçük harf farkı gözetilmeden karşılaştırılır.

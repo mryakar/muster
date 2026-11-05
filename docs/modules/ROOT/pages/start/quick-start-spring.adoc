@@ -89,6 +89,18 @@ include::example$spring-boot/resources/messages.properties[tag=messages]
 include::example$spring-boot/resources/messages_tr.properties[tag=messages]
 ----
 
+The title of the answer comes from the message source too, keyed as Spring keys the titles of its own problem details; without it, the title is the reason phrase of the status, such as `Conflict`:
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages.properties[tag=title,indent=0]
+----
+
+[source,properties]
+----
+include::example$spring-boot/resources/messages_tr.properties[tag=title,indent=0]
+----
+
 == Try it
 
 The fleet has a vehicle named Ilgaz already, and names are compared whatever their case.
