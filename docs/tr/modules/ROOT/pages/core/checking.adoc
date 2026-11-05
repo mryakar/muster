@@ -43,6 +43,19 @@ Veritabanı olan bir uygulamada kontrol, işlemin transaction'ı içindeki ilk a
 Kural veriyi okur ama kilitlemez; bu yüzden aynı anda Atlas adlı bir araç oluşturan iki çağrının ikisi de kontrolden geçebilir.
 Son güvence veritabanındaki unique kısıtı olarak kalır; olağan durumda istemciye açık bir cevap veren ise kuraldır.
 
+== Spring olmadan transaction
+
+Spring olmadan transaction'ı uygulama kendisi açar ve onu, kuralların ve repository'lerin bulacağı yere, yani çağrının thread'ine koyar; xref:core/context.adoc[] sayfasında çağıranla yaptığı gibi:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Transactions.java[tag=transaction,indent=0]
+----
+
+JDBC ile transaction, auto-commit'i kapalı bir bağlantıdır (connection); veritabanını sorgulayan bir kural da o bağlantı üzerinden okur, böylece transaction'ın kontrolden önce yazdıklarını görür; kontrolden sonraki yazmalar da aynı transaction'ın parçasıdır.
+Geçemeyen bir kontrol, hiçbir şey yazılmadan önce exception fırlatır ve rollback transaction'ı bitirir; `remove` bir havuzun thread'inde geride hiçbir şey bırakmaz, `close` da bağlantıyı geri verir.
+Aynı thread'de ikinci bir transaction, birincisine karıştırılmak yerine reddedilir.
+
 [#_rules_of_a_type]
 == Bir türün kuralları
 
