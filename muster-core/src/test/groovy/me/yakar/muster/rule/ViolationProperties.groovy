@@ -15,7 +15,6 @@
  */
 package me.yakar.muster.rule
 
-import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.Serialization
 import net.jqwik.api.Arbitraries
 import net.jqwik.api.Arbitrary
@@ -25,13 +24,17 @@ import net.jqwik.api.Property
 import net.jqwik.api.Provide
 
 /**
- * Violations, and the exception that carries them, survive Java serialization: equal to the
- * original but without the internal arguments, which serialization drops.
+ * Violations survive Java serialization: equal to the original but without the internal arguments,
+ * which serialization drops.
  */
 class ViolationProperties {
 
   @Provide
   Arbitrary<Map<String, Object>> violations() {
+    violationParts()
+  }
+
+  static Arbitrary<Map<String, Object>> violationParts() {
     def names = Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(6)
     def values = Arbitraries.oneOf(
         Arbitraries.strings().ofMaxLength(10), Arbitraries.integers(), Arbitraries.longs())
@@ -72,14 +75,5 @@ class ViolationProperties {
     assert copy.internalArgs().isEmpty()
     // In the order they were added, which equality of maps does not look at.
     assert copy.clientArgs().entrySet() as List == violation(parts).clientArgs().entrySet() as List
-  }
-
-  @Property
-  void 'the exception comes back with the same violations, in order'(
-      @ForAll('violations') Map<String, Object> first, @ForAll('violations') Map<String, Object> second) {
-    def exception = new BusinessRuleViolationException([violation(first), violation(second)])
-    def copy = Serialization.roundTrip(exception)
-    assert copy.violations() == [violation(first, false), violation(second, false)]
-    assert copy.message == exception.message
   }
 }
