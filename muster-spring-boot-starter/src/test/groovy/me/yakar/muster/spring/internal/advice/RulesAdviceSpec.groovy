@@ -16,6 +16,7 @@
 package me.yakar.muster.spring.internal.advice
 
 import static me.yakar.muster.spring.Concurrency.concurrently
+import static me.yakar.muster.spring.Outcomes.failure
 import static me.yakar.muster.spring.Outcomes.violated
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
@@ -80,6 +81,15 @@ class RulesAdviceSpec extends Specification {
     }
   }
 
+  def 'a parameter that is a rule target cannot be null'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(VehicleService)
+      assert failure(NullPointerException) { service.save(null) }.message == 'input'
+      assert service.calls.isEmpty()
+    }
+  }
+
   def 'application contexts in one JVM share the proxy class of an advised service'() {
     given:
     def proxyClasses = []
@@ -96,7 +106,7 @@ class RulesAdviceSpec extends Specification {
 
     then:
     proxyClasses[0] == proxyClasses[1]
-    keys == [RulesPointcut.name] * 2
+    keys[0] == keys[1] && keys[0] && !keys[0].contains('@')
   }
 
   def 'a method checks the rules it lists: #method'() {

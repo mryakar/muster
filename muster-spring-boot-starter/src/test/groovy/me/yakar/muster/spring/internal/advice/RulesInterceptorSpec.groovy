@@ -50,8 +50,9 @@ class RulesInterceptorSpec extends Specification {
   }
 
   def muster = Muster.builder().build()
+  def table = new AdviceTable()
   def interceptor = new RulesInterceptor(
-  new AdviceTable(),
+  table,
   [getObject: { Object[] args ->
       muster
     }, getIfAvailable: { Object[] args ->
@@ -230,7 +231,6 @@ class RulesInterceptorSpec extends Specification {
 
   def 'a class that fails to prepare fails every time it is noted, and the classes noted after it are prepared'() {
     given:
-    def table = interceptor.@table
     interceptor.afterSingletonsInstantiated()
 
     when:
@@ -272,8 +272,9 @@ class RulesInterceptorSpec extends Specification {
         }
     def logger = Logger.getLogger('me.yakar.muster')
     logger.addHandler(handler)
+    def table = new AdviceTable()
     def warned = new RulesInterceptor(
-        new AdviceTable(),
+        table,
         [getObject: { Object[] args ->
             muster
           }] as ObjectProvider,
@@ -294,7 +295,7 @@ class RulesInterceptorSpec extends Specification {
 
     then:
     noted.get(10, TimeUnit.SECONDS) == null
-    warned.@table.contains(OtherComponent)
+    table.contains(OtherComponent)
 
     cleanup:
     release.countDown()

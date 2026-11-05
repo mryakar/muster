@@ -145,8 +145,10 @@ class HierarchyAdviceSpec extends Specification {
     expect:
     runner.withBean(NotAServiceItself).withBean(StaticSaver).run { context ->
       context.getBean(NotAServiceItself).save(TAKEN)
+      StaticSaver.calls.clear()
       StaticSaver.save(TAKEN)
       assert context.getBean(NotAServiceItself).calls == [TAKEN]
+      assert StaticSaver.calls == [TAKEN]
     }
   }
 }

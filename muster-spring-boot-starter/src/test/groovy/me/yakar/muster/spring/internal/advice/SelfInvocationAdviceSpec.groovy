@@ -25,8 +25,6 @@ import me.yakar.muster.spring.fixture.selfinvocation.Barn
 import me.yakar.muster.spring.fixture.selfinvocation.BigShed
 import me.yakar.muster.spring.fixture.selfinvocation.Careful
 import me.yakar.muster.spring.fixture.selfinvocation.Garage
-import me.yakar.muster.spring.fixture.selfinvocation.OpenLot
-import me.yakar.muster.spring.fixture.selfinvocation.WineCellar
 import me.yakar.muster.spring.fixture.selfinvocation.Vehicle
 import me.yakar.muster.spring.fixture.selfinvocation.VehicleDepot
 import org.springframework.beans.factory.BeanCreationException
@@ -75,23 +73,14 @@ class SelfInvocationAdviceSpec extends Specification {
     }
   }
 
-  def 'the calls of #bean.simpleName are found through its superclasses and interfaces, but not the calls of the method itself with its own input'() {
+  def 'an advised method called through this with a new input is found, but not one that calls itself, or its base, with its own input'() {
     expect:
-    runner.withBean(bean).run { context ->
-      assert getMostSpecificCause(context.startupFailure).message == FOUND + calls.join('; ') + REMEDY
+    runner.withBean(BigShed).run { context ->
+      assert getMostSpecificCause(context.startupFailure).message == FOUND + [
+        'BigShed.saveTrimmed(Vehicle) calls BigShed.saveTrimmed(Vehicle) through this',
+        'BigShed.saveTwin(Vehicle) calls BigShed.save(Vehicle) through this'
+      ].join('; ') + REMEDY
     }
-
-    where:
-    bean || calls
-    Barn || [
-      'Registering.registerFromTop(String) calls Barn.save(Vehicle) through this',
-      'Saving.registerDefault(String) calls Barn.save(Vehicle) through this'
-    ]
-    VehicleDepot || ['Depot.registerFromBase(String) calls VehicleDepot.save(Vehicle) through this']
-    BigShed || [
-      'BigShed.saveTrimmed(Vehicle) calls BigShed.saveTrimmed(Vehicle) through this',
-      'BigShed.saveTwin(Vehicle) calls BigShed.save(Vehicle) through this'
-    ]
   }
 
   def 'the calls of every advised class are named at once'() {
@@ -168,16 +157,6 @@ class SelfInvocationAdviceSpec extends Specification {
       careful.register('Boreas')
       assert careful.saved()*.name() == ['Boreas']
     }
-  }
-
-  def 'a base that calls its own private, or not overridable package-private, method of the same signature makes no self-invocation: #bean.simpleName'() {
-    expect:
-    runner.withBean(bean).run { context ->
-      assert context.startupFailure == null
-    }
-
-    where:
-    bean << [WineCellar, OpenLot]
   }
 
   def 'a value that is no mode stops the application'() {

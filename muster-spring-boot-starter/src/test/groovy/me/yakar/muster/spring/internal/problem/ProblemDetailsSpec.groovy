@@ -66,6 +66,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.ErrorResponse
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.servlet.DispatcherServlet
 import me.yakar.muster.spring.LogCapture
@@ -352,7 +353,7 @@ class ProblemDetailsSpec extends Specification {
 
   def 'the title is the message that Spring names for the exception, in the locale of the caller, or else the reason phrase'() {
     expect:
-    ViolationExceptionHandler.TITLE == 'problemDetail.title.' + BusinessRuleViolationException.name
+    ViolationExceptionHandler.TITLE == ErrorResponse.getDefaultTitleMessageCode(BusinessRuleViolationException)
     runner.run {
       assert answer(it, [nameTaken()], ['Accept-Language': 'tr-TR']).body.title == 'İş kuralı ihlali'
       assert answer(it, [nameTaken()], ['Accept-Language': 'fr']).body.title == 'Conflict'
