@@ -15,6 +15,7 @@ include::example$spring-boot/resources/application.properties[tag=actuator,inden
 Each check opens an observation named `muster.check`, tagged `name` with the method, such as `VehicleService.create(CreateVehicle)`, or else with the type checked.
 Each rule opens a child observation, `muster.rule`, tagged `rule` with the rule id.
 Both get an `outcome` tag when they end: `passed`, `failed` or `error` for the check, and `skipped` as well for a rule.
+In the default mode a check stops at the first violation, so the rules after it are not observed at all, neither as passed nor as skipped; xref:core/modes.adoc[Modes and switches] says which rules run in each mode.
 An error carries its exception; a violation is not an error.
 
 Each observation stays in scope while it runs, so what a rule calls shows up under the rule, if the application observes it, as it can a repository.
