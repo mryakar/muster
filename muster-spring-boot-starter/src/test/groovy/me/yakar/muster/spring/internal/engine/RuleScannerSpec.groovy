@@ -35,15 +35,19 @@ import me.yakar.muster.spring.fixture.other.OtherRule
 import org.springframework.aop.framework.ProxyFactory
 import org.springframework.beans.factory.FactoryBean
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
+import org.springframework.beans.factory.support.DefaultListableBeanFactory
 import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
+import org.springframework.boot.autoconfigure.AutoConfigurationPackages
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+import org.springframework.core.io.DefaultResourceLoader
 import org.springframework.core.io.Resource
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
+import org.springframework.mock.env.MockEnvironment
 import spock.lang.Specification
 
 /** The rule classes in the packages of the application are registered as beans, as components are. */
@@ -280,6 +284,34 @@ class RuleScannerSpec extends Specification {
     [ConditionalPackage]             | [] || []
     [ConditionalPackage]             | ['fixture.rule.enabled=true'] || [OnProperty]
     [ConditionalPackage, Application] | [] || [OnBean, NameUnique, NameShort, NameCapitalized]
+  }
+
+  def 'the rules are scanned unless the start is from ahead-of-time code, which registered them: ahead of time #aheadOfTime'() {
+    given:
+    def beanFactory = new DefaultListableBeanFactory()
+    AutoConfigurationPackages.register(beanFactory, NameShort.package.name)
+    def scanner = new RuleScanner()
+    scanner.environment = new MockEnvironment()
+    scanner.resourceLoader = new DefaultResourceLoader()
+    def aotEnabled = System.setProperty('spring.aot.enabled', aheadOfTime as String)
+
+    when:
+    scanner.postProcessBeanDefinitionRegistry(beanFactory)
+
+    then:
+    beanFactory.getBeanNamesForType(BusinessRule) as Set == expected*.name as Set
+
+    cleanup:
+    if (aotEnabled == null) {
+      System.clearProperty('spring.aot.enabled')
+    } else {
+      System.setProperty('spring.aot.enabled', aotEnabled)
+    }
+
+    where:
+    aheadOfTime || expected
+    true || []
+    false || [NameCapitalized, NameShort, NameUnique]
   }
 
   def 'without application packages nothing is scanned'() {

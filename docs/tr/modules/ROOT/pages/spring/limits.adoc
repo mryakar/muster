@@ -3,6 +3,7 @@
 
 * *Native image'lar.* Bir test, uygulamayı native image'ın yaptığı gibi AOT (derleme zamanında işleme) aşamasının ürettiği koddan başlatır: kısıtlar kurallardan önce kontrol edilir, kurallar transaction'ın içinde çalışır, uygulamanın transaction advice'ına verdiği sıra korunur ve transaction advice'ı kuralların içinde çalışacak olan bir uygulama başlamaz.
 Transaction advice'ı, uygulama bu aşamada işlenirken taşınır; bu yüzden `muster.transaction.reorder-advisor`, Spring Boot'un koşullarında (conditions) olduğu gibi, o andaki değeriyle hesaba katılır, açılıştaki değeriyle değil.
+Kuralların koşulları, `@ConditionalOnProperty` gibi, uygulama işlenirken okunur; üretilen koddan başlarken okunmaz.
 Native image'ın kendisi test edilmez.
 Native image'da, `this` üzerinden çağrıları arayan taramanın okuyacağı class dosyası yoktur; bu yüzden starter açılışta bu çağrıları aramadığını bildiren bir uyarı verir: xref:spring/self-invocation.adoc[] bunu anlatır.
 * *Taramanın görmediği çağrılar.* Reflection üzerinden yapılan, bean'in iç içe (nested) bir sınıfından yapılan ya da Groovy'deki gibi dinamik çağrıya derlenmiş bir çağrı hiçbir kuralı kontrol etmez ve raporlanmaz; bunu xref:spring/self-invocation.adoc[] anlatır.
