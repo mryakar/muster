@@ -1,5 +1,5 @@
 {
-  "title": "Forbidden",
+  "title": "İş kuralı ihlali",
   "status": 403,
   "instance": "/vehicles/1/name",
   "violations": [

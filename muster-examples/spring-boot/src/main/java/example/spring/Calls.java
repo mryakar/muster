@@ -48,8 +48,9 @@ final class Calls {
     expect(post("/vehicles", "ece", TURKISH, vehicle("Ilgaz", "06 ANK 42")), 200);
     expect(post("/vehicles", "ece", TURKISH, vehicle("ilgaz", "06 ANK 43")), 409, "name-taken");
     // A caller whose language has no bundle reads the base bundle.
-    expectMessage(
-        post("/vehicles", "ece", "fr", vehicle("ILGAZ", "06 ANK 44")), "The name ILGAZ is taken");
+    var french = post("/vehicles", "ece", "fr", vehicle("ILGAZ", "06 ANK 44"));
+    expectMessage(french, "The name ILGAZ is taken");
+    expectTitle(french, "Business rule violation");
     // Method validation comes first: a blank plate answers 400, although the name is taken too.
     expect(post("/vehicles", "ece", TURKISH, vehicle("Atlas", "")), 400);
     expectMessage(
@@ -183,6 +184,13 @@ final class Calls {
     if (!expected.equals(JSON.readTree(response.body()))) {
       throw new IllegalStateException(
           "expected the body of " + file + ".json but got " + response.body());
+    }
+  }
+
+  private static void expectTitle(HttpResponse<String> response, String title) {
+    var actual = JSON.readTree(response.body()).path("title");
+    if (!actual.asString().equals(title)) {
+      throw new IllegalStateException("expected the title " + title + " in " + response.body());
     }
   }
 
