@@ -61,7 +61,7 @@ public final class RuleCatalog {
    * @return the rule
    * @throws IllegalArgumentException if the rule is not registered
    */
-  public PreparedRule registered(Class<?> ruleClass) {
+  PreparedRule registered(Class<?> ruleClass) {
     requireNonNull(ruleClass, "ruleClass");
     var rule = rules.get(ruleClass);
     if (rule == null) {
@@ -165,7 +165,7 @@ public final class RuleCatalog {
    * @param ruleClasses the registered rules
    * @return the ids
    */
-  public List<String> ids(Collection<Class<?>> ruleClasses) {
+  List<String> ids(Collection<Class<?>> ruleClasses) {
     return ruleClasses.stream().map(ruleClass -> registered(ruleClass).id()).toList();
   }
 
@@ -193,7 +193,7 @@ public final class RuleCatalog {
     var enabled = new LinkedHashMap<Class<?>, PreparedRule>();
     for (var ruleClass : ruleClasses) {
       if (!disabled.contains(ruleClass)) {
-        enabled.put(ruleClass, rules.get(ruleClass));
+        enabled.put(ruleClass, registered(ruleClass));
       }
     }
     return enabled;
@@ -242,8 +242,8 @@ public final class RuleCatalog {
       return null;
     }
     return RuleGraph.firstRequired(
-        requireNonNull(rules.get(ruleClass)).definition(),
+        registered(ruleClass).definition(),
         excluded::contains,
-        required -> requireNonNull(rules.get(required)).definition());
+        required -> registered(required).definition());
   }
 }

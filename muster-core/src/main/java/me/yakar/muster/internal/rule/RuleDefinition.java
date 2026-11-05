@@ -66,9 +66,19 @@ public record RuleDefinition(
    * @return whether the rule checks such collections
    */
   boolean checksCollectionsOf(Class<?> elementClass) {
-    return elementType != null
-        && inputType.isAssignableFrom(List.class)
-        && elementType.isAssignableFrom(elementClass);
+    var elements = wholeElementType();
+    return elements != null && elements.isAssignableFrom(elementClass);
+  }
+
+  /**
+   * Returns the type of the elements of the collections that the rule checks as a whole, whose
+   * elements a rule it requires may check instead, or {@code null} if it checks no such
+   * collections.
+   *
+   * @return the element type, or {@code null}
+   */
+  @Nullable Class<?> wholeElementType() {
+    return elementType != null && inputType.isAssignableFrom(List.class) ? elementType : null;
   }
 
   /**

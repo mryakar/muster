@@ -60,7 +60,7 @@ public final class RuleGraph {
                   + requiredClass.getTypeName()
                   + ", which is not registered");
         }
-        var elements = wholeElements(rule);
+        var elements = rule.wholeElementType();
         if (!required.inputType().isAssignableFrom(rule.inputType())
             && (elements == null || !required.inputType().isAssignableFrom(elements))) {
           throw new IllegalArgumentException(
@@ -94,16 +94,6 @@ public final class RuleGraph {
       requireNoCycle(rule, rules, finished, new ArrayList<>());
     }
     requireDisabledDependents(rules, disabled);
-  }
-
-  /**
-   * Returns the type of the elements of the collections that a rule checks as a whole, whose
-   * elements a rule it requires may check instead, or {@code null} if it checks no such
-   * collections.
-   */
-  private static @Nullable Class<?> wholeElements(RuleDefinition rule) {
-    var elements = rule.elementType();
-    return elements != null && rule.inputType().isAssignableFrom(List.class) ? elements : null;
   }
 
   /**

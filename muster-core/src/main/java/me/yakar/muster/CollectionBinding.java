@@ -60,7 +60,8 @@ public final class CollectionBinding<E> {
     this.elementType = elementType;
     this.selection = selection;
     this.mode = mode;
-    this.chains = ClassChains.forType(elementType, this::bind);
+    this.chains =
+        ClassChains.forType(elementType, type -> muster.bindCollection(type, selection, mode));
     if (!Modifier.isFinal(elementType.getModifiers())
         && RuleTarget.class.isAssignableFrom(elementType)) {
       // The class of the elements is bound on their first check; planning the declared type now
@@ -127,10 +128,6 @@ public final class CollectionBinding<E> {
         + ", "
         + selection.describe(muster.catalog())
         + "]";
-  }
-
-  private ClassChains.Bound bind(Class<?> type) {
-    return muster.bindCollection(type, selection, mode);
   }
 
   /**
