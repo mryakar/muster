@@ -46,7 +46,6 @@ public class VehicleService {
   }
 
   // end::self[]
-  // tag::create[]
   // tag::service[]
   @Transactional
   public Vehicle create(@Valid CreateVehicle command) {
@@ -54,8 +53,6 @@ public class VehicleService {
   }
 
   // end::service[]
-
-  // end::create[]
   // tag::rename[]
   @Transactional
   @Rules(mode = CheckMode.COLLECT_ALL)
