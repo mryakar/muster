@@ -45,4 +45,17 @@ class ViolationHandlerRemoverSpec extends Specification {
     [advice: new CatchAllAdvice()]     | true
     [:]                                | true
   }
+
+  def 'leaves the registry alone if the handler is no longer there'() {
+    given:
+    def beanFactory = new DefaultListableBeanFactory()
+    beanFactory.registerBeanDefinition('advice', new RootBeanDefinition(NamingAdvice))
+
+    when:
+    new ViolationHandlerRemover().postProcessBeanDefinitionRegistry(beanFactory)
+
+    then:
+    noExceptionThrown()
+    beanFactory.beanDefinitionNames as List == ['advice']
+  }
 }

@@ -45,6 +45,10 @@ final class ViolationHandlerRemover implements BeanDefinitionRegistryPostProcess
 
   @Override
   public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+    // Removed already, as by ahead-of-time processing, whose generated code registers this again.
+    if (!registry.containsBeanDefinition(HANDLER)) {
+      return;
+    }
     BeanFactory beanFactory = (BeanFactory) registry;
     while (beanFactory instanceof ListableBeanFactory listable) {
       for (var name : listable.getBeanDefinitionNames()) {
