@@ -30,9 +30,9 @@ import me.yakar.muster.rule.RuleTarget;
  * elements that are {@link RuleTarget}s, the rules that bind to their class by type, less the
  * excluded ones. Get one from {@link Muster#collectionBinding}.
  *
- * <p>A rule checks the whole collection if its input type is one that a list is, such as {@code
- * List<E>} or {@code Collection<E>}, and its elements accept those of the collection: it gets a
- * copy of the collection as a list, once every element passed the rules it requires, and its
+ * <p>A rule checks the whole collection if its input is a {@code List}, a {@code
+ * SequencedCollection} or a {@code Collection} of elements that accept those of the collection: it
+ * gets a copy of the collection as a list, once every element passed the rules it requires, and its
  * violations name no element. Any other rule checks each element, as {@link RuleChain#checkAll}
  * describes.
  *

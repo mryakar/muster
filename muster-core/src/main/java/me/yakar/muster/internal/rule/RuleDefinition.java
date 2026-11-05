@@ -59,8 +59,8 @@ public record RuleDefinition(
 
   /**
    * Returns whether the rule checks whole collections of the given class of elements. Muster passes
-   * such a rule a copy of the collection as a list, so its input type must be one that a list is,
-   * such as {@code List} or {@code Collection}, and its elements must accept the class.
+   * such a rule a copy of the collection as a list, so its input must be a {@code List}, a {@code
+   * SequencedCollection} or a {@code Collection}, and its elements must accept the class.
    *
    * @param elementClass the class of the elements
    * @return whether the rule checks such collections

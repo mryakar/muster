@@ -636,8 +636,8 @@ public final class RuleChain<I> {
   }
 
   /**
-   * Returns the ids of the rules of this chain, in the order they run: the listed rules, the rules
-   * bound by type for the chain of a binding, and the rules they require, less the disabled ones.
+   * Returns the ids of the rules of this chain, in the order they run: the listed rules and the
+   * rules they require, less the disabled ones.
    *
    * @return the ids, unmodifiable
    */
