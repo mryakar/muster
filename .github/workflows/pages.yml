@@ -1,0 +1,101 @@
+# Publishes the documentation site on GitHub Pages: the pages under docs/, built with Antora from
+# the main branch and from the release tags, and the Javadoc of each version. It runs on every
+# change of main, once the Release workflow has published a release, which it does when Maven
+# Central serves the version, and on request.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  # The Release workflow publishes the GitHub Release with the token of the workflow, and an event
+  # that this token causes starts no workflow run; so the site is built when that workflow ends.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  # A release published by hand.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time: a running one is never cancelled, and a newer run replaces one still
+# waiting, which builds the same main or a later one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  site:
+    name: Build the documentation site
+    # After the Release workflow only when it published its release.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Always main, whatever triggered the run, with the tags: the site has a version for each
+      # release.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      # Antora builds a version of the site for each stable tag with documentation, and the Javadoc
+      # of a version comes from its published release. Between the tag and the release, the run
+      # fails and the last deployment stays, rather than serve a version without its Javadoc, and
+      # one that Maven Central may not serve yet.
+      - name: Check that every version of the site has a published release
+        run: |
+          for tag in $(git tag --list 'v*' | grep -v -e -); do
+            if ! git cat-file -e "$tag:docs/antora.yml" 2>/dev/null; then
+              continue
+            fi
+            if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)" != "false" ]]; then
+              echo "$tag has no published release yet; the site keeps its last deployment" >&2
+              exit 1
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # JDK 21 and Gradle for the Javadoc of the main branch.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      # As the Build workflow builds it: a warning, such as a broken cross reference, fails the
+      # build, and no package runs scripts when it is installed.
+      - name: Build the documentation site with Antora
+        working-directory: docs
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      # The Javadoc of each release comes from its GitHub Release, that of main from this build.
+      - name: Add the Javadoc of each version
+        run: .github/scripts/javadoc-site.sh docs/build/site
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs/build/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
