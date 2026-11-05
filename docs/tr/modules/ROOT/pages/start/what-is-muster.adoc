@@ -29,7 +29,7 @@ Kurallarınızı bir kez kaydedersiniz.
 Sonra, bir metot işini yapmadan önce Muster o metodun girdisine ait kuralları çalıştırır:
 
 . Her kural "sorun yok" derse metot çalışır.
-. Bir kural bir sorun bulursa metot çalışmaz; çağırana da hangi kuralın takıldığını, hangi alanın düzeltilmesi gerektiğini ve bir mesajın ihtiyaç duyduğu değerleri söyleyen bir cevap döner.
+. Bir kural bir sorun bulursa metot çalışmaz; çağırana da hangi kuralın geçemediğini, hangi alanın düzeltilmesi gerektiğini ve bir mesajın ihtiyaç duyduğu değerleri söyleyen bir cevap döner.
 
 Spring Boot starter ile Muster'ı kendiniz çağırmanız bile gerekmez: bir `@Service` metodu kurallarını ilk satırından önce, kendi transaction'ının içinde çalıştırır; reddedilen bir çağrı da istemciye, istemcinin dilinde anlaşılır bir HTTP cevabı olarak ulaşır.
 

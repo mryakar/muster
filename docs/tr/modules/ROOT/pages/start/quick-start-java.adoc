@@ -1,5 +1,5 @@
 = Spring olmadan hızlı başlangıç
-:description: Düz Java ile, altı adımda Muster'lı ilk program: bir girdi, iki kural, bir Muster, geçen ve takılan birer kontrol ve kullanıcının okuduğu mesaj.
+:description: Düz Java ile, altı adımda Muster'lı ilk program: bir girdi, iki kural, bir Muster, geçen ve geçemeyen birer kontrol ve kullanıcının okuduğu mesaj.
 include::partial$javadoc.adoc[]
 
 Bu sayfa, düz bir Java programında iki iş kuralını altı küçük adımda çalıştırır.
@@ -87,7 +87,7 @@ Kurallarda bir sorun varsa, örneğin aynı kimliğe sahip iki kural ya da kimse
 == Adım 5: bir girdiyi kontrol edin
 
 `muster.check(input)`, girdinin türüne ait her kuralı çalıştırır.
-Hepsi geçerse hiçbir şey döndürmez; biri takılırsa link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır.
+Hepsi geçerse hiçbir şey döndürmez; biri geçemezse link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır.
 Küçük bir metot bunu bir değere dönüştürür, böylece sonuca bakmak kolaylaşır:
 
 [source,java]
@@ -104,7 +104,7 @@ include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=tr
 
 * 30 yaşındaki Deniz iki kuraldan da geçer: ihlal yok.
 * 30 yaşındaki Ece, alınmış bir kullanıcı adı seçmiştir.
-İhlal, hangi kuralın takıldığını (`signup.username-free`), hangi alanın düzeltileceğini (`username`) ve bir mesajın ihtiyaç duyduğu değeri (`ece`) söyler.
+İhlal, hangi kuralın geçemediğini (`signup.username-free`), hangi alanın düzeltileceğini (`username`) ve bir mesajın ihtiyaç duyduğu değeri (`ece`) söyler.
 * 16 yaşındaki Deniz çok küçüktür: `signup.adult`.
 
 Gerçek bir servis metodunda `muster.check(command)`’ı metodun ilk satırı olarak çağırırsınız ve exception'ın kullanıcıya cevap veren koda kadar yukarı çıkmasına izin verirsiniz; kontrolden sonraki satır yalnızca her kural geçtiğinde çalışır.
@@ -138,7 +138,7 @@ Bütün döngü bu kadar: bir girdi, ona bakan kurallar, hatalı bir girdiyi dur
 
 . Her koşulu, bir metodun içindeki bir `if` yerine, kimliği olan küçük bir sınıf olarak yazdınız.
 . Kuralları bir kez, bir `Muster` içinde kaydettiniz.
-. Tek bir çağrı, `muster.check(input)`, girdinin her kuralını çalıştırdı ve takılan ilk kuralda durdu: bu, varsayılan kip olan ilk hatada durma (fail-fast) kipidir.
+. Tek bir çağrı, `muster.check(input)`, girdinin her kuralını çalıştırdı ve geçemeyen ilk kuralda durdu: bu, varsayılan kip olan ilk hatada durma (fail-fast) kipidir.
 . İhlal neyin yanlış olduğunu sabit kutucuklarla söyledi; programın dış katmanı da onu bir cümleye çevirdi.
 
 == Sırada ne var

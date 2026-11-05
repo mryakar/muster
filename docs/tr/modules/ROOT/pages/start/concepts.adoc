@@ -24,7 +24,7 @@ Her kuralın, link:{javadoc-core}/rule/Rule.html[`@Rule`] anotasyonunda sizin se
 Kimlik, kodun dışındaki her yerde kuralın adıdır: istemcinin aldığı cevapta, bir kuralı kapatan yapılandırmada ve loglarda.
 Onu bir veritabanı sütununun adı kadar dikkatle seçin, çünkü zamanla istemciler ona bağımlı hâle gelebilir.
 
-== Sonuç: geçti ya da takıldı
+== Sonuç: geçti ya da geçemedi
 
 `check` bir *sonuçla* (result) cevap verir: girdi sorunsuzsa link:{javadoc-core}/rule/RuleResult.html[`RuleResult.passed()`], değilse bir ya da daha fazla ihlal taşıyan başarısız bir sonuç.
 
@@ -56,7 +56,7 @@ Spring Boot ile starter onu sizin yerinize oluşturur.
 
 Bir *kontrol* (check), kuralları bir girdiye karşı çalıştırır.
 Her kural geçerse hiçbir şey olmaz ve kodunuz devam eder.
-Herhangi bir kural takılırsa kontrol, ihlalleri taşıyan link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır; böylece kontrolden sonraki kod hatalı bir girdiyle asla çalışmaz.
+Herhangi bir kural geçemezse kontrol, ihlalleri taşıyan link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır; böylece kontrolden sonraki kod hatalı bir girdiyle asla çalışmaz.
 
 == Kural hedefi
 
@@ -77,16 +77,16 @@ xref:core/checking.adoc[] ikisini de gösterir.
 
 == Kip: ilk hatada durma ya da hepsini toplama
 
-İki kural takıldığında çağıran kaç tanesini öğrenir?
+İki kural geçemediğinde çağıran kaç tanesini öğrenir?
 
-* *İlk hatada durma* (fail-fast), yani varsayılan kip, takılan ilk kuralda durur: ondan sonraki kurallar hiç çalışmaz, böylece onların veritabanı sorguları da yapılmaz.
+* *İlk hatada durma* (fail-fast), yani varsayılan kip, geçemeyen ilk kuralda durur: ondan sonraki kurallar hiç çalışmaz, böylece onların veritabanı sorguları da yapılmaz.
 * *Hepsini toplama* (collect-all), her kuralı çalıştırır ve bütün ihlalleri bir kerede bildirir; her yanlış alanı işaretleyen bir formun ihtiyacı budur.
 
 == Sıra ve gerekli kurallar
 
 Kurallar sabit bir sırayla çalışır.
 Bir kural, link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`] ile başka bir kuralı *gerektirebilir*: "aracın kime ait olduğunu kontrol etmeden önce aracın var olduğunu kontrol et".
-Gerekli kural önce çalışır; takılırsa onu gerektiren kural atlanır, böylece o kural hiçbir zaman var olmayan bir araçla uğraşmak zorunda kalmaz.
+Gerekli kural önce çalışır; geçemezse onu gerektiren kural atlanır, böylece o kural hiçbir zaman var olmayan bir araçla uğraşmak zorunda kalmaz.
 
 == Bağlam: çağıran ve yerel ayar
 
