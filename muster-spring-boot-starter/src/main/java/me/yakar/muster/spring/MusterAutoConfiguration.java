@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Import;
  * MessageResolver}, {@code Supplier<Principal>} or {@code Supplier<Locale>} bean of the application
  * replaces the starter's. The {@code muster.*} properties, problem details, observations and the
  * actuator endpoint are described in the <a
- * href="https://github.com/mryakar/muster#usage-with-spring-boot">README</a>.
+ * href="https://mryakar.github.io/muster/muster/current/spring/configuration.html">documentation</a>.
  */
 @AutoConfiguration(
     afterName =
