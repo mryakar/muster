@@ -178,8 +178,8 @@ public final class ChainPlan {
                   + rule.id()
                   + "', which requires rule '"
                   + required.id()
-                  + "' of each element of a collection: check collections with it, through checkAll or a"
-                  + " collection binding");
+                  + "' of each element of a collection: check collections with it, through a"
+                  + " collection binding, or Muster.checkAll for rule targets");
         }
         if (!included.containsKey(requiredClass)) {
           included.put(requiredClass, required);
@@ -203,8 +203,8 @@ public final class ChainPlan {
       var requires = definition.requires().stream().mapToInt(positions::get).toArray();
       positions.put(definition.ruleClass(), steps.size());
       var whole = elementClass != null && definition.checksCollectionsOf(elementClass);
-      // A rule that a rule of the whole collection requires may accept neither, as one of Iterable
-      // input does.
+      // A rule that a rule of the whole collection requires may be neither, as one of Iterable
+      // input is.
       if (elementClass != null
           && !whole
           && !definition.inputType().isAssignableFrom(elementClass)) {
@@ -215,12 +215,10 @@ public final class ChainPlan {
                 + definition.id()
                 + "', which checks "
                 + definition.inputType().getTypeName()
-                + ": neither "
+                + ": it is neither a rule of each "
                 + elementClass.getTypeName()
-                + " nor a list of "
-                + elementClass.getTypeName()
-                + " is one; a rule of the whole collection checks a list, so what it requires"
-                + " checks lists or each element");
+                + " nor a rule of the whole collection; "
+                + RuleCatalog.WHOLE_COLLECTION);
       }
       steps.add(new Step(requireNonNull(included.get(definition.ruleClass())), requires, whole));
     }

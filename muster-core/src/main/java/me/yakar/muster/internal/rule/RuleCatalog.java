@@ -35,6 +35,11 @@ import org.jspecify.annotations.Nullable;
  */
 public final class RuleCatalog {
 
+  /** Says, in error messages, what a rule of the whole collection checks. */
+  static final String WHOLE_COLLECTION =
+      "a rule of the whole collection takes a List, SequencedCollection or Collection of its"
+          + " elements";
+
   private final Map<Class<?>, PreparedRule> rules;
   private final Set<Class<?>> disabled;
 
@@ -109,12 +114,10 @@ public final class RuleCatalog {
             + " checks "
             + definition.inputType().getTypeName()
             + (elements == null ? "" : " of " + elements.getTypeName())
-            + ", which neither "
+            + ": it is neither a rule of each "
             + elementType.getTypeName()
-            + " nor a list of "
-            + elementType.getTypeName()
-            + " is; a rule of the whole collection takes a List, SequencedCollection or Collection"
-            + " of its elements");
+            + " nor a rule of the whole collection; "
+            + WHOLE_COLLECTION);
   }
 
   /**

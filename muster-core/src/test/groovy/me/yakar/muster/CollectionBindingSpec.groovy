@@ -176,7 +176,7 @@ class CollectionBindingSpec extends EngineSpecification {
     }
   }
 
-  /** Checks anything that can be iterated: neither a vehicle nor, as a rule of the whole, a list of them. */
+  /** Checks anything that can be iterated: neither a rule of each vehicle nor one of the whole collection. */
   @Rule(id = 'any.iterable')
   static class AnyIterable implements BusinessRule<Iterable<?>> {
     RuleResult check(Iterable<?> input, RuleContext ctx) {
@@ -193,7 +193,7 @@ class CollectionBindingSpec extends EngineSpecification {
   }
 
   static String cannotCheckIterable(String label) {
-    "the chain for $label cannot check rule 'any.iterable', which checks java.lang.Iterable: neither $CREATE nor a list of $CREATE is one; a rule of the whole collection checks a list, so what it requires checks lists or each element".toString()
+    "the chain for $label cannot check rule 'any.iterable', which checks java.lang.Iterable: it is neither a rule of each $CREATE nor a rule of the whole collection; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements".toString()
   }
 
   def 'a rule of the whole collection that requires a rule able to check neither stops a binding when it is built: #type.simpleName'() {
@@ -320,7 +320,7 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "the chain for java.util.List cannot check rule 'task.limit', which requires rule 'task.exists' of each element of a collection: check collections with it, through checkAll or a collection binding"
+    e.message == "the chain for java.util.List cannot check rule 'task.limit', which requires rule 'task.exists' of each element of a collection: check collections with it, through a collection binding, or Muster.checkAll for rule targets"
   }
 
   def 'in fail-fast mode, a violated rule of the whole collection stops the check'() {
@@ -358,13 +358,14 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     def e = thrown(IllegalArgumentException)
-    e.message == "${ruleClass.typeName} checks $checks, which neither $CREATE nor a list of $CREATE is; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements"
+    e.message == "${ruleClass.typeName} checks $checks: it is neither a rule of each $CREATE nor a rule of the whole collection; a rule of the whole collection takes a List, SequencedCollection or Collection of its elements"
 
     where:
     rule                  | ruleClass || checks
     new SetOfVehicles()   | SetOfVehicles || "java.util.Set of ${FIELDS}"
     new TaskLimit()       | TaskLimit || 'java.util.List of java.lang.Long'
     new VehicleExists()   | VehicleExists || 'java.lang.Long'
+    new AnyIterable()     | AnyIterable || 'java.lang.Iterable'
   }
 
   def 'a binding is checked as Binding checks its listed and excluded rules'() {
