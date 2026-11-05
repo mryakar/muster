@@ -15,9 +15,8 @@
  */
 // Compares the public API of the module with that of the release in apiBaseline, for binary and
 // source compatibility as japicmp classifies it, as part of check. A break passes only once a
-// commit
-// since that release declares it, with ! or a BREAKING CHANGE footer, and only before 1.0 or in a
-// new major version, as SemVer allows it.
+// commit since that release declares it, with ! or a BREAKING CHANGE footer, and only before 1.0 or
+// in a new major version, as SemVer allows it.
 import me.champeau.gradle.japicmp.JapicmpTask
 
 plugins { java }

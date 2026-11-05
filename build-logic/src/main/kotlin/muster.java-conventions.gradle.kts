@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 // The base conventions, and the quality gates of the projects that are tested and published:
-// Spock tests, full coverage, mutation testing and strict API docs.
+// Spock tests, full coverage, mutation testing, strict API docs, the API comparison with the last
+// release and the nullness check.
 plugins {
   id("muster.java-base-conventions")
   id("muster.api-compatibility-conventions")
