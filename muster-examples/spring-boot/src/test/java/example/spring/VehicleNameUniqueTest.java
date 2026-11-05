@@ -15,6 +15,7 @@
  */
 package example.spring;
 
+// tag::jdbc-test-imports[]
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
@@ -24,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.JdbcTest;
 import org.springframework.context.annotation.Import;
+
+// end::jdbc-test-imports[]
 
 // tag::jdbc-test[]
 /** The rule against the database, without the rest of the application. */

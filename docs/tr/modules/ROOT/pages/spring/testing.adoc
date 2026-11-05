@@ -1,6 +1,20 @@
 = Test etmek
 :description: Bir Spring Boot uygulamasında iş kurallarının ve etraflarındaki kodun nasıl test edileceği: tek başına bir kural, veritabanına karşı bir kural ve web katmanı.
 
+== Test bağımlılıkları
+
+Spring Boot 4, her modülün test dilimlerini kendi test starter'ına koyar; örneğin bu sayfadaki dilimler için şunlar:
+
+[source,kotlin]
+----
+testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
+testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+----
+
+Sonuncusu, web katmanının testinin çağıranı için kullandığı `@WithMockUser`’ı getirir.
+Spring Boot 4'te dilimler de o modüllerin paketlerine taşındı; örneklerin import'ları bunu gösterir.
+
 == Tek başına bir kural
 
 Kural sıradan bir nesnedir; Spring'den hiçbir şeye ihtiyaç duymayan bir test onu oluşturur ve `check` metodunu çağırır.
@@ -9,6 +23,11 @@ xref:core/rules.adoc#_testing_a_rule[Kuralı test etmek] bunu gösterir.
 == Veritabanına karşı bir kural
 
 Veritabanını sorgulayan bir kural, veritabanına karşı test edilir; bunun için uygulamanın, veritabanını ve repository'yi içeren ama web katmanını içermeyen bir test dilimi (test slice) kullanılır:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleNameUniqueTest.java[tag=jdbc-test-imports,indent=0]
+----
 
 [source,java]
 ----
@@ -24,6 +43,11 @@ Bir controller testi, mock'lanmış servise, nasıl cevaplandığını görmek i
 
 [source,java]
 ----
+include::example$spring-boot-test/java/example/spring/VehicleControllerTest.java[tag=web-mvc-test-imports,indent=0]
+----
+
+[source,java]
+----
 include::example$spring-boot-test/java/example/spring/VehicleControllerTest.java[tag=web-mvc-test,indent=0]
 ----
 
@@ -32,3 +56,7 @@ Bu cevap, bir istemcinin aldığı cevabın aynısıdır; mesajı da uygulamanı
 == Uygulamanın tamamı
 
 Uygulamanın tamamını başlatan bir test, örneğin `@SpringBootTest` ile, kuralları production'daki gibi kontrol eder: örnek uygulamanın kendisi de başlar, kendi uç noktalarını HTTP üzerinden çağırır ve cevapları bu kılavuzun gösterdikleriyle karşılaştırır.
+
+== Starter'ın yapılandırması
+
+Uygulamanın starter'ı nasıl yapılandırdığını, örneğin `muster.self-invocation` ile, sınayan bir test ne veritabanına ne de web katmanına ihtiyaç duyar: Spring Boot'un `ApplicationContextRunner`’ı `AutoConfigurations.of(MusterAutoConfiguration.class)` ve testin bean'leriyle bir context başlatır ve bu context'in başladığını ya da uygulamanın vereceği mesajla durduğunu doğrular.
