@@ -81,5 +81,5 @@ Bir `checkAll` testi, tıpkı Muster'ın verdiği gibi, her girdinin kontrol edi
 include::example$plain-java-test/java/example/plain/VehicleNameUniqueTest.java[tag=test-check-all,indent=0]
 ----
 
-İki girdi, 0 ve 2 konumlarındaki araçları temsil eder; sanki 1 konumundaki araç bu kuralın gerektirdiği bir kurala takılmış gibi.
+İki girdi, 0 ve 2 konumlarındaki araçları temsil eder; sanki 1 konumundaki araç bu kuralın gerektirdiği bir kuraldan geçememiş gibi.
 Bu yüzden ikinci girdiyle ilgili ihlal `[2]` hakkındadır.

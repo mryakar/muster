@@ -42,7 +42,7 @@ include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=violat
 İhlalin taşıdıkları şunlardır:
 
 * Kod (code): burada kuralın kimliği.
-İki farklı nedenle takılabilen bir kural, `ctx.violation(code)` ile her nedene kendi kodunu verir.
+İki farklı nedenle geçemeyebilecek bir kural, `ctx.violation(code)` ile her nedene kendi kodunu verir.
 * İstemci argümanları (client arguments): mesajın sözünü ettiği ve istemcinin aldığı değerler, örneğin alınmış olan ad.
 * İç argümanlar (internal arguments): yalnızca uygulamanın kendi loglarında ve kodunda gördüğü değerler.
 * Hedef (target): burada `name`, yani komutta istemcinin düzeltmesi gereken alan.
@@ -63,7 +63,7 @@ Hiçbir kategori uymuyorsa kural kategoriyi boş bırakır; her kategoriye nası
 
 Bazı kurallar yalnızca bazı çağrılar için anlamlıdır ve bunu, girdi okunmadan önce çağrının bağlamı söyler.
 xref:core/context.adoc#locale[Plaka biçimi] yalnızca kuralın biçimi bildiği yerlerde kontrol edilir.
-Uygulanmayan bir kural atlanır (skipped); bu ne geçmek ne de takılmaktır; o kuralı gerektiren kurallar da atlanır.
+Uygulanmayan bir kural atlanır (skipped): ne geçmiş ne de geçememiş sayılır; o kuralı gerektiren kurallar da atlanır.
 
 [#_testing_a_rule]
 == Kuralı test etmek

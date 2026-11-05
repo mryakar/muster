@@ -63,7 +63,7 @@ include::example$spring-boot/java/example/spring/VehicleService.java[tag=service
 İçinde Muster'a hiçbir çağrı yoktur.
 Burada gösterilmeyen constructor repository'yi alır; `owner()` oturum açmış kullanıcıyı Spring Security'den okur: bu örneğin kendi tercihidir, Muster'ın buna ihtiyacı yoktur.
 Bir `@Service`’in kural hedefi alan her public metodu, o hedefin kurallarını *ilk satırından önce* ve *kendi transaction'ının içinde* çalıştırır.
-Bir kural takılırsa metot çalışmaz ve hiçbir şey yazılmaz.
+Bir kural geçemezse metot çalışmaz ve hiçbir şey yazılmaz.
 İleride araçlar için bir kural eklemek bir sınıf eklemek demektir; servise tek bir satır bile eklenmez.
 
 Sınıftaki `@Validated` ve parametredeki `@Valid` Jakarta Bean Validation'ı çalıştırır; bunun için `spring-boot-starter-validation` gerekir.
@@ -122,7 +122,7 @@ include::example$spring-boot/resources/responses/name-taken.json[]
 
 . Koşulu kimliği olan küçük bir sınıf olarak yazdınız; starter onu buldu ve bir bean yaptı.
 . Komut bir kural hedefi olduğunu söyledi; servis metodu ise hiçbir şey söylemedi.
-. Metot çağrıldığında starter kuralı transaction'ın içinde, metottan önce çalıştırdı; kural takıldı ve metot hiç çalışmadı.
+. Metot çağrıldığında starter kuralı transaction'ın içinde, metottan önce çalıştırdı; kural geçemedi ve metot hiç çalışmadı.
 . Starter ihlali, istemcinin dilinde bir mesajla birlikte bir HTTP cevabına dönüştürdü.
 
 == Sırada ne var
