@@ -72,6 +72,13 @@ A binding can also leave out a rule that would bind by type, with `exclude`.
 
 == Rules that require other rules
 
+Both rules below check any command about a vehicle that must exist, which carries the id of the vehicle:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/ExistingVehicle.java[tag=existing,indent=0]
+----
+
 There is no owner to compare with the caller until the vehicle is known to exist:
 
 [source,java]
@@ -110,6 +117,7 @@ include::example$plain-java/java/example/plain/Main.java[tag=bound-rule-ids,inde
 ----
 
 Asking does not bind anything; a class shows up once an input of it has been checked.
+A chain has one order, so its `ruleIds()` is a list; a binding keeps a chain for each class it checks, so its `ruleIds()` maps each class to the order of its chain.
 
 == Logging
 
