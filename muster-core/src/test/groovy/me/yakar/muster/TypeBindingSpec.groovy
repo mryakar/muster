@@ -129,7 +129,7 @@ class TypeBindingSpec extends EngineSpecification {
     'mode'  | INVALID | null
   }
 
-  def 'threads that check a new class in different modes at the same time bind its rules once, and each checks in its mode'() {
+  def 'threads that check a new class in different modes at the same time log the rules of the class once, and each checks in its mode'() {
     given:
     log.level = Level.FINE
     def muster = Muster.builder().rules(new NameUnique(), new CodeFormat()).build()
@@ -271,7 +271,7 @@ class TypeBindingSpec extends EngineSpecification {
       wrong
     }
 
-    then: 'every check saw the rules of its class, and each class was bound once'
+    then: 'every check saw the rules of its class, and each class was logged once'
     mistakes.every { it == 0 }
     logged*.message.toSorted() == [
       "No rule binds to ${Unbound.name}; check that its rules are registered, enabled and accept it",
