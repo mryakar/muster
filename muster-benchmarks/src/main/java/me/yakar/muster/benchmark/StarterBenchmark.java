@@ -63,7 +63,7 @@ import org.springframework.transaction.support.DefaultTransactionStatus;
 public class StarterBenchmark {
 
   /** How many rules bind to the input. */
-  @Param({"0", "1", "20"})
+  @Param({"0", "20"})
   public int rules;
 
   /** The other advice on the method: none, method security, a transaction, or both. */
