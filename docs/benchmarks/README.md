@@ -190,6 +190,12 @@ positions it may check.
 A rule that looks up its elements, as in a database, can override `checkAll` to do it with one query
 instead of one for each element.
 
+### From every thread
+
+`muster.check(target)` from all 8 threads of the machine at once, for classes that are already
+bound. Of two classes that share a bucket of Muster's chain map, the one bound first takes 43.9 ns
+(43.4–47.3) and the one bound second 48.7 ns (44.2–50.2); neither allocates.
+
 ### Startup
 
 How long an application takes to start, from `SpringApplication.run` until it is ready, in a fresh
@@ -233,10 +239,10 @@ ended more than 10% from the median of their benchmark, all slower, and the rang
 out: one calling 5 rules with `RuleChain.check` (143.7 ns) and one calling none (14.7 ns); one of a
 failing check with one violated rule in `COLLECT_ALL` (549.0 ns); two of the starter's binding by
 hand, without other advice (472.2 ns) and with both (5,138 ns), with 20 rules; two of a collection
-of five elements, by hand (1,634 ns) and with `checkAll` (2,089 ns); and one of the multi-threaded
-benchmark, whose results are only in `results.csv`, checking the class bound second to a shared
-bucket of the chain map (56.2 ns). None of the 99 forks of a start did. The median of the forks keeps such a fork from deciding the
-published number.
+of five elements, by hand (1,634 ns) and with `checkAll` (2,089 ns); and one of the checks from
+every thread, of the class bound second to a shared bucket of the chain map (56.2 ns). None of the
+99 forks of a start did. The median of the forks keeps such a fork from deciding the published
+number.
 
 The raw results are in [`results.json`](results.json), the medians, ranges and the forks more than
 10% from the median in [`results.csv`](results.csv), and those of the starts in
