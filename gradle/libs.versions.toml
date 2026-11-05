@@ -1,5 +1,5 @@
 [versions]
-error-prone = "2.50.0"
+error-prone = "2.51.0"
 google-java-format = "1.36.1"
 groovy = "5.1.3"
 jackson = "3.2.4"
@@ -33,7 +33,7 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 # Versions that the tools of the build would otherwise take older, with known vulnerabilities:
 # Jackson 2 through the CycloneDX plugin, Guava through it and Error Prone.
 guava = { module = "com.google.guava:guava", version = "33.7.2-jre" }
-jackson2-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.22.3" }
+jackson2-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.22.4" }
 
 # Tools that the build runs. They are declared as libraries only so that Dependabot updates their
 # versions; the build reads the versions.
