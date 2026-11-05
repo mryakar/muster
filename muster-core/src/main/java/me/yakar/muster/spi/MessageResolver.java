@@ -100,8 +100,9 @@ public interface MessageResolver {
    * @param bundles returns the bundle for a locale, as {@link ResourceBundle#getBundle(String,
    *     Locale)} loads it; called on every resolve, and {@code getBundle} caches the bundles
    * @return the resolver
-   * @throws IllegalArgumentException if the family has no base bundle, or the function returns a
-   *     bundle that {@code getBundle} did not load
+   * @throws IllegalArgumentException if the family has no base bundle, or the function returns, for
+   *     the root locale, a bundle that {@code getBundle} did not load; a resolve throws it too for
+   *     a bundle of another locale that {@code getBundle} did not load
    */
   static MessageResolver ofResourceBundles(Function<Locale, ResourceBundle> bundles) {
     return new TemplateMessageResolver(new ResourceBundleTemplates(bundles));

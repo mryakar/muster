@@ -222,7 +222,8 @@ public final class Violation implements Serializable {
   }
 
   /**
-   * Builds a {@link Violation}. Get one from {@link RuleContext#violation()}.
+   * Builds a {@link Violation}. Get one from {@link RuleContext#violation()} or {@link
+   * RuleContext#violation(String)}.
    *
    * <p>An argument name is not blank and contains no whitespace, control or format character,
    * unpaired surrogate or brace. A name is used once, across client and internal arguments.

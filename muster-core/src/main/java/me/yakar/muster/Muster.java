@@ -487,8 +487,8 @@ public final class Muster {
 
     /**
      * Adds a listener, which observes every check of the {@code Muster}: when a check starts and
-     * ends, and when each of its rules starts and ends. Listeners are told that a check or a rule
-     * starts in the order they are added, and that it ends in the reverse order.
+     * ends, and when each of its rules starts and ends, in the order that {@link CheckListener}
+     * describes.
      *
      * @param listener the listener; it must be thread-safe
      * @return this builder

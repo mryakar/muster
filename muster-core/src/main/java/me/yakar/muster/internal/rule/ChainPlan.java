@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The steps of a chain, in the order they run, and what composing them has to log. Composing logs
- * nothing itself, so that a cache can compose inside {@code computeIfAbsent} and log outside it.
+ * nothing itself, so that only the plan whose chain is kept is logged.
  */
 public final class ChainPlan {
 

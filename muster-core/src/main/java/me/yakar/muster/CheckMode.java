@@ -17,7 +17,7 @@ package me.yakar.muster;
 
 /**
  * How far a check goes once a rule is violated. Every {@link Muster} has a mode, {@link #FAIL_FAST}
- * unless set; a {@link RuleChain} can override it.
+ * unless set; a chain, a binding or a single check can override it.
  */
 public enum CheckMode {
 

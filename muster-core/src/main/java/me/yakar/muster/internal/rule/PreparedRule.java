@@ -126,7 +126,7 @@ public final class PreparedRule {
 
   /**
    * Returns whether a rule class overrides {@code checkAll}. The public methods of a class have the
-   * default method of {@code BusinessRule} unless the class, or a superclass, overrides it.
+   * default method of {@code BusinessRule} unless the class or one of its supertypes overrides it.
    */
   private static boolean overridesCheckAll(Class<?> ruleClass) {
     return Arrays.stream(ruleClass.getMethods())

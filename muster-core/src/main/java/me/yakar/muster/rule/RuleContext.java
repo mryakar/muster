@@ -134,10 +134,10 @@ public sealed class RuleContext {
   }
 
   /**
-   * Returns the locale of the call, for business logic that depends on the caller's language;
-   * messages are resolved elsewhere. Do not normalize unique data, such as names, in this locale:
-   * the same name could pass in one language and fail in another, as Turkish dotted and dotless i
-   * do. Normalize it in one fixed locale.
+   * Returns the locale of the call, for business logic that depends on the caller's language or
+   * region; messages are resolved elsewhere. Do not normalize unique data, such as names, in this
+   * locale: the same name could pass in one language and fail in another, as Turkish dotted and
+   * dotless i do. Normalize it in one fixed locale.
    *
    * @return the locale
    */
@@ -240,9 +240,9 @@ public sealed class RuleContext {
   }
 
   /**
-   * Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(String)}, or from {@link
-   * RuleContext#toBuilder()} to start from an existing context. A builder is not safe for use by
-   * multiple threads.
+   * Builds a {@link RuleContext}. Get one from {@link RuleContext#builder(Class)}, {@link
+   * RuleContext#builder(String)}, or from {@link RuleContext#toBuilder()} to start from an existing
+   * context. A builder is not safe for use by multiple threads.
    */
   public static final class Builder {
 

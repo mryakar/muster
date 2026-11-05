@@ -151,7 +151,7 @@ public interface CheckListener {
 
   /** How a rule, or a check, ended. */
   enum Outcome {
-    /** The rule found no violation, or every rule of the check passed. */
+    /** The rule found no violation, or no rule of the check found one. */
     PASSED,
     /** The rule found violations, or the check is rejected with the violations of its rules. */
     FAILED,
