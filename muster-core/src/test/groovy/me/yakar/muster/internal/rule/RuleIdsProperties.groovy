@@ -24,16 +24,15 @@ import net.jqwik.api.Provide
 /** The rule ids that Muster accepts, against the format written as a regular expression. */
 class RuleIdsProperties {
 
-  private static final String FORMAT = /[a-z][a-z0-9]*([.-][a-z0-9]+)*/
-
   @Provide
   Arbitrary<String> candidates() {
-    // Mostly the characters of ids, so that valid and invalid ones both come up often.
-    Arbitraries.strings().withChars('ab9.-_A ').ofMaxLength(8)
+    // The characters of ids, their neighbours and separators, so that valid and invalid ones both
+    // come up often.
+    Arbitraries.strings().withChars('az09.-_A`{/: ').ofMaxLength(8)
   }
 
   @Property
   void 'an id is valid exactly when it has the format'(@ForAll('candidates') String id) {
-    assert RuleIds.isValid(id) == (id ==~ FORMAT)
+    assert RuleIds.isValid(id) == RuleIdsSpec.FORMAT.matcher(id).matches()
   }
 }

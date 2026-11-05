@@ -47,7 +47,7 @@ class ClassChainsSpec extends EngineSpecification {
     given: 'three classes in one bucket of the map, the first two of them bound'
     def (first, second, third) = sameBucket(3)
     def chains = new ClassChains({ type -> muster.bind(type, Selection.NONE, CheckMode.FAIL_FAST) })
-    chains.of(first)
+    def firstChain = chains.of(first)
     def bound = chains.of(second)
     def locked = new CountDownLatch(1)
     def release = new CountDownLatch(1)
@@ -62,7 +62,7 @@ class ClassChainsSpec extends EngineSpecification {
       map.computeIfAbsent(third) {
         locked.countDown()
         release.await()
-        chains.of(first)
+        firstChain
       }
     }
     assert locked.await(1, TimeUnit.MINUTES)

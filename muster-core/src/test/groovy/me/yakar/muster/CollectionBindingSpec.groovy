@@ -19,6 +19,7 @@ import static me.yakar.muster.Concurrency.concurrently
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Level
+import me.yakar.muster.EngineSpecification.CodeFormat
 import me.yakar.muster.EngineSpecification.TaskExists
 import me.yakar.muster.EngineSpecification.VehicleFields
 import me.yakar.muster.rule.BusinessRule
@@ -274,17 +275,17 @@ class CollectionBindingSpec extends EngineSpecification {
     described(e) == ['vehicle.batch-limit -']
   }
 
-  def 'a rule of the whole collection checks it only once every element passed what it requires'() {
+  def 'a rule of the whole collection checks it only once every element passed the rule it requires, of #requiredInput input'() {
     given:
-    def limit = new TaskLimitOfFound()
-    def binding = vehicles(new NotFound(), limit).collectionBinding(Long).rules(TaskLimitOfFound).build()
+    def limit = limitClass.getDeclaredConstructor().newInstance()
+    def binding = vehicles(required, limit).collectionBinding(Long).rules(limitClass).build()
 
     when:
     binding.check([1L, 404L])
 
     then:
     def e = thrown(BusinessRuleViolationException)
-    described(e) == ['any.not-found [1]']
+    described(e) == ["$code [1]".toString()]
     limit.received.empty
 
     when:
@@ -292,31 +293,49 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     limit.received == [[1L, 2L]]
+
+    where:
+    limitClass          | required           | requiredInput || code
+    TaskLimitOfFound    | new NotFound()     | 'Object' || 'any.not-found'
+    TaskLimitOfExisting | new TaskExists([]) | 'Long' || 'task.exists'
   }
 
-  def 'a rule of the whole collection may require a rule of the type of its elements'() {
+  /** A limit of vehicles, checked once each of them has a well-formed code. */
+  @Rule(id = 'vehicle.fleet-limit')
+  @RequiresRule(CodeFormat)
+  static class FleetOfValidCodes implements BusinessRule<List<VehicleFields>> {
+    final List<List<?>> received = new CopyOnWriteArrayList<>()
+
+    RuleResult check(List<VehicleFields> input, RuleContext ctx) {
+      received << List.copyOf(input)
+      RuleResult.passed()
+    }
+  }
+
+  def 'a rule of the whole collection bound by type checks rule targets only once every element passed the rule it requires'() {
     given:
-    def limit = new TaskLimitOfExisting()
-    def binding = vehicles(new TaskExists([]), limit).collectionBinding(Long).rules(TaskLimitOfExisting).build()
+    def limit = new FleetOfValidCodes()
+    def muster = vehicles(new CodeFormat(), limit)
+    def other = new CreateVehicle('TR-2', 'Zeus')
 
     when:
-    binding.check([1L, 404L])
+    muster.checkAll([VALID, INVALID])
 
     then:
     def e = thrown(BusinessRuleViolationException)
-    described(e) == ['task.exists [1]']
+    described(e) == ['vehicle.code-format [1]']
     limit.received.empty
 
     when:
-    binding.check([1L, 2L])
+    muster.checkAll([VALID, other])
 
     then:
-    limit.received == [[1L, 2L]]
+    limit.received == [[VALID, other]]
   }
 
-  def 'a rule that requires a rule of each element checks no input that is not a collection'() {
+  def 'a binding, which checks no collection, rejects a rule that requires a rule of each element when it is built'() {
     when:
-    vehicles(new TaskExists([]), new TaskLimitOfExisting()).chain(List, TaskLimitOfExisting)
+    vehicles(new TaskExists([]), new TaskLimitOfExisting()).binding(List).rules(TaskLimitOfExisting).build()
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -513,7 +532,7 @@ class CollectionBindingSpec extends EngineSpecification {
     limit.received == [[VALID]]
   }
 
-  def 'threads that check a collection of a new class at the same time bind its rules once, and each runs them: #how'() {
+  def 'threads that check a collection of a new class at the same time log the rules of the class once, and each runs them: #how'() {
     given:
     log.level = Level.FINE
     def counted = new CountedVehicle()

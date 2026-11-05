@@ -475,7 +475,7 @@ class BindingSpec extends EngineSpecification {
         "Binding[name=VehicleService.save, input=${FIELDS}, mode=COLLECT_ALL, rules=[fields.listed], excluded=[fields.base, fields.bound]]"
   }
 
-  def 'threads that check a new class at the same time bind its rules once, and each runs them'() {
+  def 'threads that check a new class at the same time log the rules of the class once, and each runs them'() {
     given:
     log.level = Level.FINE
     def binding = muster(FieldsListed, FieldsBound).binding(VehicleFields).rules(FieldsListed).build()

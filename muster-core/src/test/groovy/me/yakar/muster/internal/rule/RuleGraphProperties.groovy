@@ -33,9 +33,9 @@ class RuleGraphProperties {
   static final List<Class<?>> CLASSES = [String, Integer, Long, Short, Byte, Double, Float, Character]
 
   /**
-   * A graph: each rule may require the rules before it in the list, which rules out cycles. Made
-   * for the largest size and cut, since an arbitrary that depends on the size is built anew for
-   * every try.
+   * A graph: each rule may require the rules made before it, which rules out cycles, and the rules
+   * come shuffled. Made for the largest size and cut, since an arbitrary that depends on the size
+   * is built anew for every try.
    */
   @Provide
   Arbitrary<List<RuleDefinition>> graphs() {
@@ -43,11 +43,13 @@ class RuleGraphProperties {
     def ids = Arbitraries.strings().withCharRange('a' as char, 'e' as char).ofLength(3)
         .list().ofSize(CLASSES.size()).uniqueElements()
     def masks = Arbitraries.integers().between(0, (1 << CLASSES.size()) - 1).list().ofSize(CLASSES.size())
-    Combinators.combine(sizes, ids, masks).as { size, idList, maskList ->
-      (0..<size).collect { i ->
+    Combinators.combine(sizes, ids, masks, Arbitraries.randoms()).as { size, idList, maskList, random ->
+      def rules = (0..<size).collect { i ->
         def requires = (0..<i).findAll { j -> (maskList[i] >> j) & 1 }.collect { CLASSES[it] }
         new RuleDefinition(CLASSES[i], idList[i], Object, requires, null)
       }
+      Collections.shuffle(rules, random)
+      rules
     }
   }
 

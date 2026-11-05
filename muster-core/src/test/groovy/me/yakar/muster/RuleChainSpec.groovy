@@ -18,6 +18,8 @@ package me.yakar.muster
 import static me.yakar.muster.Concurrency.concurrently
 
 import java.security.Principal
+import me.yakar.muster.CollectionBindingSpec.TaskLimitOfExisting
+import me.yakar.muster.EngineSpecification.TaskExists
 import me.yakar.muster.EngineSpecification.TaskRule
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
@@ -417,6 +419,15 @@ class RuleChainSpec extends EngineSpecification {
     inputType     | ruleClasses || message
     null          | [NameUnique] || 'inputType'
     CreateVehicle | [NameUnique, null] || 'ruleClass'
+  }
+
+  def 'a chain, which checks no collection, cannot hold a rule that requires a rule of each element'() {
+    when:
+    Muster.builder().rules(new TaskExists([]), new TaskLimitOfExisting()).build().chain(List, TaskLimitOfExisting)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the chain for java.util.List cannot check rule 'task.limit', which requires rule 'task.exists' of each element of a collection: check collections with it, through a collection binding, or Muster.checkAll for rule targets"
   }
 
   def 'a locale supplier that returns null fails the check'() {
