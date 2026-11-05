@@ -11,6 +11,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - In a native image, which has no class files to read, the starter warns at startup that it does not look for calls through `this`; `muster.self-invocation=off` leaves the warning out.
 
+### Changed
+
+- The starter requires Spring Boot 4.0.9 or later, which fixes vulnerabilities of Spring Boot 4.0.8's embedded Tomcat.
+
 ### Fixed
 
 - In an application processed ahead of time, the starter no longer overrides an order that the application gives the transaction advice, as with `@EnableTransactionManagement(order = ...)`, when it starts from the generated code.

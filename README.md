@@ -60,7 +60,7 @@ Maven:
 </dependencies>
 ```
 
-Muster needs Java 21 or later, and the starter Spring Boot 4.0.8 or later. The core is the Java
+Muster needs Java 21 or later, and the starter Spring Boot 4.0.9 or later. The core is the Java
 module `me.yakar.muster`; used without Maven or Gradle, it also needs `org.jspecify:jspecify` to
 compile. Releases are signed; [SECURITY.md](SECURITY.md#verifying-a-release) says how to verify
 them.
