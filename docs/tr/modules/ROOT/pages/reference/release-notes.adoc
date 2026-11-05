@@ -2,7 +2,6 @@
 :description: Muster'ın her sürümünün neyi değiştirdiğinin nerede bulunacağı.
 
 ifeval::["{page-component-version}" == "next"]
-Bu, henüz yayımlanmamış main dalının belgesidir.
 En son sürümden bu yana neyin değiştiği https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased[değişiklik günlüğünün Unreleased bölümünde] (İngilizce) yazar.
 endif::[]
 ifeval::["{page-component-version}" != "next"]

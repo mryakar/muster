@@ -2,7 +2,6 @@
 :description: Where to find what each release of Muster changed.
 
 ifeval::["{page-component-version}" == "next"]
-This is the documentation of the main branch, which is not released yet.
 What it changes since the latest release is in the https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased[Unreleased section of the changelog].
 endif::[]
 ifeval::["{page-component-version}" != "next"]
