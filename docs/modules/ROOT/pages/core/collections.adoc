@@ -67,6 +67,8 @@ include::example$plain-java/java/example/plain/BatchLimit.java[tag=whole,indent=
 
 A rule whose input is a `List`, a `SequencedCollection` or a `Collection` of the elements checks the collection as a whole.
 It waits until every element has passed the rules it requires, and its violations point at no element.
+Those may be rules of each element, such as a rule of `CreateVehicle` input required by a rule of `List<CreateVehicle>`; a rule that requires one is checked only as part of a collection, and a chain that checks no collection refuses it.
+A rule it does not require runs in the order of the chain, by id for rules bound by type, so a rule of the whole collection that should run only once every element is valid, such as one that totals their amounts, requires the rules that make them valid.
 Like the rules of each element, it binds by type to collections of their class, so `muster.checkAll` runs it too.
 
 [[testing]]
