@@ -69,6 +69,9 @@ include::example$plain-java/java/example/plain/BatchLimit.java[tag=whole,indent=
 
 Girdisi elemanlardan oluşan bir `List`, `SequencedCollection` ya da `Collection` olan bir kural, koleksiyonu bir bütün olarak kontrol eder.
 Böyle bir kural, her eleman bu kuralın gerektirdiği kurallardan geçene kadar bekler; ihlalleri de belirli bir elemana değil, koleksiyonun bütününe aittir.
+Bunlar her elemanın kuralları da olabilir; örneğin `List<CreateVehicle>` girdili bir kural, `CreateVehicle` girdili bir kuralı gerektirebilir.
+Böyle bir kural yalnızca bir koleksiyonun parçası olarak kontrol edilir; koleksiyon kontrol etmeyen bir zincir onu kabul etmez.
+Gerektirmediği bir kural ise zincirin sırasıyla, türe göre bağlanan kurallar için kimlik sırasıyla çalışır; bu yüzden yalnızca her eleman geçerliyken çalışması gereken bir bütün kuralı, örneğin elemanların tutarlarını toplayan bir kural, elemanları geçerli kılan kuralları gerektirir.
 Her elemanın kuralları gibi o da türe göre, o elemanların sınıfından oluşan koleksiyonlara bağlanır; bu yüzden `muster.checkAll` onu da çalıştırır.
 
 [[testing]]
