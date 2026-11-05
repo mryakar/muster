@@ -59,11 +59,8 @@ final class RulesPointcut extends StaticMethodMatcherPointcut {
   }
 
   /**
-   * Names the pointcut by its class only. Spring keys the proxy classes it caches on the text of
-   * the pointcut, so text that differs between applications, such as an identity hash, would make
-   * every application context in a JVM, as in a test suite, generate a proxy class of its own for
-   * each advised class. One text fits every instance, since which methods a pointcut matches
-   * depends only on the method and the class.
+   * Names the pointcut by its class only: Spring keys its cache of proxy classes on this text, and
+   * which methods match depends only on the method and the class.
    */
   @Override
   public String toString() {
