@@ -1,6 +1,20 @@
 = Testing
 :description: How to test business rules and the code around them in a Spring Boot application: a rule on its own, a rule against the database, and the web layer.
 
+== Test dependencies
+
+Spring Boot 4 puts the test slices of each module in a test starter of its own, such as these for the slices of this page:
+
+[source,kotlin]
+----
+testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
+testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+----
+
+The last one brings `@WithMockUser`, which the test of the web layer uses for its caller.
+The slices moved to packages of those modules, as the imports of the examples show.
+
 == A rule on its own
 
 A rule is a plain object, and a test that needs nothing of Spring creates it and calls `check`, as xref:core/rules.adoc#_testing_a_rule[Testing a rule] shows.
@@ -8,6 +22,11 @@ A rule is a plain object, and a test that needs nothing of Spring creates it and
 == A rule against the database
 
 A rule that queries the database is tested against it, with a slice of the application that has the database and the repository, and no web layer:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleNameUniqueTest.java[tag=jdbc-test-imports,indent=0]
+----
 
 [source,java]
 ----
@@ -23,6 +42,11 @@ A test of a controller makes the mocked service throw the violation it wants to 
 
 [source,java]
 ----
+include::example$spring-boot-test/java/example/spring/VehicleControllerTest.java[tag=web-mvc-test-imports,indent=0]
+----
+
+[source,java]
+----
 include::example$spring-boot-test/java/example/spring/VehicleControllerTest.java[tag=web-mvc-test,indent=0]
 ----
 
@@ -31,3 +55,7 @@ The answer is the one a client gets, with its message from the message source of
 == The whole application
 
 A test that starts the whole application, such as with `@SpringBootTest`, checks the rules as production does: the example itself starts, calls its own endpoints over HTTP, and compares the answers with those this guide shows.
+
+== The starter's configuration
+
+A test of how the application configures the starter, such as with `muster.self-invocation`, needs neither a database nor a web layer: Spring Boot's `ApplicationContextRunner` starts a context with `AutoConfigurations.of(MusterAutoConfiguration.class)` and the beans of the test, and asserts that it starts, or fails with the message the application would.

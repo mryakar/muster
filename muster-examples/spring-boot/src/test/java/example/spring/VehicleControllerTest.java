@@ -15,6 +15,7 @@
  */
 package example.spring;
 
+// tag::web-mvc-test-imports[]
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -33,6 +34,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+// end::web-mvc-test-imports[]
 
 // tag::web-mvc-test[]
 /** The slice has the starter's answer to violations and its messages, but no rules: none runs. */
