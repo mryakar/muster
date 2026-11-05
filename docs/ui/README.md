@@ -16,5 +16,8 @@ curl -sSL -o docs/ui/ui-bundle.zip \
 sha256sum docs/ui/ui-bundle.zip
 ```
 
-The header of the UI is replaced by `../supplemental-ui/partials/header-content.hbs`, which links
-to the repository instead of the placeholder menu.
+`../supplemental-ui` replaces three files of the UI: the header (`partials/header-content.hbs`:
+links to the repository, its releases, Maven Central and the same page in the other language, whose
+URL the helper `helpers/other-language.js` gives), the article (`partials/article.hbs`: a note at
+the top of each page of a prerelease) and the layout (`layouts/default.hbs`: the language of the
+page).

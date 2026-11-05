@@ -138,4 +138,4 @@ Muster logs through the `System.Logger` named `me.yakar.muster`, which writes to
 
 * At `INFO`, the rules a chain or a binding adds because a listed rule requires them, and the rules it leaves out because they require an excluded one.
 * At `DEBUG`, which `java.util.logging` calls `FINE` and hides unless it is switched on, the rules of each class bound by type, when it is first checked.
-* At `WARNING`, a class that no rule binds to, which usually means that a rule was never registered, and each rule that is switched off.
+* At `WARNING`, a class that no rule binds to, which usually means that a rule was never registered, each rule that is switched off, and, on its first collection, a rule that checks the elements one by one because it does not override `checkAll`, as xref:core/collections.adoc[] describes.
