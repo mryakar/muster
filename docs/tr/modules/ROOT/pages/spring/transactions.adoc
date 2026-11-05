@@ -21,6 +21,7 @@ include::example$spring-boot/resources/schema.sql[tag=schema,indent=0]
 
 Olağan durumu kural, anlaşılır bir ihlalle; nadir görülen yarış durumunu (race condition) ise kısıt, bir hatayla cevaplar.
 
+[#_after_method_validation]
 == Metot doğrulamasından sonra
 
 Bir komutun kısıtları (constraint), örneğin adın boş bırakılamaması, komutun kurallarından önce ve transaction'ı başlamadan önce kontrol edilir:

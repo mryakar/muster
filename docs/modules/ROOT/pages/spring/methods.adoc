@@ -34,6 +34,10 @@ A method that takes a collection of rule targets checks the rules of each elemen
 include::example$spring-boot/java/example/spring/VehicleService.java[tag=create-all,indent=0]
 ----
 
+Bean Validation checks each element before the rules run: `@NotNull` rejects a missing element with a `ConstraintViolationException`, which the example answers with 400, as xref:spring/transactions.adoc#_after_method_validation[After method validation] shows.
+Without it, the rules would fail on the element with a `NullPointerException`, a server error.
+An empty collection runs no rule, not even one the method lists; `@NotEmpty` on the parameter rejects it.
+
 The limit on the number of vehicles is listed so that it runs before any rule queries the database.
 It is a rule of the whole collection, and takes the limit from the configuration of the application, as any bean can:
 

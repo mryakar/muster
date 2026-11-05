@@ -95,6 +95,8 @@ public class Application {
       expectMessage(
           post("/vehicles/batch", "ece", TURKISH, batch("Boreas", "Zephyr", "Sirocco", "Mistral")),
           "Bir seferde en fazla 3 araç");
+      // A missing element is rejected before the rules run.
+      expect(post("/vehicles/batch", "ece", TURKISH, "[null]"), 400);
       expect(post("/vehicles/batch", "ece", TURKISH, batch("Boreas", "Zephyr")), 200);
 
       // A call through the bean, not through this, checks the rules of the method it calls.
