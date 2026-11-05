@@ -157,6 +157,12 @@ jobs:
           # The whole history, with the tags: the site has a version for each release.
           fetch-depth: 0
           persist-credentials: false
+      # JDK 21 and Gradle for the Javadoc of the checked-out commit.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -169,9 +175,13 @@ jobs:
       - name: Check that a snapshot marks the documentation as a prerelease
         run: |
           version="$(sed -n 's/^version=//p' gradle.properties)"
-          if [[ "$version" == *-SNAPSHOT ]] && ! grep -q '^prerelease: true$' docs/antora.yml; then
-            echo "$version: the snapshot commit puts the prerelease key back in docs/antora.yml" >&2
-            exit 1
+          if [[ "$version" == *-SNAPSHOT ]]; then
+            for component in docs/antora.yml docs/tr/antora.yml; do
+              if ! grep -q '^prerelease: true$' "$component"; then
+                echo "$version: the snapshot commit puts the prerelease key back in $component" >&2
+                exit 1
+              fi
+            done
           fi
       # A warning, such as a broken cross reference, fails the build. No package runs scripts when
       # it is installed: none needs to, and the build then runs only the code it means to.
@@ -180,3 +190,8 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm run build
+      # As the Pages workflow does, so that a change which breaks it fails here first.
+      - name: Add the Javadoc of each version
+        run: .github/scripts/javadoc-site.sh docs/build/site
+        env:
+          GH_TOKEN: ${{ github.token }}

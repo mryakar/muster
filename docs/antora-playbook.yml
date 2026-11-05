@@ -12,6 +12,8 @@ site:
   title: Muster
   url: https://mryakar.github.io/muster
   start_page: muster::index.adoc
+  # A robots.txt that allows every crawler; the sitemap comes from the url of the site.
+  robots: allow
 content:
   sources:
     - url: ..
