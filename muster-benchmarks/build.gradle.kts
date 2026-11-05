@@ -155,7 +155,7 @@ tasks.register<JavaExec>("jmhReport") {
   description = "Publishes the medians of the last JMH run to docs/benchmarks, with a chart."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
-  mainClass = "me.yakar.muster.benchmark.report.ResultsChart"
+  mainClass = "me.yakar.muster.benchmark.report.PublishResults"
   val results = jmhResults
   val docs = layout.settingsDirectory.dir("docs/benchmarks")
   inputs.file(results)

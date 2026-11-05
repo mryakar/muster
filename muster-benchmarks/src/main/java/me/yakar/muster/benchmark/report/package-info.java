@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /**
- * {@link ResultsChart}, which publishes the results of a JMH run of the benchmarks to
- * docs/benchmarks: a copy of them, a summary of their medians, and a chart.
+ * {@link PublishResults}, which publishes the results of a JMH run of the benchmarks to
+ * docs/benchmarks: a copy of them, the summaries of their medians, and a chart.
  */
 @NullMarked
 package me.yakar.muster.benchmark.report;

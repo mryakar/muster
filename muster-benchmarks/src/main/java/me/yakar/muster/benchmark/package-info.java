@@ -15,7 +15,7 @@
  */
 /**
  * JMH benchmarks of what Muster adds to a call, with and without Spring, against the same rules
- * called by hand.
+ * called by hand, and of what the starter adds to the startup of an application.
  */
 @NullMarked
 package me.yakar.muster.benchmark;
