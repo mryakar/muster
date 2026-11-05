@@ -16,7 +16,7 @@ Böyle bir metodun işini yapabilmesi için önce birkaç şeyin doğru olması 
 
 Bunlar *iş kurallarıdır* (business rules): programlama dilinden değil, işin kendisinden gelirler ve çoğunu cevaplamak için veritabanı gerekir.
 
-Bir kütüphane olmadan her metot, asıl işi yapan satırdan önce bu kontrollerle, art arda dizilmiş `if`'lerle başlar.
+Bir kütüphane olmadan her metot, asıl işi yapan satırdan önce bu kontrollerle, art arda dizilmiş `if`’lerle başlar.
 Tek bir metot için bu işe yarar.
 Bir yıl sonra aynı kontrol üç metoda kopyalanmış, dördüncüsünde unutulmuştur ve bir metodun gerçekte ne yaptığını kimse bir bakışta göremez.
 

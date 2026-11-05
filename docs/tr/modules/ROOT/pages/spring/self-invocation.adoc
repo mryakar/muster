@@ -1,4 +1,5 @@
 = `this` üzerinden çağrılar
+:navtitle: this üzerinden çağrılar
 :description: Bir Spring Boot uygulamasında this üzerinden yapılan bir çağrının neden hiçbir kuralı kontrol etmediği, starter'ın bu çağrıları uygulama başlarken nasıl bulduğu ve bir metodun kendi bean'i üzerinden nasıl çağrılacağı.
 
 Bir servis metodu kurallarını, Spring'in bean'in etrafına koyduğu proxy içinde kontrol eder.
@@ -15,7 +16,7 @@ Düzeltilmekte olan bir uygulama için `muster.self-invocation=warn`, uygulamay�
 == Bean üzerinden çağırmak
 
 Bir aracı plakasıyla adlandırmak bir yeniden adlandırmadır ve yeniden adlandırmanın kurallarına tabidir.
-Servis kendi `rename` metodunu, bir `ObjectProvider`'dan aldığı kendi bean'i üzerinden çağırır:
+Servis kendi `rename` metodunu, bir `ObjectProvider`’dan aldığı kendi bean'i üzerinden çağırır:
 
 [source,java]
 ----

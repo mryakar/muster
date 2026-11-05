@@ -11,7 +11,7 @@ Herhangi bir kural herhangi bir araçta sorun bulursa araçların hiçbiri oluş
 include::example$plain-java/java/example/plain/Main.java[tag=check-all,indent=0]
 ----
 
-`checkAll`, elemanların sınıfı için, `check`'in tek bir eleman için çalıştırdığı kuralları ve bütün koleksiyonun kurallarını çalıştırır.
+`checkAll`, elemanların sınıfı için, `check`’in tek bir eleman için çalıştırdığı kuralları ve bütün koleksiyonun kurallarını çalıştırır.
 Zincirin ve bağlamanın da bir `checkAll` metodu vardır; tek bir eleman için çalıştıracakları kuralları çalıştırır.
 Servis birçok aracı bir koleksiyon bağlaması (collection binding) üzerinden oluşturur.
 Bu bağlama, araçların sayısına konan sınırı da listeler; böylece bu sınır, herhangi bir kural araçları sorgulamadan önce çalışır:
@@ -45,9 +45,9 @@ Tek bir sorgu, alınmış adları bulur.
 Aynı döngü, aynı ada sahip iki yeni aracı da bulur; bunu tek bir aracın hiçbir kontrolü göremez.
 `ctx.element(i)`, listenin `i` indeksindeki girdinin bağlamıdır: bu bağlamdan oluşturulan bir ihlalin hedefinin önüne o aracın konumu eklenir.
 Liste yalnızca bu kuralın gerektirdiği kurallardan geçmiş elemanları tutar; bu yüzden listedeki bir indeks ile koleksiyondaki bir konum farklı olabilir; ikisini bağlam eşler.
-Doğrudan `ctx`'ten oluşturulan bir ihlal ise çağrının bütünüyle ilgilidir; bu durumda bu kuralı gerektiren kurallar elemanların hiçbirini kontrol etmez.
+Doğrudan `ctx`’ten oluşturulan bir ihlal ise çağrının bütünüyle ilgilidir; bu durumda bu kuralı gerektiren kurallar elemanların hiçbirini kontrol etmez.
 
-`checkAll`'ı override etmeyen bir kural elemanları tek tek kontrol eder ve ilk hatada durma (fail-fast) kipinde reddettiği ilk elemanda durur.
+`checkAll`’ı override etmeyen bir kural elemanları tek tek kontrol eder ve ilk hatada durma (fail-fast) kipinde reddettiği ilk elemanda durur.
 Muster bu durum için bir kez uyarır, çünkü override'ın var olma nedeni, eleman başına bir sorgudan kaçınmaktır.
 Plaka biçimini kontrol etmenin araç başına bir maliyeti yoktur; bu yüzden bu kural tek tek kontrolü bilerek korur ve bunu açıkça belirtir:
 

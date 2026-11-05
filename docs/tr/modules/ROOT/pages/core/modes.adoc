@@ -17,9 +17,9 @@ include::example$plain-java/java/example/plain/Main.java[tag=collect-all,indent=
 ----
 
 `withMode`, çağrıldığı zinciri olduğu gibi bırakır ve hepsini toplayan ikinci bir zincir döndürür.
-link:{javadoc-core}/Muster.html[`Muster`]'ın builder'ı her kontrolün kipini `mode` ile belirler.
+link:{javadoc-core}/Muster.html[`Muster`]’ın builder'ı her kontrolün kipini `mode` ile belirler.
 Bir bağlamanın ise kendi builder'ında belirlenen kendi kipi vardır; xref:core/checking.adoc#_rules_of_a_type[Bir türün kuralları] bölümündeki yeniden adlandırma bağlamasında olduğu gibi.
-Bir kural hedefinin türüne göre yapılan tek bir kontrolde de kip, `check`'e ikinci argüman olarak verilebilir.
+Bir kural hedefinin türüne göre yapılan tek bir kontrolde de kip, `check`’e ikinci argüman olarak verilebilir.
 
 Uygulanmadığı için ya da gerektirdiği bir kural takıldığı için atlanan bir kural, ilk hatada durma kipindeki bir kontrolü bitirmez: sıradaki kural çalışır.
 İlk hatada durma kipindeki bir kontrolün hangi ihlali bildireceği kuralların sırasına bağlıdır; bu sırayı xref:core/checking.adoc#_the_order_of_rules[Girdileri kontrol etmek] anlatır.

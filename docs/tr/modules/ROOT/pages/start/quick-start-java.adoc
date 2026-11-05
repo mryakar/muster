@@ -8,11 +8,11 @@ Burada kullanılan her kelimeyi xref:start/concepts.adoc[] açıklar.
 
 Program bir üyelik işlemidir: yeni bir kullanıcı bir kullanıcı adı ve yaşını gönderir, iki kural da onun üye olup olamayacağına karar verir.
 Bu sayfadaki her örnek, Muster'ın her derlemesinde çalışan bir örnek programın parçasıdır; Muster bu sayfada söylendiği gibi cevap vermezse o program hata verir.
-Örneklerde import satırları yok: bir kuralın türleri `me.yakar.muster.rule` paketinde, `Muster` ve exception'ı `me.yakar.muster`'da, `MessageResolver` da `me.yakar.muster.spi`'dadır.
+Örneklerde import satırları yok: bir kuralın türleri `me.yakar.muster.rule` paketinde, `Muster` ve exception'ı `me.yakar.muster`’da, `MessageResolver` da `me.yakar.muster.spi`’dadır.
 
 == Adım 1: Muster'ı ekleyin
 
-Muster'ın core modülünü derlemenize ekleyin: Muster modüllerinin sürümlerini birbirine uygun tutan BOM'u ve sürüm yazmadan `muster-core`'u.
+Muster'ın core modülünü derlemenize ekleyin: Muster modüllerinin sürümlerini birbirine uygun tutan BOM'u ve sürüm yazmadan `muster-core`’u.
 Gradle ile:
 
 [source,kotlin,subs="+attributes"]
@@ -74,7 +74,7 @@ Bir HTTP uygulaması buna 409 durum koduyla cevap verir; xref:core/errors.adoc[]
 
 == Adım 4: Muster'ı oluşturun
 
-Program başlarken kuralları bir kez oluşturup link:{javadoc-core}/Muster.html[`Muster`]'ın builder'ına verin:
+Program başlarken kuralları bir kez oluşturup link:{javadoc-core}/Muster.html[`Muster`]’ın builder'ına verin:
 
 [source,java]
 ----
@@ -107,7 +107,7 @@ include::example$plain-java/java/example/plain/quickstart/QuickStart.java[tag=tr
 İhlal, hangi kuralın takıldığını (`signup.username-free`), hangi alanın düzeltileceğini (`username`) ve bir mesajın ihtiyaç duyduğu değeri (`ece`) söyler.
 * 16 yaşındaki Deniz çok küçüktür: `signup.adult`.
 
-Gerçek bir servis metodunda `muster.check(command)`'ı metodun ilk satırı olarak çağırırsınız ve exception'ın kullanıcıya cevap veren koda kadar yukarı çıkmasına izin verirsiniz; kontrolden sonraki satır yalnızca her kural geçtiğinde çalışır.
+Gerçek bir servis metodunda `muster.check(command)`’ı metodun ilk satırı olarak çağırırsınız ve exception'ın kullanıcıya cevap veren koda kadar yukarı çıkmasına izin verirsiniz; kontrolden sonraki satır yalnızca her kural geçtiğinde çalışır.
 
 == Adım 6: kullanıcıya bildirin
 
@@ -125,7 +125,7 @@ include::example$plain-java/resources/example/plain/quickstart/messages.properti
 include::example$plain-java/resources/example/plain/quickstart/messages_tr.properties[tag=messages]
 ----
 
-Bu dosyaları bir mesaj çözümleyici, link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] okur; `ResourceBundle.getBundle`'a verdiği ad, dosyaların noktalarla yazılmış ve dil eki olmayan yoludur:
+Bu dosyaları bir mesaj çözümleyici, link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] okur; `ResourceBundle.getBundle`’a verdiği ad, dosyaların noktalarla yazılmış ve dil eki olmayan yoludur:
 
 [source,java]
 ----
@@ -146,5 +146,5 @@ Bütün döngü bu kadar: bir girdi, ona bakan kurallar, hatalı bir girdiyi dur
 * xref:core/rules.adoc[], bir kuralın her parçasını ve bir kuralın nasıl test edileceğini açıklar.
 * xref:core/checking.adoc[], hangi kuralların çalışacağını seçmenin diğer yollarını gösterir: zincirler, bağlamalar ve başka kuralları gerektiren kurallar.
 * xref:core/modes.adoc[], ilk ihlal yerine bütün ihlallerin nasıl bir kerede bildirileceğini gösterir.
-* xref:start/quick-start-spring.adoc[], bütün bunları `check`'i kendiniz çağırmadığınız bir Spring Boot uygulamasında yapar.
+* xref:start/quick-start-spring.adoc[], bütün bunları `check`’i kendiniz çağırmadığınız bir Spring Boot uygulamasında yapar.
 * xref:start/learning-path.adoc[], basitten ileri düzeye her kılavuzu listeler.

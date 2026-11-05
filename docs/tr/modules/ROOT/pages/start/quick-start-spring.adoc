@@ -13,7 +13,7 @@ Bu uygulama Muster'ın her derlemesinde çalışır, kendini HTTP üzerinden ça
 
 == Adım 1: starter'ı ekleyin
 
-xref:index.adoc#_installation[Ana sayfada] gösterildiği gibi, Muster'ın Spring Boot starter'ını derlemenize ekleyin: BOM'u ve sürüm yazmadan `muster-spring-boot-starter`'ı.
+xref:index.adoc#_installation[Ana sayfada] gösterildiği gibi, Muster'ın Spring Boot starter'ını derlemenize ekleyin: BOM'u ve sürüm yazmadan `muster-spring-boot-starter`’ı.
 Yapılandırılacak hiçbir şey yoktur: starter kendiliğinden devreye girer.
 
 == Adım 2: kuralı yazın
@@ -28,7 +28,7 @@ Yukarıdan aşağıya okuyun:
 * link:{javadoc-core}/rule/Rule.html[`@Rule(id = "vehicle.name-unique")`] kurala kimliğini verir; istemci bu kimliği ihlalin kodu olarak alır.
 * link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`] kuralın hangi girdiyi kontrol ettiğini söyler: bir aracın alanlarını taşıyan her şeyi.
 * Starter, Spring Boot'un entity'leri bulduğu gibi, kural sınıflarını da uygulamanızın paketlerinde bulur ve her birini bir bean olarak oluşturur.
-Bu yüzden kuralın `@Component`'e ihtiyacı yoktur ve repository'yi de diğer her bean gibi constructor'ından alır.
+Bu yüzden kuralın `@Component`’e ihtiyacı yoktur ve repository'yi de diğer her bean gibi constructor'ından alır.
 * `check` repository'ye sorar ve ya `passed()` ile ya da bir ihlalle cevap verir; ihlal alanı (`name`), bir mesajın ihtiyaç duyduğu değeri ve sorunun türünü söyler: HTTP 409 durum koduna dönüşen link:{javadoc-core}/rule/Category.html[`CONFLICT`].
 
 Her singleton bean gibi, kuralın tek bir nesnesi bütün thread'lerden gelen her çağrıya hizmet eder.
@@ -37,8 +37,8 @@ Son güvence tablonun unique kısıtı olarak kalır; xref:spring/transactions.a
 
 == Adım 3: komutu işaretleyin ve servisi yazın
 
-Kural, bir araçla ilgili her komutun taşıdığı alanları, yani `VehicleFields`'ı kontrol eder.
-`VehicleFields`, kuralların bir türe bağlanmasını sağlayan işaret arayüzü link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]'ı genişletir:
+Kural, bir araçla ilgili her komutun taşıdığı alanları, yani `VehicleFields`’ı kontrol eder.
+`VehicleFields`, kuralların bir türe bağlanmasını sağlayan işaret arayüzü link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]’ı genişletir:
 
 [source,java]
 ----
@@ -62,7 +62,7 @@ include::example$spring-boot/java/example/spring/VehicleService.java[tag=service
 
 İçinde Muster'a hiçbir çağrı yoktur.
 Burada gösterilmeyen constructor repository'yi alır; `owner()` oturum açmış kullanıcıyı Spring Security'den okur: bu örneğin kendi tercihidir, Muster'ın buna ihtiyacı yoktur.
-Bir `@Service`'in kural hedefi alan her public metodu, o hedefin kurallarını *ilk satırından önce* ve *kendi transaction'ının içinde* çalıştırır.
+Bir `@Service`’in kural hedefi alan her public metodu, o hedefin kurallarını *ilk satırından önce* ve *kendi transaction'ının içinde* çalıştırır.
 Bir kural takılırsa metot çalışmaz ve hiçbir şey yazılmaz.
 İleride araçlar için bir kural eklemek bir sınıf eklemek demektir; servise tek bir satır bile eklenmez.
 
@@ -80,7 +80,7 @@ include::example$spring-boot/java/example/spring/VehicleController.java[tag=crea
 
 Bir ihlal hiçbir metin taşımaz.
 Starter mesajı uygulamanızın message source'undan yazar.
-Message source varsayılan olarak `messages.properties`'i ve her dil için bir dosyayı okur; anahtar ihlalin kodudur:
+Message source varsayılan olarak `messages.properties`’i ve her dil için bir dosyayı okur; anahtar ihlalin kodudur:
 
 [source,properties]
 ----

@@ -4,7 +4,7 @@ include::partial$javadoc.adoc[]
 
 == Gözlemler
 
-Uygulamanın bir `ObservationRegistry`'si olduğunda, örneğin Spring Boot actuator kullanan bir uygulamada olduğu gibi, her kontrol Micrometer Observation ile gözlemlenir; uygulamanın zaten topladığı zamanlayıcılar (timer), izler (trace) ya da loglar Muster'ın kontrollerini ve kurallarını da kapsar.
+Uygulamanın bir `ObservationRegistry`’si olduğunda, örneğin Spring Boot actuator kullanan bir uygulamada olduğu gibi, her kontrol Micrometer Observation ile gözlemlenir; uygulamanın zaten topladığı zamanlayıcılar (timer), izler (trace) ya da loglar Muster'ın kontrollerini ve kurallarını da kapsar.
 Örnek uygulama bunları göstermek için metrics uç noktasını dışarı açar:
 
 [source,properties]
@@ -19,7 +19,7 @@ Bir hata kendi exception'ını taşır; ihlal ise bir hata değildir.
 
 Her gözlem, çalıştığı süre boyunca kapsam (scope) içinde kalır; böylece bir kuralın çağırdığı şey, uygulama onu gözlemliyorsa, kuralın altında görünür, örneğin uygulamanın gözlemlediği bir repository.
 Hiçbir etiket bir kod, hedef ya da argüman taşımaz; taşısaydı her çağrı kendi başına ayrı bir seri olurdu.
-Adlar ve etiketler sabittir; registry'de `muster.check`'i dışarıda bırakan bir `ObservationPredicate`, kontrolü bütünüyle dışarıda bırakır.
+Adlar ve etiketler sabittir; registry'de `muster.check`’i dışarıda bırakan bir `ObservationPredicate`, kontrolü bütünüyle dışarıda bırakır.
 
 == Actuator uç noktası
 

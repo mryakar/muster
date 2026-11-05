@@ -11,5 +11,5 @@ Native image'da, `this` üzerinden çağrıları arayan taramanın okuyacağı c
 * *Farklı sınıflardan elemanlar.* Bir çağrıdaki kural hedefleri tek bir sınıftan olmalıdır, çünkü kurallar sınıfa bağlanır; kural hedefi olmayan elemanlarla da karıştırılamazlar.
 Bu iki koşuldan birini bozan bir çağrı `IllegalArgumentException` ile başarısız olur.
 * *Koleksiyonların koleksiyonları.* Elemanları kendileri de koleksiyon olan bir koleksiyonda, `Collection<?>` için yazılmış bir kural her zaman koleksiyonun bütününe ait bir kuraldır.
-* *WebFlux.* Starter çağıranı thread'in güvenlik bağlamından, yerel ayarı ise `LocaleContextHolder`'dan okur; bir WebFlux uygulaması bunları doldurmaz, bu yüzden kuralları çağıranı göremez ve JVM'in varsayılan yerel ayarını görür.
+* *WebFlux.* Starter çağıranı thread'in güvenlik bağlamından, yerel ayarı ise `LocaleContextHolder`’dan okur; bir WebFlux uygulaması bunları doldurmaz, bu yüzden kuralları çağıranı göremez ve JVM'in varsayılan yerel ayarını görür.
 Problem details yalnızca Spring MVC'de yazılır; bu yüzden bir WebFlux uygulaması exception'ı kendisi cevaplamalıdır, yoksa istemci bir sunucu hatası alır.

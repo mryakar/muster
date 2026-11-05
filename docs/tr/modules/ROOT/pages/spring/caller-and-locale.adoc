@@ -18,7 +18,7 @@ Starter güvenlik bağlamını (security context), varsa uygulamanın `SecurityC
 
 == Yerel ayar
 
-Yerel ayar (locale), isteğin yerel ayarıdır ve `LocaleContextHolder`'dan okunur.
+Yerel ayar (locale), isteğin yerel ayarıdır ve `LocaleContextHolder`’dan okunur.
 Uygulama onu başka türlü çözmüyorsa, Spring MVC bu değeri `Accept-Language` başlığından doldurur.
 Plakanın biçimi, o yerel ayarın bölgesine (region) göre belirlenir:
 
@@ -36,4 +36,4 @@ Yerel ayarın ne için olduğunu ve ne için olmadığını, Spring'siz kılavuz
 
 Uygulamanın tanımladığı bir `Supplier<Principal>` bean'i çağıranın nereden geldiğini, bir `Supplier<Locale>` bean'i de yerel ayarın nereden geldiğini değiştirir; bu, örneğin kullanıcılarının oturumunu Spring Security olmadan açan bir uygulama için işe yarar.
 Bean'in türü tam olarak belirtilmelidir, örneğin `Supplier<Locale>`: ham (raw) bir `Supplier` hiçbirinin yerini almaz.
-Sağlayıcıyı her istek thread'i çağırır; bu yüzden sağlayıcı, bir isteğin başka bir istek için üzerine yazabileceği bir alanı değil, isteğe özgü durumu, örneğin bir `ThreadLocal`'ın tuttuğu değeri okur.
+Sağlayıcıyı her istek thread'i çağırır; bu yüzden sağlayıcı, bir isteğin başka bir istek için üzerine yazabileceği bir alanı değil, isteğe özgü durumu, örneğin bir `ThreadLocal`’ın tuttuğu değeri okur.
