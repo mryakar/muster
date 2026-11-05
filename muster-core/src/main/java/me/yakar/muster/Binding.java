@@ -51,7 +51,7 @@ public final class Binding<I> {
     this.inputType = inputType;
     this.selection = selection;
     this.mode = mode;
-    this.chains = ClassChains.forType(inputType, this::bind);
+    this.chains = ClassChains.forType(inputType, type -> muster.bind(type, selection, mode));
   }
 
   /**
@@ -127,10 +127,6 @@ public final class Binding<I> {
         + ", "
         + selection.describe(muster.catalog())
         + "]";
-  }
-
-  private ClassChains.Bound bind(Class<?> type) {
-    return muster.bind(type, selection, mode);
   }
 
   /**
