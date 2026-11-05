@@ -170,15 +170,8 @@ contain only related changes. CI checks every commit message in a pull request;
 ## Releases
 
 The maintainer releases a version from a `vX.Y.Z` tag; the release workflow uploads it to Maven
-Central and publishes it on GitHub. The release commit sets the version in `gradle.properties`,
-dates the section of the version in `CHANGELOG.md`, and releases the documentation: it drops the
-`prerelease` key of `docs/antora.yml` and `docs/tr/antora.yml` and sets `muster-version` in both.
-The commit that starts the next version puts the key back in both. Once Maven Central serves the
-release, it also sets `apiBaseline` in `gradle.properties` to the release and writes the checksums
-of its jars into the verification metadata, since the build compares the API with them. A
-pre-release, such as `1.0.0-rc.1`, has no version on the site and changes neither the documentation
-keys nor `apiBaseline`.
-[SECURITY.md](SECURITY.md#verifying-a-release) says how to verify a release.
+Central and publishes it on GitHub. [SECURITY.md](SECURITY.md#verifying-a-release) says how to
+verify a release.
 
 To check what a build would publish, publish it to the local repository and run the examples in
 `muster-examples`, which use Muster the way applications do: one without Spring, on the module path,
