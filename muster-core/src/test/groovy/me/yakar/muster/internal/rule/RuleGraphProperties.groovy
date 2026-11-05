@@ -106,7 +106,7 @@ class RuleGraphProperties {
     runAfterRequired = { Class<?> ruleClass ->
       if (!run.contains(ruleClass)) {
         byClass[ruleClass].requires()
-            .sort(false) { a, b ->
+            .toSorted { a, b ->
               position(a) <=> position(b) ?: byClass[a].id() <=> byClass[b].id()
             }
             .each { runAfterRequired(it) }
