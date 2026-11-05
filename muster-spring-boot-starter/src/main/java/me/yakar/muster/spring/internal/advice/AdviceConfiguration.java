@@ -56,7 +56,7 @@ public final class AdviceConfiguration {
         transactions,
         Settings.selfInvocation(environment)
             // Not when GraalVM's tracing agent runs the application on the JVM, with class files.
-            .inNativeImage(NativeDetector.inNativeImage(NativeDetector.Context.RUN)));
+            .scanning(NativeDetector.inNativeImage(NativeDetector.Context.RUN)));
   }
 
   // Infrastructure, so that the proxy creator that transaction management registers applies it.

@@ -15,7 +15,6 @@
  */
 package me.yakar.muster.spring.internal.actuator;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,14 +56,10 @@ public final class MusterEndpoint {
   @ReadOperation
   public Report rules() {
     var muster = this.muster.getObject();
-    var methods = new ArrayList<Report.Method>();
-    for (var advised : table.advised()) {
-      methods.add(Report.Method.of(advised));
-    }
     return new Report(
         muster.mode(),
         List.copyOf(muster.disabledRuleIds()),
-        Collections.unmodifiableList(methods),
+        table.advised().stream().map(Report.Method::of).toList(),
         byName(muster.boundRuleIds()),
         byName(muster.collectionRuleIds()));
   }
