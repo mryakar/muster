@@ -1,0 +1,200 @@
+= Benchmark'lar
+:description: Muster'ın bir çağrıya ve bir uygulamanın açılışına ne kadar zaman ve bellek eklediği (JMH ile ölçülmüştür) ve bir değişikliğin uyması gereken bütçe.
+
+Muster'ın ne kadar zaman ve bellek harcadığı; JDK'nın kendi geliştiricilerinin benchmark aracı olan https://github.com/openjdk/jmh[JMH] ile ölçülmüştür.
+Benchmark'lar, yayımlanmayan https://github.com/mryakar/muster/tree/main/muster-benchmarks[`muster-benchmarks`] modülündedir.
+
+image::{page-component-version}@muster:ROOT:benchmarks/check-cost-light.svg["Geçen bir kontrolün kural sayısına göre süresi. 20 kuralla RuleChain.check 391 ns, muster.check(target) 398 ns sürer; aynı kuralları elle çağırmak ise 268 ns."]
+
+== Kısaca
+
+Bu sayfanın yalnızca bir bölümünü okuyacaksanız bunu okuyun.
+Sayılar sabit ve düşük bir hızda çalışan eski bir dizüstü bilgisayardan (2013) gelir; bu yüzden modern bir makine daha hızlıdır; önemli olan, sayıların birbiriyle nasıl karşılaştırıldığıdır.
+
+* *Bir kontrol, kurallarınızı kendiniz çağırmaktan biraz daha pahalıdır.*
+20 kuralla Muster, zaten yaklaşık 0,27 mikrosaniye (µs) süren bir çağrıya yaklaşık 0,12 µs ekler.
+Tek bir veritabanı sorgusu yüzlerce kat daha uzun sürer; bu yüzden bir uygulamada fark görünmez.
+* *Spring Boot ile bir servis metodu yaklaşık 0,13 µs daha fazla öder*; bunun çoğu, Spring'in servisin etrafına koyduğu proxy içindir.
+Yaklaşık on katı kadar tutan bir transaction'ın yanında starter, onun onda birinden azını ekler, çünkü transaction'ın da proxy'ye ihtiyacı vardır.
+* *Bir listeyi tek çağrıda kontrol etmek, beş elemandan itibaren elemanlarını tek tek kontrol etmekten daha ucuzdur:* 5 eleman yaklaşık %7, 100 eleman yaklaşık %27 daha az tutar.
+Tek elemanlı bir liste, elemanın bir kontrolünün yaklaşık bir buçuk katı tutar.
+* *Starter bir uygulamanın daha yavaş açılmasına yol açar:* metotlarını kontrol ettiği 100 servisle yaklaşık 0,27 saniye, 1.000 servisle 0,7 saniye daha uzun; bu, servislerin proxy'lerinin maliyetinin üstüne eklenir.
+Proxy'ler bundan daha pahalıdır ve Spring, servislerinde transaction ya da metot güvenliği (method security) kullanan bir uygulama için onları zaten oluşturur.
+Henüz proxy'si olmayan servisler için starter, proxy'ler dâhil, 100 servisle yaklaşık 0,94 saniye, 1.000 servisle 4,4 saniye ekler.
+
+== Bu sayfadaki kelimeler
+
+* *ns* bir nanosaniyedir, saniyenin milyarda biri; *µs* bir mikrosaniye, bin ns; *ms* bir milisaniye, bir milyon ns.
+*B*, bir çağrının ayırdığı ve çöp toplayıcının (garbage collector) daha sonra yeniden serbest bıraktığı bir bayt bellektir; *MB* bir milyon bayt.
+* *Elle* (by hand), temel çizgidir (baseline): aynı kuralların, araya Muster girmeden doğrudan Java kodundan çağrılması.
+Muster'ın _eklediği_, ona göre olan farktır.
+* *Fork*, bir benchmark'ın yeni bir JVM'de bir kez çalıştırılmasıdır.
+Her benchmark birkaç fork'ta çalışır, çünkü JVM'in içindeki derleyici olan JIT, aynı kodu her seferinde aynı şekilde derlemez.
+* *Medyan*, ortadaki değerdir: fork'ların sonuçları sıralanır ve ortadaki yayımlanır.
+Olağandışı yavaş tek bir fork onu belirleyemez.
+Her hücre medyanı, ardından parantez içinde fork'ların aralığını verir; <<outliers,medyandan uzak>> bir fork bu aralığa girmez.
+* *Proxy*, Spring'in uygulama açılırken bir servisin yerine koyduğu ve o sırada ürettiği bir sınıftan olan nesnedir; böylece servisin metotlarının her çağrısının etrafında kod çalıştırabilir: *advice*.
+Starter'ın advice'ı metodun kurallarını kontrol eder.
+
+== Bütçe
+
+Muster bir zincirin kurallarını bir kez kontrol eder ve sıralar: zincir oluşturulduğunda, `muster.check(target)` için ise her girdi sınıfının ilk kontrolünde.
+Kontrol ederken hiç reflection kullanmaz.
+Muster'a yapılan bir değişiklik, aynı makinede ölçüldüğünde bu bütçenin içinde kalmalıdır:
+
+[cols="3,2,2"]
+|===
+| |Ölçülen |Bütçe
+
+|`RuleChain.check`’in sabit maliyeti |yaklaşık 11 ns |en fazla 20 ns
+|`RuleChain.check`’in 20 kuralla eklediği maliyet |yaklaşık 123 ns |en fazla 150 ns
+|`muster.check(target)`’in sabit maliyeti |yaklaşık 20 ns |en fazla 35 ns
+|`muster.check(target)`’in 20 kuralla eklediği maliyet |yaklaşık 130 ns |en fazla 235 ns
+|Bir kontrolün ayırdığı bellek |kural başına 24 bayt, artı en fazla 40 |kural başına en fazla 24 bayt, artı 48
+|Aynı bağlamayı elle çağırmaya göre Spring Boot starter'ının sabit maliyeti |yaklaşık 129 ns ve 96 bayt |en fazla 200 ns ve 128 bayt
+|Starter'ın, kontrol edilen 100 servisi olan bir uygulamanın açılışına proxy'lerin üstüne eklediği süre |yaklaşık 265 ms |en fazla 400 ms
+|Starter'ın, kontrol edilen 1.000 servisi olan bir uygulamanın açılışına proxy'lerin üstüne eklediği süre |yaklaşık 698 ms |en fazla 1.050 ms
+|===
+
+`muster.checkAll`’un bir bütçesi değil bir hedefi vardır: bir ila beş elemanla, her elemanı `muster.check` ile kontrol etmenin en fazla iki katı süre.
+Tek elemanla 1,56 kat sürer; beş elemandan itibaren de her birini kontrol etmekten daha kısa sürer.
+
+Bir kuralın eklediğinin çoğu, aldığı bağlamdır: her kural 24 baytlık kendi bağlamını alır, çünkü bağlam kuralın kimliğini taşır.
+Geçen bir kontrol için bellek sayıları kesindir; JIT onları değiştirmez.
+
+Starter'ın maliyetinin çoğu Spring AOP'nin kendisinindir: advice'ı hiçbir şey yapmayan bir proxy, aynı şekilde ölçüldüğünde yaklaşık 85 ns sürer; 96 bayt da Spring AOP'nin her çağrı için ayırdığıdır: argümanlar dizisi, bir önbellek anahtarı ve metot çağrısı (method invocation).
+Starter'ın advice'ı ise metodun kurallarını iki map'te arar ve hiçbir şey ayırmaz.
+
+== Sonuçlar
+
+Kurallar neredeyse hiçbir şey yapmaz; böylece sayılar kuralları değil Muster'ı gösterir.
+Bir uygulamada olduğu gibi her kuralın kendi `check` metodu vardır; bu yüzden ona yapılan çağrı sanal (virtual) kalır.
+Her hücre, beş fork'un kontrol başına ortalama süresinin medyanıdır; yanında medyana %10'dan yakın fork'ların aralığı ve fork'ların kontrol başına ayırdığı belleğin medyanı yer alır.
+
+Aşağıdaki tablolar benchmark sonuçlarından otomatik olarak üretilir ve İngilizcedir.
+
+=== Geçen bir kontrol
+
+include::partial$benchmarks/check-passes.adoc[]
+
+Tek kuralla JIT, kurala yapılan çağrıyı satır içine alır (inline) ve bağlamı optimize ederek ortadan kaldırır; bu yüzden kontrol hiçbir şey ayırmaz.
+
+=== Geçemeyen bir kontrol
+
+20 kurallı ve geçemeyen bir kontrol; çağıranın yakalayacağı gibi yakalanır.
+İhlal edilen kurallar eşit aralıklarla dağılmıştır ve son kural her zaman onlardan biridir:
+
+include::partial$benchmarks/check-fails.adoc[]
+
+Varsayılan kip olan `FAIL_FAST` ihlal edilen ilk kuralda durur; bu yüzden beş ihlalli kontrolde yalnızca dört kural çalıştırır.
+`COLLECT_ALL` her kuralı çalıştırır ve her ihlali bildirir.
+Exception'ın stack trace'i yoktur.
+Bu ölçümde geçemeyen bir kontrolün her fork'u aynı miktarı ayırdı; tek istisna <<outliers,aşağıda>> adı geçen yavaş fork'tur, 872 baytla.
+
+Kurallar üzerindeki döngü, JIT'in satır içine alamayacağı kadar büyük, kendi başına bir metottur ve bulduğu ihlalleri döndürür; exception'ı fırlatan küçük metot ise çağırana satır içine alınır ve çağıran, exception'ı bir frame'i geri sarmadan (unwinding) yakalar.
+
+=== Metot güvenliği ve transaction'ın yanında
+
+Starter'ın bir servis metodu üzerindeki advice'ı; aynı diğer advice'lara sahip, aynı kuralları bir bağlamayla elle kontrol eden aynı metoda karşı.
+Metot güvenliği, çağıranın bir rolünü bir `SecurityContext` içinde kontrol eder; transaction manager'ın veritabanı yoktur, böylece sayılar JDBC'yi değil interceptor'ları ve sıralarını gösterir:
+
+include::partial$benchmarks/starter.adoc[]
+
+Metot güvenliğinin yanında starter yaklaşık 35 ile 200 ns arası ekler; bu, tek bir benchmark'ın fork'larının birbirinden farkından fazla değildir.
+Bir transaction'ın yanında yaklaşık 80 ila 90 ns ekler; bu, transaction'ın onda birinden azdır.
+Bellek eklemez: transaction'la iki sütun da aynı miktarı ayırır; metot güvenliğiyle ise bellek, fork'tan fork'a starter'ın ekleyebileceğinden daha fazla değişir.
+Proxy ve Spring AOP'nin her çağrı için ayırdığı 96 bayt zaten oradadır.
+
+Spring Security starter'ın her benchmark'ının class path'indedir ve starter çağıranı her çağrıda oradan okur; bu yüzden diğer advice'lar olmadan elde edilen sayılar 0.2.0'ınkilerle bire bir karşılaştırılamaz; bütçe onları aynı class path üzerinde karşılaştırır.
+
+=== Bir dinleyici
+
+Starter'ın yapılandırdığı bir Muster'ın dinleyicileriyle `muster.check(target)`: dinleyici yok, hiçbir şey yapmayan bir dinleyici ve handler'ı her gözlemi alan bir registry ile starter'ın gözlemleri:
+
+include::partial$benchmarks/listener.adoc[]
+
+Dinleyici olmadan bir kontrol bir null kontrolü öder, her kural da null olan bir yerel değişkenin testini; burada ilk tablodakinden daha uzun sürer, çünkü starter'ın Muster'ı her kontrolde çağıranı Spring Security'den, locale'i de Spring'in `LocaleContextHolder`’ından okur.
+Hiçbir şey yapmayan bir dinleyici bir kontrole yaklaşık 67 ns ve 56 bayt, her kurala da yaklaşık 80 ns ekler.
+Gözlemler bir kontrole yaklaşık 420 ns ve 760 bayt, her kurala da yaklaşık 455 ns ve 690 bayt ekler.
+
+=== Bir koleksiyon
+
+20 kurala karşı kontrol edilen bir koleksiyon: kurallar her eleman için elle çağrılır, her eleman `muster.check` ile tek başına kontrol edilir ya da hepsi birden `muster.checkAll` ile kontrol edilir:
+
+include::partial$benchmarks/collection.adoc[]
+
+Kurallar `checkAll`’u override etmez; bu yüzden Muster her elemanı her kurala karşı kendisi kontrol eder, her kuralın elemanlar üzerinde döndüğü bir döngüde.
+Zincir bir kez aranır, dinleyiciye bir kez sorulur ve kurallar bütün koleksiyon için bir kez dolaşılır; bu yüzden beş elemandan itibaren bu, her birini tek başına kontrol etmekten daha kısa sürer; 100 elemanla kuralları elle çağırmak kadar hızlıdır.
+Tek elemanla, elemanın bir kontrolünün yaklaşık bir buçuk katı sürer.
+
+Bellek, elemanın konumunu taşıyan her kuralın bağlamıdır; ayrıca her çağrı için elemanların konumlarından oluşan bir dizi ve hangi elemanların bir kuralı geçtiğini kaydeden bir dizi.
+Burada hiçbir kural bir başkasını gerektirmez; bu yüzden hepsi bu iki diziyi paylaşır.
+Kuralları başkalarını gerektiren bir zincir, her çağrı için, başka bir kuralın gerektirdiği her kural adına o kuralı geçen elemanlardan oluşan bir dizi daha, başkalarını gerektiren her kural adına da bir konum dizisi ayırır.
+
+Aynı makinede aynı gün ölçüldüğünde 0.3.0, tek elemanla 890 ns ve 1.768 bayt aldı, yani elemanın kendi kontrolünün (407 ns) 2,19 katı; beş elemanla 2.181 ns ve 4.664 bayt; 100 elemanla da 30.694 ns ve 75.280 bayt.
+Her kuralın, onu geçen elemanlar için kendi dizisi ve kontrol edebileceği konumlar için bir dizisi vardı.
+
+Elemanlarını örneğin bir veritabanında arayan bir kural, bunu her eleman için bir sorgu yerine tek sorguyla yapmak üzere `checkAll`’u override edebilir.
+
+=== Her thread'den
+
+Makinenin 8 thread'inin hepsinden aynı anda, zaten bağlanmış sınıflar için `muster.check(target)`.
+Muster'ın zincir map'inde aynı bucket'ı paylaşan iki sınıftan biri önce, diğeri ikinci olarak bağlanır:
+
+include::partial$benchmarks/threads.adoc[]
+
+İkisi de bellek ayırmaz.
+
+=== Açılış
+
+Bir uygulamanın, `SpringApplication.run`’dan hazır olana kadar, deploy edildiğindeki gibi yeni bir JVM'de, ancak web sunucusu olmadan, açılmasının ne kadar sürdüğü.
+Her fork uygulamayı bir kez açar; bu yüzden sınıflar yüklenir ve kod, JIT onu derlemeden önce çalışır.
+Her hücre on bir fork'un medyanıdır; yanında aralıkları ve açılışın ayırdığı bellek yer alır.
+
+Uygulamanın 0, 100 ya da 1.000 servisi vardır; her biri dört metodundan ikisinde kendine ait bir komut alır ve her komutu beş kural kontrol eder.
+Uygulama üç şekilde açılır: Muster olmadan ve proxy'ler olmadan (_plain_), Muster olmadan ama her servisin advice'ı hiçbir şey yapmayan bir proxy'siyle (_proxied_) ve starter'la:
+
+include::partial$benchmarks/startup.adoc[]
+
+Bir servisin metotlarını kontrol etmeye başlamak için Spring onun etrafına bir proxy koyar; bu, uygulama açılırken ürettiği bir sınıftır; _plain_ ile _proxied_ arasındaki farkın çoğu bu sınıfları üretmektir.
+Servislerinin zaten transaction ya da metot güvenliği için proxy'leri olan bir uygulama, Muster olsun ya da olmasın onların bedelini öder; bu yüzden bütçe, starter'ın onların üstüne eklediğini sayar: hiç servis yokken, sınıflarını yüklemekten kuralları bulmaya ve Muster'ı oluşturmaya kadar starter'ın kendi yapılandırması için yaklaşık 144 ms, 100 servisle 265 ms, 1.000 servisle de 698 ms.
+Starter bu sürede her metodun kurallarını arar, onları bağlar ve `this` üzerinden yapılan çağrıları bulmak için her servisin class dosyasını okur.
+Class dosyalarını okumak az zaman alır: bu tarama kapatıldığında (`muster.self-invocation=off`) 1.000 servis, fork'ların aralığı içinde kalan 6.410 ms'de açıldı ve yaklaşık 25 MB daha az ayırdı.
+Servislerinin henüz proxy'si olmayan bir uygulama, proxy'leri de starter'dan alır: _plain_’e göre starter, hiç servis yokken 178 ms, 100 servisle 943 ms, 1.000 servisle de 4.387 ms ekler.
+
+Muster'sız iki uygulama hiçbir şey yapılandırmayan bir auto-configuration'ı import eder; böylece üçü de Spring Boot'un aynı mekanizmasıyla açılır.
+Milyon bayt cinsinden verilen bellek, JMH'nin GC profiler'ının gördüğü thread'ler için saydığıdır: bir açılışın ayırdığının ancak kabaca karşılığıdır, ama üçü için de aynı şekilde sayıldığından sütunlar karşılaştırılabilir.
+
+[[outliers]]
+=== Medyandan uzak fork'lar
+
+include::partial$benchmarks/forks.adoc[]
+
+Zaman zaman bir fork, diğerlerinden farklı bir derlenmiş koda yerleşir; bu Muster'da olduğu kadar elle çağrılan kurallarda da olur ve neredeyse her zaman daha yavaş koddur.
+Bu ölçümde ortalama süre ölçen {benchmark-forks} fork'tan {benchmark-forks-far} tanesi kendi benchmark'ının medyanından %10'dan fazla uzakta kaldı, hepsi daha yavaş; yukarıdaki aralıklar onları dışarıda bırakır:
+
+include::partial$benchmarks/outliers.adoc[]
+
+ifeval::[{benchmark-starts-far} == 0]
+Açılış ölçen {benchmark-starts} fork'un hiçbiri uzakta kalmadı.
+endif::[]
+ifeval::[{benchmark-starts-far} != 0]
+Açılış ölçen {benchmark-starts} fork'tan {benchmark-starts-far} tanesi uzakta kaldı.
+endif::[]
+Fork'ların medyanı, böyle bir fork'un yayımlanan sayıyı belirlemesini önler.
+
+Ham sonuçlar xref:{page-component-version}@muster:ROOT:attachment$benchmarks/results.json[`results.json`] dosyasında, medyanlar, aralıklar ve medyandan %10'dan fazla uzak fork'lar xref:{page-component-version}@muster:ROOT:attachment$benchmarks/results.csv[`results.csv`] dosyasında, açılışlarınkiler de xref:{page-component-version}@muster:ROOT:attachment$benchmarks/startup.csv[`startup.csv`] dosyasındadır.
+`./gradlew jmhReport` bunları, grafiği ve bu sayfadaki tabloları yazar; tabloların etrafındaki metin ve görselin açıklaması elle yazılır.
+
+== Nasıl ölçüldü
+
+* Intel Core i7-4700HQ (4 çekirdek, 8 thread, 2013), şebeke elektriğinde, frekansı 2,4 GHz'e sabitlenmiş: `performance` governor'ı, turbo kapalı
+* Linux 7.0, Amazon Corretto 21.0.11, JMH 1.37, starter için Spring Boot 4.0.8 ve onun yönettiği Spring Security ile Micrometer
+* Bir çağrı için beş fork, her birinde beş adet birer saniyelik ısınma (warm-up) iterasyonu ve beş adet birer saniyelik ölçüm; bir benchmark'ın yayımlanan süresi, fork'larının ortalamalarının medyanıdır
+* Bir açılış için on bir fork, her biri ısınma olmadan tek bir açılışı ölçer
+* Bellek ayırma, JMH'nin GC profiler'ından (`-prof gc`)
+* Kendi benchmark'ının medyanından %10'dan fazla uzak bir fork, örneğin diğerlerinden farklı bir derlenmiş koda yerleştiğinde, yayımlanan aralığın dışında kalır ve yukarıda adıyla verilir
+
+== Benchmark'ları çalıştırmak
+
+Benchmark'ların nasıl çalıştırılacağını ve sonuçlarının buraya nasıl yayımlanacağını https://github.com/mryakar/muster/blob/main/CONTRIBUTING.md#benchmarks[CONTRIBUTING.md] (İngilizce) anlatır.

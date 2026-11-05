@@ -75,4 +75,4 @@ Sürümler imzalıdır; nasıl doğrulanacaklarını https://github.com/mryakar/
 * xref:core/rules.adoc[Spring'siz kılavuz], Muster'ı düz bir Java uygulamasında ilk kuraldan reddedilen bir çağrıya verilen cevaba kadar kullanır.
 * https://github.com/mryakar/muster[Depo], kodu, issue'ları ve örnek uygulamaları barındırır.
 * https://github.com/mryakar/muster/blob/main/CHANGELOG.md[Değişiklik günlüğü] (İngilizce), her sürümün neyi değiştirdiğini anlatır.
-* https://github.com/mryakar/muster/blob/main/docs/benchmarks/README.md[Benchmark'lar] (İngilizce), Muster'ın bir çağrıya ve bir uygulamanın açılışına ne kadar yük eklediğini ve bir değişikliğin uyması gereken bütçeyi verir.
+* xref:reference/benchmarks.adoc[Benchmark'lar], Muster'ın bir çağrıya ve bir uygulamanın açılışına ne kadar yük eklediğini ve bir değişikliğin uyması gereken bütçeyi verir.

@@ -1,0 +1,8 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+[cols="1,2"]
+|===
+|Class |`muster.check(target)`
+
+|Bound first |43.9 ns (43.4–47.3), 0 B
+|Bound second |48.7 ns (44.2–50.2), 0 B
+|===

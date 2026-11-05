@@ -1,0 +1,10 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+[cols="1,2,2,2"]
+|===
+|Elements |By hand |`muster.check` on each |`muster.checkAll`
+
+|1 |287.3 ns (286.2–301.0), 0 B |402.2 ns (396.0–412.6), 520 B |627.2 ns (620.6–631.8), 856 B
+|5 |1,480 ns (1,461–1,518), 0 B |1,998 ns (1,994–2,095), 2,600 B |1,849 ns (1,810–1,894), 3,448 B
+|10 |2,935 ns (2,923–3,006), 0 B |3,991 ns (3,937–4,032), 5,200 B |3,513 ns (3,467–3,616), 6,688 B
+|100 |29,495 ns (29,066–30,303), 0 B |39,448 ns (39,239–43,008), 52,000 B |28,840 ns (28,702–29,185), 65,096 B
+|===

@@ -376,8 +376,8 @@ path.
 ## Performance
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/check-cost-dark.svg">
-  <img alt="Time of a passing check by number of rules, for RuleChain.check, muster.check(target) and the same rules called by hand." src="docs/benchmarks/check-cost-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/modules/ROOT/images/benchmarks/check-cost-dark.svg">
+  <img alt="Time of a passing check by number of rules, for RuleChain.check, muster.check(target) and the same rules called by hand." src="docs/modules/ROOT/images/benchmarks/check-cost-light.svg">
 </picture>
 
 Muster checks and orders the rules of a chain once, when the chain is created, and does no
@@ -388,8 +388,8 @@ more. Without a listener, a check pays one null check. `checkAll` takes about on
 check for a collection of one element, and less than checking each element from five elements on.
 The starter adds about 0.27 s to the startup of an application with 100 checked services, beyond
 the proxies of the services.
-[The benchmarks](docs/benchmarks/README.md) give the machine, the method, every result and the
-budget a change is held to.
+[The benchmarks](https://mryakar.github.io/muster/muster/current/reference/benchmarks.html) give
+the machine, the method, every result and the budget a change is held to.
 
 ## Modules
 
@@ -399,7 +399,7 @@ budget a change is held to.
 | `muster-spring-boot-starter` | Spring Boot integration: rules around service methods and inside their transaction, problem details, messages, configuration. |
 | `muster-bom` | Aligns the versions of the Muster modules. |
 | `muster-examples` | Complete example applications, with Spring Boot and without; also the test of the published artifacts. Not published. |
-| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call and to the startup of an application, with [the results](docs/benchmarks/README.md). Not published. |
+| `muster-benchmarks` | JMH benchmarks of what Muster adds to a call and to the startup of an application, with [the results](https://mryakar.github.io/muster/muster/current/reference/benchmarks.html). Not published. |
 
 ## Contributing
 

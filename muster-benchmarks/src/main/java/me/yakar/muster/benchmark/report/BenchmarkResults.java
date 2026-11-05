@@ -120,6 +120,22 @@ final class BenchmarkResults {
    * from a full run in the mode and time unit, and with as many forks, as each benchmark declares.
    */
   static List<Run> read(Path results, JsonNode root) {
+    return read(results, root, true);
+  }
+
+  /**
+   * Reads every run from the published results, which were checked as {@link #read(Path, JsonNode)}
+   * checks them when they were published. Each run is still checked against the class, the mode and
+   * the time unit of its benchmark, but not for its forks, its settings or the completeness of the
+   * run: the threads of a benchmark that runs on every processor depend on the machine, and the
+   * published results stay until the next full run, though a benchmark may have changed its
+   * parameters or forks since.
+   */
+  static List<Run> readPublished(Path results, JsonNode root) {
+    return read(results, root, false);
+  }
+
+  private static List<Run> read(Path results, JsonNode root, boolean full) {
     var runs = new ArrayList<Run>();
     for (var node : root) {
       var name = node.get("benchmark").asString();
@@ -133,12 +149,14 @@ final class BenchmarkResults {
             name + " was not measured as " + mode.longLabel() + " in " + unit + "/op, as declared");
       }
       var forks = averages(metric.get("rawData"));
-      var declared = benchmarkClass.getAnnotation(Fork.class).value();
-      if (forks.size() != declared) {
-        throw new IllegalArgumentException(
-            results + " has " + forks.size() + " forks of " + name + ", not " + declared);
+      if (full) {
+        var declared = benchmarkClass.getAnnotation(Fork.class).value();
+        if (forks.size() != declared) {
+          throw new IllegalArgumentException(
+              results + " has " + forks.size() + " forks of " + name + ", not " + declared);
+        }
+        requireDeclared(results, name, node, benchmarkClass, mode);
       }
-      requireDeclared(results, name, node, benchmarkClass, mode);
       var median = median(forks);
       var outliers = new ArrayList<Integer>();
       for (var i = 0; i < forks.size(); i++) {
@@ -167,14 +185,16 @@ final class BenchmarkResults {
               outliers,
               median(averages(allocation.get("rawData")))));
     }
-    requireComplete(results, runs);
+    if (full) {
+      requireComplete(results, runs);
+    }
     return runs;
   }
 
   /**
-   * Returns a summary that docs/benchmarks links to: one line per benchmark and parameters, of the
-   * runs in one mode. Average times are in ns and allocations in B; single shots, which are starts,
-   * in ms and MB.
+   * Returns a summary that the benchmarks page of the documentation links to: one line per
+   * benchmark and parameters, of the runs in one mode. Average times are in ns and allocations in
+   * B; single shots, which are starts, in ms and MB.
    */
   static String csv(List<Run> runs, Mode mode) {
     var singleShot = mode == Mode.SingleShotTime;

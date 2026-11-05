@@ -1,0 +1,5 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+:benchmark-forks: 300
+:benchmark-forks-far: 8
+:benchmark-starts: 99
+:benchmark-starts-far: 0
