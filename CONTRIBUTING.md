@@ -126,8 +126,9 @@ Dependabot updates neither file, so its pull requests need the same steps.
 
 The starter is built against the oldest Spring Boot it supports, `spring-boot` in
 `gradle/libs.versions.toml`, and its published POM requires that version, so Dependabot leaves it
-alone. Raise it by hand, in a pull request of its own, when the starter needs something that only a
-newer Spring Boot has: change `spring-boot` and the minimum that README.md states, update both
+alone. Raise it by hand, preferably in a pull request of its own, when the starter needs something
+that only a newer Spring Boot has, or when the oldest has a known vulnerability: change
+`spring-boot` and the minimum that README.md and the documentation state, update both
 verification-metadata files as above, and add the change to CHANGELOG.md. `spring-boot-latest`, the
 newest Spring Boot that CI tests, is moved by hand too.
 
