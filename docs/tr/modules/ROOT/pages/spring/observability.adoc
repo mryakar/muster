@@ -15,6 +15,8 @@ include::example$spring-boot/resources/application.properties[tag=actuator,inden
 Her kontrol `muster.check` adında bir gözlem (observation) açar; bu gözlemin `name` etiketi metodu (örneğin `VehicleService.create(CreateVehicle)`), metot yoksa kontrol edilen türü taşır.
 Her kural bir alt gözlem açar: `muster.rule`; bunun `rule` etiketi kural kimliğini taşır.
 İkisi de bittiğinde bir `outcome` etiketi alır: kontrol için `passed`, `failed` ya da `error`; kural için bunlara ek olarak `skipped`.
+Varsayılan kipte kontrol ilk ihlalde durur; bu yüzden ondan sonraki kurallar hiç gözlemlenmez: ne `passed` ne de `skipped` olarak görünürler.
+Hangi kipte hangi kuralların çalıştığını xref:core/modes.adoc[Kipler ve kuralları kapatmak] anlatır.
 Bir hata kendi exception'ını taşır; ihlal ise bir hata değildir.
 
 Her gözlem, çalıştığı süre boyunca kapsam (scope) içinde kalır; böylece bir kuralın çağırdığı şey, uygulama onu gözlemliyorsa, kuralın altında görünür, örneğin uygulamanın gözlemlediği bir repository.
