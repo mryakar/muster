@@ -1,0 +1,9 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+[cols="1,2,2,2"]
+|===
+|Services |Plain |Proxied |With the starter
+
+|0 |828 ms (793–887), 37.1 MB |862 ms (826–894), 38.5 MB |1,006 ms (968–1,085), 42.9 MB
+|100 |1,020 ms (987–1,097), 44.6 MB |1,697 ms (1,629–1,797), 95.6 MB |1,962 ms (1,877–2,042), 106.0 MB
+|1,000 |2,032 ms (1,918–2,181), 114.6 MB |5,721 ms (5,499–6,047), 580.9 MB |6,419 ms (6,188–6,539), 642.6 MB
+|===

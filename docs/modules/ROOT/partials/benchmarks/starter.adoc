@@ -1,0 +1,14 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+[cols="1,1,2,2"]
+|===
+|Other advice |Rules |By hand |With the starter
+
+|None |0 |25.9 ns (25.0–26.7), 16 B |155.0 ns (154.2–158.6), 112 B
+|None |20 |402.2 ns (384.9–404.8), 520 B |551.7 ns (548.1–576.2), 616 B
+|Method security |0 |2,539 ns (2,502–2,561), 6,064 B |2,575 ns (2,497–2,619), 6,064 B
+|Method security |20 |3,074 ns (2,940–3,173), 6,648 B |3,169 ns (3,111–3,265), 6,600 B
+|Transaction |0 |1,143 ns (1,125–1,156), 712 B |1,221 ns (1,215–1,249), 712 B
+|Transaction |20 |1,626 ns (1,586–1,678), 1,216 B |1,718 ns (1,668–1,735), 1,216 B
+|Both |0 |3,808 ns (3,755–3,916), 6,696 B |3,959 ns (3,816–4,225), 6,616 B
+|Both |20 |4,607 ns (4,473–4,634), 7,184 B |4,807 ns (4,687–5,071), 7,152 B
+|===

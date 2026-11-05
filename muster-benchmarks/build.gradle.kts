@@ -151,20 +151,84 @@ tasks.register<JavaExec>("jmh") {
   doFirst { results.get().asFile.parentFile.mkdirs() }
 }
 
+// Where the documentation keeps the results, the chart and the tables of its benchmarks page.
+val benchmarkAttachments = layout.settingsDirectory.dir("docs/modules/ROOT/attachments/benchmarks")
+val benchmarkImages = layout.settingsDirectory.dir("docs/modules/ROOT/images/benchmarks")
+val benchmarkTables = layout.settingsDirectory.dir("docs/modules/ROOT/partials/benchmarks")
+
 tasks.register<JavaExec>("jmhReport") {
-  description = "Publishes the medians of the last JMH run to docs/benchmarks, with a chart."
+  description =
+    "Publishes the medians of the last JMH run to the documentation, with a chart and the tables " +
+      "of the benchmarks page."
   group = "benchmark"
   classpath = sourceSets.main.get().runtimeClasspath
   mainClass = "me.yakar.muster.benchmark.report.PublishResults"
   val results = jmhResults
-  val docs = layout.settingsDirectory.dir("docs/benchmarks")
+  val attachments = benchmarkAttachments
+  val images = benchmarkImages
+  val tables = benchmarkTables
   inputs.file(results)
   outputs.files(
-    docs.file("results.json"),
-    docs.file("results.csv"),
-    docs.file("startup.csv"),
-    docs.file("check-cost-light.svg"),
-    docs.file("check-cost-dark.svg"),
+    attachments.file("results.json"),
+    attachments.file("results.csv"),
+    attachments.file("startup.csv"),
+    images.file("check-cost-light.svg"),
+    images.file("check-cost-dark.svg"),
   )
-  argumentProviders.add { listOf(results.get().asFile.absolutePath, docs.asFile.absolutePath) }
+  outputs.dir(tables)
+  argumentProviders.add {
+    listOf(results.get(), attachments, images, tables).map { it.asFile.absolutePath }
+  }
 }
+
+val publishedResults = benchmarkAttachments.file("results.json")
+
+// The tables are written from the results, so the published ones must be what the published
+// results give: a change to how they are written writes them again, and none is edited by hand.
+tasks.register<JavaExec>("benchmarkTables") {
+  description = "Writes the tables of the benchmarks page from the published results."
+  group = "benchmark"
+  classpath = sourceSets.main.get().runtimeClasspath
+  mainClass = "me.yakar.muster.benchmark.report.BenchmarkTables"
+  val results = publishedResults
+  val tables = benchmarkTables
+  inputs.file(results)
+  outputs.dir(tables)
+  argumentProviders.add { listOf("write", results.asFile.absolutePath, tables.asFile.absolutePath) }
+  // After the task that publishes new results, when both run in one build.
+  mustRunAfter("jmhReport")
+}
+
+val checkBenchmarkTables =
+  tasks.register<JavaExec>("checkBenchmarkTables") {
+    description =
+      "Fails if the tables of the benchmarks page are not what the published results give."
+    group = "verification"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = "me.yakar.muster.benchmark.report.BenchmarkTables"
+    val results = publishedResults
+    val tables = benchmarkTables
+    inputs.file(results).withPathSensitivity(PathSensitivity.NONE)
+    inputs.dir(tables).withPathSensitivity(PathSensitivity.RELATIVE)
+    argumentProviders.add {
+      listOf("check", results.asFile.absolutePath, tables.asFile.absolutePath)
+    }
+    // Nothing to write; a task with an up-to-date spec counts as having outputs, so it is checked
+    // again only when the results, the tables or the code that writes them change.
+    outputs.upToDateWhen { true }
+    // After the tasks that write the tables, when they run in one build.
+    mustRunAfter("jmhReport", "benchmarkTables")
+    // The process names the tables that differ; the build says what to do.
+    isIgnoreExitValue = true
+    val result = executionResult
+    doLast {
+      if (result.get().exitValue != 0) {
+        throw GradleException(
+          "The tables of the benchmarks page are out of date: run " +
+            "./gradlew :muster-benchmarks:benchmarkTables",
+        )
+      }
+    }
+  }
+
+tasks.check { dependsOn(checkBenchmarkTables) }

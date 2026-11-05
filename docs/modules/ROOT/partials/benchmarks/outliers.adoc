@@ -1,0 +1,9 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+* `CheckBenchmark.chain` `rules=0`: 14.7 ns
+* `CheckBenchmark.chain` `rules=5`: 143.7 ns
+* `ViolationBenchmark.check` `mode=COLLECT_ALL` `violated=1`: 549.0 ns
+* `StarterBenchmark.manual` `advice=none` `rules=20`: 472.2 ns
+* `StarterBenchmark.manual` `advice=both` `rules=20`: 5,138 ns
+* `CollectionBenchmark.checkAll` `elements=5`: 2,089 ns
+* `CollectionBenchmark.direct` `elements=5`: 1,634 ns
+* `BindingBenchmark.check` `bound=second`: 56.2 ns

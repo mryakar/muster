@@ -1,0 +1,8 @@
+// Written from the results of a JMH run by ./gradlew :muster-benchmarks:jmhReport or benchmarkTables.
+[cols="1,2,2"]
+|===
+|Violated rules |`FAIL_FAST` |`COLLECT_ALL`
+
+|1 |414.0 ns (409.6–430.5), 640 B |481.5 ns (474.3–490.5), 792 B
+|5 |112.0 ns (110.6–114.8), 256 B |725.8 ns (721.7–763.6), 1,264 B
+|===

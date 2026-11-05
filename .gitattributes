@@ -3,9 +3,9 @@
 *.jar binary
 *.ser binary
 # Written by the jmhReport task.
-docs/benchmarks/results.* linguist-generated
-docs/benchmarks/startup.csv linguist-generated
-docs/benchmarks/*.svg linguist-generated
+docs/modules/ROOT/attachments/benchmarks/* linguist-generated
+docs/modules/ROOT/images/benchmarks/* linguist-generated
+docs/modules/ROOT/partials/benchmarks/* linguist-generated
 
 # Written by the propertyReference task of the starter.
 docs/modules/ROOT/partials/properties.adoc linguist-generated

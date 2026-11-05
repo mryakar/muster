@@ -18,14 +18,16 @@ package me.yakar.muster.benchmark.report;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.regex.Pattern;
 import org.openjdk.jmh.annotations.Mode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Publishes the results of a JMH run: a copy of them, the {@linkplain BenchmarkResults summaries}
- * of their medians, of calls and of starts, and the {@linkplain CheckCostChart chart} that the
- * README shows.
+ * Publishes the results of a JMH run to the documentation: a copy of them and the {@linkplain
+ * BenchmarkResults summaries} of their medians, of calls and of starts, as attachments; the
+ * {@linkplain CheckCostChart chart} that the README and the benchmarks page show, as images; and
+ * the {@linkplain BenchmarkTables tables} of the benchmarks page, as partials.
  */
 public final class PublishResults {
 
@@ -35,17 +37,21 @@ public final class PublishResults {
   private PublishResults() {}
 
   /**
-   * Draws the chart and writes the summaries.
+   * Draws the chart and writes the summaries and the tables.
    *
-   * @param args the JMH results as JSON, and the directory to write the chart and the results to
-   * @throws IOException if the results cannot be read or the chart cannot be written
+   * @param args the JMH results as JSON, and the directories to write the results and their
+   *     summaries to, the chart, and the tables
+   * @throws IOException if the results cannot be read or the files cannot be written
    */
   public static void main(String[] args) throws IOException {
-    if (args.length != 2) {
-      throw new IllegalArgumentException("usage: PublishResults <results.json> <directory>");
+    if (args.length != 4) {
+      throw new IllegalArgumentException(
+          "usage: PublishResults <results.json> <attachments> <images> <partials>");
     }
     var results = Path.of(args[0]);
-    var directory = Path.of(args[1]);
+    var attachments = Path.of(args[1]);
+    var images = Path.of(args[2]);
+    var partials = Path.of(args[3]);
     // JMH ends lines as the platform does; the copy ends them the same everywhere.
     // The path of the JVM names the machine's user and directories; the published copy keeps none.
     var json =
@@ -56,12 +62,20 @@ public final class PublishResults {
     var csv = BenchmarkResults.csv(runs, Mode.AverageTime);
     var startup = BenchmarkResults.csv(runs, Mode.SingleShotTime);
     var charts = CheckCostChart.draw(runs);
+    var tables = BenchmarkTables.partials(runs);
+    Files.createDirectories(attachments);
+    Files.writeString(attachments.resolve("results.json"), json);
+    Files.writeString(attachments.resolve("results.csv"), csv);
+    Files.writeString(attachments.resolve("startup.csv"), startup);
+    write(images, charts);
+    write(partials, tables);
+  }
+
+  /** Writes files to a directory, by their names. */
+  private static void write(Path directory, Map<String, String> files) throws IOException {
     Files.createDirectories(directory);
-    Files.writeString(directory.resolve("results.json"), json);
-    Files.writeString(directory.resolve("results.csv"), csv);
-    Files.writeString(directory.resolve("startup.csv"), startup);
-    for (var chart : charts.entrySet()) {
-      Files.writeString(directory.resolve(chart.getKey()), chart.getValue());
+    for (var file : files.entrySet()) {
+      Files.writeString(directory.resolve(file.getKey()), file.getValue());
     }
   }
 }

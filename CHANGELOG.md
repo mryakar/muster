@@ -11,7 +11,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The starter titles the problem details of rejected calls with the message `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` in the locale of the caller, as Spring does for its own problem details, when the application's messages have it.
 - In a native image, which has no class files to read, the starter warns at startup that it does not look for calls through `this`; `muster.self-invocation=off` leaves the warning out.
-- `docs/benchmarks` gives what the starter adds to the startup of an application, with a budget for 100 and 1,000 services.
+- The benchmarks page of the documentation gives what the starter adds to the startup of an application, with a budget for 100 and 1,000 services.
 
 ### Changed
 

@@ -29,3 +29,4 @@
 ** xref:reference/properties.adoc[]
 ** xref:reference/release-notes.adoc[]
 ** xref:reference/api.adoc[]
+** xref:reference/benchmarks.adoc[]

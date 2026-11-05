@@ -84,12 +84,19 @@ settings, except the result file and format, as in `./gradlew jmh --args="CheckB
 numbers worth comparing, run `jmh` on its own, on a machine plugged in and otherwise idle, with a
 fixed CPU frequency.
 
-`./gradlew jmhReport` copies the results of the last run to `docs/benchmarks`, writes the median of
-each benchmark's forks to `results.csv` there, and of the starts to `startup.csv`, and draws the
-chart that the README shows. It refuses results that lack a benchmark method or parameter, or that
-ran in another mode or time unit, or with other forks, iterations or threads, than a benchmark
-declares. A change that affects performance is compared with the budget in
-[docs/benchmarks](docs/benchmarks/README.md), on the same machine.
+`./gradlew jmhReport` copies the results of the last run to
+`docs/modules/ROOT/attachments/benchmarks`, writes the median of each benchmark's forks to
+`results.csv` there, and of the starts to `startup.csv`, draws the chart that the README shows to
+`docs/modules/ROOT/images/benchmarks`, and writes the tables of the
+[benchmarks page](https://mryakar.github.io/muster/muster/current/reference/benchmarks.html) to
+`docs/modules/ROOT/partials/benchmarks`. It refuses results that lack a benchmark method or
+parameter, or that ran in another mode or time unit, or with other forks, iterations or threads,
+than a benchmark declares. The text of the page, in English and in Turkish, is written by hand. A
+change that affects performance is compared with the budget on that page, on the same machine.
+
+`./gradlew check` runs `checkBenchmarkTables`, which fails if the tables are not what the published
+`results.json` gives. After a change to how the tables are written, `./gradlew benchmarkTables`
+writes them again from the published results, without a run.
 
 ## Dependencies
 
