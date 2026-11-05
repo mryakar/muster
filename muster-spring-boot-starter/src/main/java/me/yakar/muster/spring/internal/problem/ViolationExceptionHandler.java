@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.MessageResolver;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
@@ -35,7 +36,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * Answers a {@link BusinessRuleViolationException} with problem details: the status that the
  * categories of the violations decide, and a {@code violations} property of {@link ViolationEntry}
- * items.
+ * items. Its title is the message {@value #TITLE} in the locale of the caller, as Spring names the
+ * title of its own problem details, or else the reason phrase of the status.
  *
  * <p>Its order is 0, as for Spring Boot's own problem details, so it comes before controller advice
  * without an order, whose handler of {@link Exception} would answer violations as server errors.
@@ -63,12 +65,18 @@ class ViolationExceptionHandler {
 
   private static final System.Logger LOGGER = System.getLogger("me.yakar.muster");
 
+  /** The code of the message that titles the problem details. */
+  static final String TITLE = "problemDetail.title.me.yakar.muster.BusinessRuleViolationException";
+
   private final MessageResolver messages;
+  private final MessageSource titles;
   private final Supplier<Locale> locale;
   private final int mixedStatus;
 
-  ViolationExceptionHandler(MessageResolver messages, Supplier<Locale> locale, int mixedStatus) {
+  ViolationExceptionHandler(
+      MessageResolver messages, MessageSource titles, Supplier<Locale> locale, int mixedStatus) {
     this.messages = messages;
+    this.titles = titles;
     this.locale = locale;
     this.mixedStatus = mixedStatus;
   }
@@ -82,6 +90,8 @@ class ViolationExceptionHandler {
         () ->
             "Answering " + problem.getStatus() + " to the business rule violations " + violations);
     var callerLocale = locale.get();
+    // The reason phrase of the status as the default, also where a code is its own default.
+    problem.setTitle(titles.getMessage(TITLE, null, problem.getTitle(), callerLocale));
     problem.setProperty(
         "violations",
         violations.stream().map(violation -> entry(violation, callerLocale)).toList());

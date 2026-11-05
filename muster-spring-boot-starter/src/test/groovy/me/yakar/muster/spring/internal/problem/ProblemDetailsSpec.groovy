@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Supplier
 import java.util.logging.Level
+import me.yakar.muster.BusinessRuleViolationException
 import me.yakar.muster.rule.Category
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.Violation
@@ -86,6 +87,15 @@ class ProblemDetailsSpec extends Specification {
     @Bean
     Supplier<Locale> locale() {
       { -> Locale.forLanguageTag('tr-TR') } as Supplier<Locale>
+    }
+  }
+
+  /** A message source of the application's own, for its validation messages, next to Spring Boot's. */
+  @Configuration(proxyBeanMethods = false)
+  static class SecondMessageSource {
+    @Bean
+    org.springframework.context.support.StaticMessageSource validationMessageSource() {
+      new org.springframework.context.support.StaticMessageSource()
     }
   }
 
@@ -340,10 +350,36 @@ class ProblemDetailsSpec extends Specification {
     }
   }
 
+  def 'the title is the message that Spring names for the exception, in the locale of the caller, or else the reason phrase'() {
+    expect:
+    ViolationExceptionHandler.TITLE == 'problemDetail.title.' + BusinessRuleViolationException.name
+    runner.run {
+      assert answer(it, [nameTaken()], ['Accept-Language': 'tr-TR']).body.title == 'İş kuralı ihlali'
+      assert answer(it, [nameTaken()], ['Accept-Language': 'fr']).body.title == 'Conflict'
+    }
+  }
+
+  def 'the title is the reason phrase also when a code without a message reads as the code'() {
+    expect:
+    runner.withPropertyValues('spring.messages.use-code-as-default-message=true').run {
+      assert answer(it, [nameTaken()], ['Accept-Language': 'fr']).body.title == 'Conflict'
+    }
+  }
+
+  def 'an application with a message source of its own next to Spring Boot\'s starts, and titles from Spring Boot\'s'() {
+    expect:
+    runner.withUserConfiguration(SecondMessageSource).run {
+      assert it.startupFailure == null
+      assert answer(it, [nameTaken()], ['Accept-Language': 'tr-TR']).body.title == 'İş kuralı ihlali'
+    }
+  }
+
   def 'messages are in the locale that a Supplier<Locale> bean of the application gives, as rules are'() {
     expect:
     runner.withUserConfiguration(OwnLocale).run {
-      assert answer(it, [nameTaken()], ['Accept-Language': 'en']).body.violations.first().message == 'Atlas adı kullanımda'
+      def answer = answer(it, [nameTaken()], ['Accept-Language': 'en'])
+      assert answer.body.violations.first().message == 'Atlas adı kullanımda'
+      assert answer.body.title == 'İş kuralı ihlali'
     }
   }
 
