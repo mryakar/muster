@@ -16,6 +16,7 @@
 package example.spring;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
@@ -66,7 +67,7 @@ public class VehicleService {
   // tag::create-all[]
   @Transactional
   @Rules(BatchLimit.class)
-  public List<Vehicle> createAll(@Valid List<CreateVehicle> commands) {
+  public List<Vehicle> createAll(List<@NotNull @Valid CreateVehicle> commands) {
     var owner = owner();
     return commands.stream()
         .map(command -> vehicles.add(command.name(), command.plate(), owner))

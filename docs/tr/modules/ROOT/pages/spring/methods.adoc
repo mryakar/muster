@@ -35,6 +35,10 @@ Kural hedeflerinden oluşan bir koleksiyon alan metot, çalışmadan önce tek b
 include::example$spring-boot/java/example/spring/VehicleService.java[tag=create-all,indent=0]
 ----
 
+Bean Validation her elemanı kurallardan önce doğrular: `@NotNull`, `null` bir elemanı `ConstraintViolationException` ile reddeder; örnek buna, xref:spring/transactions.adoc#_after_method_validation[Metot doğrulamasından sonra] bölümünde gösterildiği gibi 400 ile cevap verir.
+`@NotNull` olmasa kurallar o elemanda bir `NullPointerException`, yani bir sunucu hatası fırlatırdı.
+Boş bir koleksiyonda hiçbir kural çalışmaz, metodun listelediği kural da çalışmaz; parametreye konan `@NotEmpty` boş koleksiyonu reddeder.
+
 Araç sayısına konan sınır, hiçbir kural veritabanını sorgulamadan önce çalışsın diye listelenmiştir.
 Bu, koleksiyonun bütününe ait bir kuraldır ve sınırı, her bean'in yapabileceği gibi, uygulamanın yapılandırmasından alır:
 
