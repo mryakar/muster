@@ -16,6 +16,9 @@ content:
   sources:
     - url: ..
       branches: HEAD
+      # Built in CI, each page of every version links to its source on the main branch, where changes
+      # are made; a local build links to the file in the worktree instead.
+      edit_url: 'https://github.com/mryakar/muster/edit/main/{path}'
       # The earlier releases have no docs/; pre-release tags are left out.
       tags: [v*, '!v*-*', '!v0.1.*', '!v0.2.*', '!v0.3.*']
       start_paths: [docs, docs/tr]
