@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The documentation site at https://mryakar.github.io/muster/, with a guide to the Spring Boot starter and one without Spring, the reference, the benchmarks and the Javadoc of each version, in English and in Turkish. The README is the short way in.
 - The starter titles the problem details of rejected calls with the message `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` in the locale of the caller, as Spring does for its own problem details, when the application's messages have it.
 - In a native image, which has no class files to read, the starter warns at startup that it does not look for calls through `this`; `muster.self-invocation=off` leaves the warning out.
 - The benchmarks page of the documentation gives what the starter adds to the startup of an application, with a budget for 100 and 1,000 services.
