@@ -162,8 +162,17 @@ jobs:
           cache-dependency-path: docs/package-lock.json
       - name: Check that the documentation has the same pages in both languages
         run: .github/scripts/check-docs-languages.sh
-      # A warning, such as a broken cross reference, fails the build. No package runs scripts when it
-      # is installed: none needs to, and the build then runs only the code it means to.
+      # A snapshot is a prerelease of the site: without the key, next would take the place of the
+      # latest release.
+      - name: Check that a snapshot marks the documentation as a prerelease
+        run: |
+          version="$(sed -n 's/^version=//p' gradle.properties)"
+          if [[ "$version" == *-SNAPSHOT ]] && ! grep -q '^prerelease: true$' docs/antora.yml; then
+            echo "$version: the snapshot commit puts the prerelease key back in docs/antora.yml" >&2
+            exit 1
+          fi
+      # A warning, such as a broken cross reference, fails the build. No package runs scripts when
+      # it is installed: none needs to, and the build then runs only the code it means to.
       - name: Build the documentation site with Antora
         working-directory: docs
         run: |

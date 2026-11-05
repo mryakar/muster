@@ -17,9 +17,9 @@
 # Checks that the Turkish documentation in docs/tr has the same pages under the same paths and the
 # same navigation as the English one in docs, and the same version keys, since the header of each
 # page links to the same page in the other language, and the release commit changes both. Also
-# checks that no Turkish suffix follows code with a straight apostrophe, as in `muster-core`'u,
-# which AsciiDoc reads as a curved quote and renders with a stray backtick: the suffix takes the
-# typographic apostrophe, as in `muster-core`’u.
+# checks that no suffix after code, Turkish or English, follows it with a straight apostrophe, as
+# in `muster-core`'u or `RuleChain`'s, which AsciiDoc reads as a curved quote and renders with a
+# stray backtick: the suffix takes the typographic apostrophe, as in `muster-core`’u.
 set -euo pipefail
 cd "$(dirname "$0")/../../docs"
 
@@ -34,8 +34,8 @@ for part in pages nav keys; do
     status=1
   fi
 done
-if grep -rnE "\`'[^[:space:]]" tr/modules; then
-  echo "A Turkish suffix follows code with a straight apostrophe; use ’ instead." >&2
+if grep -rnE "[^[:space:]\`]\`\`?'[^[:space:][:punct:]]" modules tr/modules; then
+  echo "A suffix follows code with a straight apostrophe; use ’ instead." >&2
   status=1
 fi
 exit "$status"
