@@ -213,8 +213,9 @@ public final class Binding<I> {
      *
      * @return the binding
      * @throws IllegalArgumentException if a listed rule is not registered or does not accept the
-     *     binding's type, an excluded rule is not registered or is also listed, or a listed rule
-     *     requires an excluded rule, directly or through other rules
+     *     binding's type, an excluded rule is not registered or is also listed, a listed rule
+     *     requires an excluded rule, directly or through other rules, or a rule requires a rule of
+     *     each element of a collection
      */
     public Binding<I> build() {
       var catalog = muster.catalog();

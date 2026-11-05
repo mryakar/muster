@@ -166,8 +166,22 @@ public final class ChainPlan {
     while (!pending.isEmpty()) {
       var rule = pending.removeFirst();
       for (var requiredClass : rule.definition().requires()) {
+        var required = catalog.registered(requiredClass);
+        // A rule of whole collections may require a rule of their elements, which then cannot
+        // check the input of a chain that checks no collection.
+        if (elementClass == null
+            && !required.definition().inputType().isAssignableFrom(rule.definition().inputType())) {
+          throw new IllegalArgumentException(
+              "the chain for "
+                  + label
+                  + " cannot check rule '"
+                  + rule.id()
+                  + "', which requires rule '"
+                  + required.id()
+                  + "' of each element of a collection: check collections with it, through checkAll or a"
+                  + " collection binding");
+        }
         if (!included.containsKey(requiredClass)) {
-          var required = catalog.registered(requiredClass);
           included.put(requiredClass, required);
           pending.addLast(required);
           notes.add(

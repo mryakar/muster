@@ -19,6 +19,7 @@ import static me.yakar.muster.Concurrency.concurrently
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.logging.Level
+import me.yakar.muster.EngineSpecification.TaskExists
 import me.yakar.muster.EngineSpecification.VehicleFields
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.RequiresRule
@@ -61,6 +62,11 @@ class CollectionBindingSpec extends EngineSpecification {
   @Rule(id = 'task.limit')
   @RequiresRule(NotFound)
   static class TaskLimitOfFound extends TaskLimit {}
+
+  /** Requires a rule of each element, of the type of the elements. */
+  @Rule(id = 'task.limit')
+  @RequiresRule(TaskExists)
+  static class TaskLimitOfExisting extends TaskLimit {}
 
   @Rule(id = 'vehicle.batch-limit')
   static class NeverApplies implements BusinessRule<List<VehicleFields>> {
@@ -286,6 +292,35 @@ class CollectionBindingSpec extends EngineSpecification {
 
     then:
     limit.received == [[1L, 2L]]
+  }
+
+  def 'a rule of the whole collection may require a rule of the type of its elements'() {
+    given:
+    def limit = new TaskLimitOfExisting()
+    def binding = vehicles(new TaskExists([]), limit).collectionBinding(Long).rules(TaskLimitOfExisting).build()
+
+    when:
+    binding.check([1L, 404L])
+
+    then:
+    def e = thrown(BusinessRuleViolationException)
+    described(e) == ['task.exists [1]']
+    limit.received.empty
+
+    when:
+    binding.check([1L, 2L])
+
+    then:
+    limit.received == [[1L, 2L]]
+  }
+
+  def 'a rule that requires a rule of each element checks no input that is not a collection'() {
+    when:
+    vehicles(new TaskExists([]), new TaskLimitOfExisting()).chain(List, TaskLimitOfExisting)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the chain for java.util.List cannot check rule 'task.limit', which requires rule 'task.exists' of each element of a collection: check collections with it, through checkAll or a collection binding"
   }
 
   def 'in fail-fast mode, a violated rule of the whole collection stops the check'() {
