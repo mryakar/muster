@@ -105,18 +105,18 @@ class StartupAdviceSpec extends Specification {
       def caller = Thread.startDaemon('advised-caller') {
         service.save(new SaveVehicle('Boreas'))
       }
-      // The caller prepares the service and waits for Spring to finish this rule.
+      // The caller prepares the service in the interceptor and waits for Spring to finish this rule.
       def waiting = {
         caller.state == Thread.State.WAITING && caller.stackTrace.any {
-          it.methodName == 'prepareNoted'
+          it.className == RulesInterceptor.name
         }
       }
       def deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
       while (!waiting() && caller.alive && System.nanoTime() <deadline) {
-        Thread.onSpinWait()
+        Thread.sleep(1)
       }
       if (!waiting()) {
-        throw new IllegalStateException('the caller did not wait in prepareNoted')
+        throw new IllegalStateException('the caller did not wait in the interceptor')
       }
       component.getObject()
     }
