@@ -144,4 +144,4 @@ Muster, `me.yakar.muster` adlı `System.Logger` üzerinden loglar; uygulama onu 
 
 * `INFO` düzeyinde: listelenen bir kural gerektirdiği için bir zincirin ya da bağlamanın eklediği kurallar ve dışarıda bırakılan bir kuralı gerektirdikleri için dışarıda bıraktığı kurallar.
 * `DEBUG` düzeyinde (`java.util.logging` buna `FINE` der ve açılmadıkça gizler): türe göre bağlanan her sınıfın kuralları, o sınıf ilk kez kontrol edildiğinde.
-* `WARNING` düzeyinde: hiçbir kuralın bağlanmadığı bir sınıf (bu genellikle bir kuralın hiç kaydedilmediği anlamına gelir) ve kapatılmış her kural.
+* `WARNING` düzeyinde: hiçbir kuralın bağlanmadığı bir sınıf (bu genellikle bir kuralın hiç kaydedilmediği anlamına gelir), kapatılmış her kural ve, xref:core/collections.adoc[] sayfasında anlatıldığı gibi, ilk koleksiyonunda `checkAll`’ı override etmediği için elemanları tek tek kontrol eden bir kural.

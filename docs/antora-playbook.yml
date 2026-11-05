@@ -32,7 +32,8 @@ ui:
   bundle:
     url: ./ui/ui-bundle.zip
   # The default UI's header, with its placeholder menu replaced by links to the repository and to
-  # the same page in the other language, and its layout, with the language of the page.
+  # the same page in the other language, its article, with a note on each page of a prerelease, and
+  # its layout, with the language of the page.
   supplemental_files: ./supplemental-ui
 output:
   dir: build/site
