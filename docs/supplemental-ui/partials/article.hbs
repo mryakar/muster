@@ -1,0 +1,19 @@
+<article class="doc">
+{{#with page.title}}
+<h1 class="page">{{{this}}}</h1>
+{{/with}}
+{{#if page.componentVersion.prerelease}}
+<div class="admonitionblock note">
+<table><tr><td class="icon"><div class="title">{{#if (eq page.component.name 'muster-tr')}}Not{{else}}Note{{/if}}</div></td>
+<td class="content">
+{{#if (eq page.component.name 'muster-tr')}}
+Bu, <code>main</code> dalının henüz yayımlanmamış belgesidir. Kurulum örnekleri son sürümü gösterir; o sürümden bu yana değişenleri <a href="https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased">değişiklik günlüğü</a> (İngilizce) listeler.
+{{else}}
+This is the documentation of the main branch, which is not released yet. The installation snippets show the latest release; the <a href="https://github.com/mryakar/muster/blob/main/CHANGELOG.md#unreleased">changelog</a> lists what changed since.
+{{/if}}
+</td></tr></table>
+</div>
+{{/if}}
+{{{page.contents}}}
+{{> pagination}}
+</article>
