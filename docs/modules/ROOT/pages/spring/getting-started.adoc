@@ -11,7 +11,7 @@ Every sample is part of that application, which runs on every build of Muster, c
 == Installation
 
 Add the starter as xref:index.adoc#_installation[the home page] shows.
-It needs Spring Boot 4.0.8 or later, and Java 21 or later; the starter is built against the oldest Spring Boot it supports, so it never pulls an application up to a newer one.
+It needs Spring Boot 4.0.9 or later, and Java 21 or later; the starter is built against the oldest Spring Boot it supports, so it never pulls an application up to a newer one.
 
 == A rule
 

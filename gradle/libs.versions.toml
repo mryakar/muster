@@ -15,8 +15,8 @@ spock = "2.5-groovy-5.0"
 # The starter is built and published against the oldest Spring Boot it supports, so that it never
 # pulls an application up to a newer one; CI also tests it against the newest. Dependabot updates
 # neither: both are moved by hand.
-spring-boot = "4.0.8"
-spring-boot-latest = "4.1.1"
+spring-boot = "4.0.9"
+spring-boot-latest = "4.1.2"
 
 [libraries]
 groovy-bom = { module = "org.apache.groovy:groovy-bom", version.ref = "groovy" }
