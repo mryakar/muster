@@ -32,9 +32,22 @@ Without a base bundle, `ofResourceBundles` refuses the family.
 
 == Templates
 
-The value of an argument goes into the message as `String.valueOf` writes it, so a rule passes a value that reads well as it is, or the edge formats it before the message is written.
+The value of an argument goes into the message as `String.valueOf` writes it, so the edge formats a number or a date before the message is written, as the next section shows.
 Template text is written as it reads, apostrophes included, and `+{{+` or `+}}+` writes a brace where it would otherwise read as part of a placeholder.
 A name that the violation does not carry stays in the message as it is, and a code without a template reads as the code, so a mistake in a template shows in the answer rather than failing the call.
+
+== Formatting values
+
+A rule passes a number or a date as it is: the client gets the client arguments as data, and the edge writes the message in the caller's language.
+The edge knows the caller, so it formats the values in the caller's locale and resolves the message with them, through the `resolve` that takes a code and its arguments:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Problems.java[tag=format,indent=0]
+----
+
+The client arguments of the answer keep their values, so a client reads `1500` as a number and the message as `1.500` in Turkish or `1,500` in English.
+The Spring Boot starter writes the values as they are; an application that wants them formatted defines a `MessageResolver` bean that formats the arguments before it fills the template.
 
 == From elsewhere
 
