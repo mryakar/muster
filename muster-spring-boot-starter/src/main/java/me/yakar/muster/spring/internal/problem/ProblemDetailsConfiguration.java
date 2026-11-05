@@ -21,6 +21,7 @@ import me.yakar.muster.spring.internal.engine.EngineConfiguration;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
@@ -43,9 +44,14 @@ public final class ProblemDetailsConfiguration {
   @Bean(ViolationHandlerRemover.HANDLER)
   ViolationExceptionHandler musterViolationExceptionHandler(
       MessageResolver messages,
+      ApplicationContext context,
       ConfigurableListableBeanFactory beanFactory,
       Environment environment) {
     return new ViolationExceptionHandler(
-        messages, EngineConfiguration.locale(beanFactory), Settings.mixedStatus(environment));
+        messages,
+        // The context is the message source, whichever beans of that type the application has.
+        context,
+        EngineConfiguration.locale(beanFactory),
+        Settings.mixedStatus(environment));
   }
 }

@@ -46,6 +46,8 @@ include::example$spring-boot/resources/application.properties[tag=messages,inden
 `spring.messages.always-use-message-format=true` stops the application, since `MessageFormat` rejects `+{name}+` placeholders.
 A link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean of the application replaces the starter's, for messages from elsewhere.
 
+The title of the problem details is the message `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` of the application's message source in the same locale, also when a `MessageResolver` bean writes the messages of the violations; Spring looks up the titles of its own problem details by codes of the same form. Without such a message, the title is the reason phrase of the status, such as `Conflict`.
+
 == Answering violations yourself
 
 The starter's handler has the order 0, as Spring Boot's own problem details do, so a controller advice without an order that handles every `Exception` does not turn violations into server errors.

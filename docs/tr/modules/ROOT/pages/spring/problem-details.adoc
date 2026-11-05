@@ -47,6 +47,8 @@ include::example$spring-boot/resources/application.properties[tag=messages,inden
 `spring.messages.always-use-message-format=true` uygulamayı durdurur, çünkü `MessageFormat`, `+{name}+` biçimindeki yer tutucuları reddeder.
 Mesajları başka bir yerden almak için uygulamanın tanımladığı bir link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean'i, starter'ınkinin yerini alır.
 
+Problem details cevabının başlığı (`title`), uygulamanın message source'undaki ve aynı yerel ayardaki `problemDetail.title.me.yakar.muster.BusinessRuleViolationException` mesajıdır; ihlallerin mesajlarını bir `MessageResolver` bean'i yazsa da böyledir. Spring de kendi problem details başlıklarını bu biçimdeki kodlarla arar. Böyle bir mesaj yoksa başlık, durum kodunun açıklamasıdır (reason phrase), örneğin `Conflict`.
+
 == İhlalleri kendiniz cevaplamak
 
 Spring Boot'un kendi problem details handler'ı gibi, starter'ın handler'ının sırası (order) da 0'dır; bu yüzden her `Exception`'ı ele alan ve sırası belirtilmemiş bir controller advice, ihlalleri sunucu hatasına çevirmez.
