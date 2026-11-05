@@ -34,10 +34,23 @@ Temel bundle yoksa `ofResourceBundles` bu bundle ailesini kabul etmez.
 == Şablonlar
 
 Bir argümanın değeri mesaja, `String.valueOf`’un yazdığı hâliyle girer.
-Bu yüzden kural ya olduğu gibi iyi okunan bir değer verir ya da dış katman, mesaj yazılmadan önce değeri biçimlendirir.
+Bu yüzden bir sayı ya da tarih, mesaj yazılmadan önce dış katmanda biçimlendirilir; bir sonraki bölüm bunu gösterir.
 Şablon metni okunacağı gibi yazılır, kesme işaretleri de dahil.
 `+{{+` ya da `+}}+`, aksi hâlde bir yer tutucunun (placeholder) parçası gibi okunacak bir yerde süslü parantez yazar.
 İhlalin taşımadığı bir ad mesajda olduğu gibi kalır, şablonu olmayan bir kod da kodun kendisi olarak okunur; böylece şablondaki bir hata çağrıyı başarısız kılmak yerine cevapta görünür.
+
+== Değerleri biçimlendirmek
+
+Bir kural, bir sayıyı ya da tarihi olduğu gibi verir: istemci argümanları istemciye veri olarak ulaşır, mesajı ise dış katman çağıranın dilinde yazar.
+Dış katman çağıranı bilir; bu yüzden değerleri çağıranın yerel ayarına göre biçimlendirir ve mesajı, kod ile argümanlarını alan `resolve` üzerinden bu değerlerle çözer:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Problems.java[tag=format,indent=0]
+----
+
+Cevaptaki istemci argümanları değerlerini korur; böylece istemci `1500`’ü bir sayı olarak, mesajı ise Türkçede `1.500`, İngilizcede `1,500` olarak okur.
+Spring Boot starter'ı değerleri olduğu gibi yazar; onları biçimlendirmek isteyen bir uygulama, şablonu doldurmadan önce argümanları biçimlendiren bir `MessageResolver` bean'i tanımlar.
 
 == Başka kaynaklardan
 

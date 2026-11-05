@@ -30,6 +30,7 @@ import me.yakar.muster.BusinessRuleViolationException;
 import me.yakar.muster.CheckMode;
 import me.yakar.muster.Muster;
 import me.yakar.muster.RuleChain;
+import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.Violation;
 import me.yakar.muster.spi.MessageResolver;
 
@@ -80,7 +81,7 @@ public final class Main {
     renames(service, problems, log);
     CurrentCall.run(ECE, TURKISH, () -> createsAll(muster, service, problems));
     switchesOff(vehicles);
-    CurrentCall.run(ECE, TURKISH, () -> resolvesMessages(muster, messages));
+    CurrentCall.run(ECE, TURKISH, () -> resolvesMessages(muster, messages, problems));
     System.out.println("The plain Java example works");
   }
 
@@ -214,7 +215,7 @@ public final class Main {
     lenient.check(new CreateVehicle("Halley", "no plate"));
   }
 
-  private static void resolvesMessages(Muster muster, MessageResolver messages) {
+  private static void resolvesMessages(Muster muster, MessageResolver messages, Problems problems) {
     var violation =
         expectRejected(
                 () -> muster.check(new CreateVehicle("Atlas II", "34 ATL 10")),
@@ -230,6 +231,11 @@ public final class Main {
     } finally {
       Locale.setDefault(serverLocale);
     }
+    // The edge writes a number in the language of the message.
+    var limit =
+        RuleContext.forRule("vehicle.batch-limit").violation().clientArg("limit", 1500).build();
+    expect(problems.message(limit, TURKISH), "Bir seferde en fazla 1.500 araç");
+    expect(problems.message(limit, Locale.ENGLISH), "At most 1,500 vehicles at once");
   }
 
   private static BusinessRuleViolationException expectRejected(Runnable call, String... codes) {

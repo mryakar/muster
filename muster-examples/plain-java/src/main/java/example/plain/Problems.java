@@ -15,6 +15,8 @@
  */
 package example.plain;
 
+import java.text.NumberFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -55,7 +57,7 @@ final class Problems {
                 violation ->
                     new Entry(
                         violation.code(),
-                        messages.resolve(violation, locale),
+                        message(violation, locale),
                         violation.target().orElse(null),
                         violation.category().map(Enum::name).orElse(null),
                         violation.clientArgs()))
@@ -63,6 +65,18 @@ final class Problems {
   }
 
   // end::problem[]
+
+  // tag::format[]
+  /** Resolves the message of a violation with its numbers written as the caller writes them. */
+  String message(Violation violation, Locale locale) {
+    var numbers = NumberFormat.getNumberInstance(locale);
+    var args = new LinkedHashMap<String, Object>(violation.clientArgs());
+    args.replaceAll(
+        (name, value) -> value instanceof Number number ? numbers.format(number) : value);
+    return messages.resolve(violation.code(), args, locale);
+  }
+
+  // end::format[]
 
   // tag::status[]
   /** Returns the status of the category the violations share, and 422 if they share none. */

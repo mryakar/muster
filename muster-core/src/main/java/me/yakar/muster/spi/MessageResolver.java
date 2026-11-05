@@ -34,8 +34,9 @@ import me.yakar.muster.rule.Violation;
  * in which {@code {name}} stands for the client argument of that name:
  *
  * <ul>
- *   <li>The value is written with {@link String#valueOf(Object)}; a rule formats numbers and dates
- *       itself.
+ *   <li>The value is written with {@link String#valueOf(Object)}; a rule passes numbers and dates
+ *       as they are, and the edge formats them in the locale of the call and resolves the message
+ *       with {@link #resolve(String, Map, Locale)}.
  *   <li>An unknown name, braces included, and {@code {}} stay as they are.
  *   <li><code>&#123;&#123;</code> and <code>&#125;&#125;</code> write one brace. Other braces and
  *       apostrophes need no escaping, unlike in {@link java.text.MessageFormat}.
