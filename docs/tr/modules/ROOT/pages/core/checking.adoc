@@ -37,7 +37,7 @@ Metot, hiçbir şeyi değiştirmeden önce komutu kontrol eder:
 include::example$plain-java/java/example/plain/VehicleService.java[tag=check-first,indent=0]
 ----
 
-Geçen bir komut repository'ye ilerler; geçmeyen bir komut ise `check`'in exception fırlatmasına yol açar ve araç hiç eklenmez.
+Geçen bir komut repository'ye ilerler; geçmeyen bir komut ise `check`’in exception fırlatmasına yol açar ve araç hiç eklenmez.
 Veritabanı olan bir uygulamada kontrol, işlemin transaction'ı içindeki ilk adımdır; böylece kurallar, işlemin hemen ardından değiştireceği veriyi okur.
 
 Kural veriyi okur ama kilitlemez; bu yüzden aynı anda Atlas adlı bir araç oluşturan iki çağrının ikisi de kontrolden geçebilir.
@@ -47,7 +47,7 @@ Son güvence veritabanındaki unique kısıtı olarak kalır; olağan durumda is
 == Bir türün kuralları
 
 Bunun yerine kurallar girdinin türüne de bağlanabilir.
-Filonun komutları `VehicleFields`'ı uygular; bu da onları kural hedefi (rule target) olarak işaretler:
+Filonun komutları `VehicleFields`’ı uygular; bu da onları kural hedefi (rule target) olarak işaretler:
 
 [source,java]
 ----
@@ -59,7 +59,7 @@ include::example$plain-java/java/example/plain/VehicleFields.java[tag=target,ind
 include::example$plain-java/java/example/plain/Main.java[tag=check-by-type,indent=0]
 ----
 
-Girdi türüne `CreateVehicle`'ın uyduğu her kayıtlı kural onu kontrol eder: `VehicleFields`'ın kuralı, `CreateVehicle`'ın kuralı ve sonradan eklenecek her kural; üstelik kontrol eden kodda hiçbir değişiklik gerekmez.
+Girdi türüne `CreateVehicle`’ın uyduğu her kayıtlı kural onu kontrol eder: `VehicleFields`’ın kuralı, `CreateVehicle`’ın kuralı ve sonradan eklenecek her kural; üstelik kontrol eden kodda hiçbir değişiklik gerekmez.
 Bir türün buna link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`] ile açıkça katılması gerekir; böylece `Long` gibi yaygın bir tür için yazılmış bir kural yalnızca listelendiği yerde çalışır.
 
 Bağlama (binding) ikisini birleştirir: önce listelediği kurallar, sonra türün kuralları çalışır.
@@ -87,9 +87,9 @@ include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,ind
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
 ----
 
-link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`], `VehicleExists`'i `VehicleOwnedByCaller`'ın önüne koyar ve araç yoksa `VehicleOwnedByCaller`'ın çalışmasını engeller; böylece `VehicleOwnedByCaller`, aracın varlığını yeniden kontrol etmeden sahibine bakabilir.
+link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`], `VehicleExists`’i `VehicleOwnedByCaller`’ın önüne koyar ve araç yoksa `VehicleOwnedByCaller`’ın çalışmasını engeller; böylece `VehicleOwnedByCaller`, aracın varlığını yeniden kontrol etmeden sahibine bakabilir.
 Var olmayan bir aracı yeniden adlandırmak isteyen çağırana, aracı yeniden adlandıramayacağı değil, aracın var olmadığı söylenir.
-Yalnızca `VehicleOwnedByCaller`'ı listeleyen bir zincir `VehicleExists`'i de çalıştırır ve onu eklediğini loglar.
+Yalnızca `VehicleOwnedByCaller`’ı listeleyen bir zincir `VehicleExists`’i de çalıştırır ve onu eklediğini loglar.
 
 [#_the_order_of_rules]
 == Kuralların sırası
@@ -119,7 +119,7 @@ Sormak hiçbir şeyi bağlamaz; bir sınıf, o sınıftan bir girdi kontrol edil
 
 == Loglama
 
-Muster, `me.yakar.muster` adlı `System.Logger` üzerinden loglar; uygulama onu başka bir yere yönlendirmedikçe bu logger `java.util.logging`'e yazar:
+Muster, `me.yakar.muster` adlı `System.Logger` üzerinden loglar; uygulama onu başka bir yere yönlendirmedikçe bu logger `java.util.logging`’e yazar:
 
 * `INFO` düzeyinde: listelenen bir kural gerektirdiği için bir zincirin ya da bağlamanın eklediği kurallar ve dışarıda bırakılan bir kuralı gerektirdikleri için dışarıda bıraktığı kurallar.
 * `DEBUG` düzeyinde (`java.util.logging` buna `FINE` der ve açılmadıkça gizler): türe göre bağlanan her sınıfın kuralları, o sınıf ilk kez kontrol edildiğinde.

@@ -61,7 +61,7 @@ Herhangi bir kural takılırsa kontrol, ihlalleri taşıyan link:{javadoc-core}/
 == Kural hedefi
 
 Muster bir girdiye hangi kuralların ait olduğunu nereden bilir?
-En basit yol şudur: girdi, boş bir işaret arayüzü olan link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]'ı uygular.
+En basit yol şudur: girdi, boş bir işaret arayüzü olan link:{javadoc-core}/rule/RuleTarget.html[`RuleTarget`]’ı uygular.
 O zaman `muster.check(input)`, girdi türü bu girdiye uyan her kayıtlı kuralı çalıştırır.
 Sonradan eklenen bir kural, kontrolü yapan kodda hiçbir değişiklik gerekmeden kendiliğinden devreye girer.
 

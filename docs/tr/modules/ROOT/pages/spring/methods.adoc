@@ -24,7 +24,7 @@ include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,
 Girdi kural hedefi değilse, örneğin bir kimlikse (id), metot yalnızca listelediği kuralları kontrol eder, başka hiçbirini değil.
 
 `@Rules`, tıpkı `@Transactional` gibi, servisin uyguladığı bir arayüz metodunun üzerine ya da bir kural kümesini temsil eden, sizin tanımladığınız bir anotasyonun üzerine konabilir.
-Proxy yalnızca override edebildiği public instance metotlarına yapılan çağrıları görür; bu yüzden starter, static, final ya da public olmayan bir metottaki `@Rules`'u görmezden gelmek yerine reddeder.
+Proxy yalnızca override edebildiği public instance metotlarına yapılan çağrıları görür; bu yüzden starter, static, final ya da public olmayan bir metottaki `@Rules`’u görmezden gelmek yerine reddeder.
 
 == Koleksiyonlar
 

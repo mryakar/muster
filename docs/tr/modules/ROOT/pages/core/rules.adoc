@@ -15,7 +15,7 @@ Filoda aynı ada sahip iki araç olmamalıdır:
 include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=rule,indent=0]
 ----
 
-Kural `VehicleFields`'ı kontrol eder.
+Kural `VehicleFields`’ı kontrol eder.
 Bu türü hem araç oluşturan komut hem de aracı yeniden adlandıran komut uygular; böylece tek bir kural ikisini birden korur.
 Muster, kuralın hangi türü kontrol ettiğini link:{javadoc-core}/rule/BusinessRule.html[`implements BusinessRule<VehicleFields>`] ifadesinden okur; bu yüzden bir kural lambda değil, adı olan bir sınıftır.
 
@@ -47,7 +47,7 @@ include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=violat
 * İç argümanlar (internal arguments): yalnızca uygulamanın kendi loglarında ve kodunda gördüğü değerler.
 * Hedef (target): burada `name`, yani komutta istemcinin düzeltmesi gereken alan.
 * Kategori (category): burada `CONFLICT`, yani sorunun türü; HTTP'ye cevap veren bir dış katman durum kodunu buna göre seçer.
-* Önem derecesi (severity): bugün her ihlal için `ERROR`'dur; her ihlal çağrıyı reddeder.
+* Önem derecesi (severity): bugün her ihlal için `ERROR`’dur; her ihlal çağrıyı reddeder.
 
 İç argümanlar, kuralın bilmesi gereken şeyi çağırandan (caller) saklar:
 
@@ -68,7 +68,7 @@ Uygulanmayan bir kural atlanır (skipped); bu ne geçmek ne de takılmaktır; o 
 [#_testing_a_rule]
 == Kuralı test etmek
 
-Kural sıradan bir nesnedir; bu yüzden bir test, kuralı ihtiyaç duyduklarıyla oluşturur ve bir link:{javadoc-core}/Muster.html[`Muster`] olmadan `check`'i çağırır:
+Kural sıradan bir nesnedir; bu yüzden bir test, kuralı ihtiyaç duyduklarıyla oluşturur ve bir link:{javadoc-core}/Muster.html[`Muster`] olmadan `check`’i çağırır:
 
 [source,java]
 ----

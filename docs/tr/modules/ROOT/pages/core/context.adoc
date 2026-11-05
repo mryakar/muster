@@ -7,7 +7,7 @@ Bağlamda (context) başka hiçbir şey yoktur: araçlar ya da bir `Clock` her �
 == Nereden gelirler
 
 Muster, bir kontrol başladığında, kontrolü yapan thread üzerinde çağıranı (caller) ve yerel ayarı ister.
-Spring olmadan, çağrıyı karşılayan kod (örneğin bir isteğin handler'ı) ikisini de bilir ve onları Muster'ın sağlayıcılarının (supplier) okuyabileceği bir yere koyar; örneğin bir `ThreadLocal`'a:
+Spring olmadan, çağrıyı karşılayan kod (örneğin bir isteğin handler'ı) ikisini de bilir ve onları Muster'ın sağlayıcılarının (supplier) okuyabileceği bir yere koyar; örneğin bir `ThreadLocal`’a:
 
 [source,java]
 ----
@@ -18,13 +18,13 @@ xref:core/checking.adoc#_building_muster[Muster'ı kurmak] bölümündeki builde
 Kontrol yapan her thread bu sağlayıcıları çağırır; bu yüzden sağlayıcıların, bir `ThreadLocal` gibi, aynı anda birçok thread'den güvenle çağrılabilmesi gerekir.
 
 Bir `ThreadLocal` kendi thread'inde kalır.
-Bir executor'a, paralel bir stream'e ya da bir `CompletableFuture`'a verilen iş başka bir thread'de çalışır; orada yapılan bir kontrol hiçbir çağıran görmez ve varsayılan yerel ayarı kullanır.
+Bir executor'a, paralel bir stream'e ya da bir `CompletableFuture`’a verilen iş başka bir thread'de çalışır; orada yapılan bir kontrol hiçbir çağıran görmez ve varsayılan yerel ayarı kullanır.
 Çağrının bilgilerini o thread'de yeniden ayarlayın ya da kontrolü işi devretmeden önce yapın.
 Sağlayıcı verilmezse hiçbir kontrolün çağıranı olmaz ve her kontrol JVM'in varsayılan yerel ayarını kullanır.
 
 == Çağıran
 
-Çağıran bir `java.security.Principal`'dır; anonim bir çağrıda ya da sistemin yaptığı bir çağrıda ise çağıran yoktur.
+Çağıran bir `java.security.Principal`’dır; anonim bir çağrıda ya da sistemin yaptığı bir çağrıda ise çağıran yoktur.
 Bir aracı yalnızca sahibi yeniden adlandırabilir:
 
 [source,java]

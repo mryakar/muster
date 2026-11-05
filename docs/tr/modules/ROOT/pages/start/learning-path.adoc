@@ -14,7 +14,7 @@ Onları bu sırayla okuyun ve ihtiyacınız olanı bulduğunuz yerde durun: ço�
 Uygulamanıza uyan hızlı başlangıcı seçin:
 
 * xref:start/quick-start-spring.adoc[] — bir Spring Boot uygulaması: bir kural yazın, bir komutu işaretleyin, servis onu kendiliğinden kontrol etsin.
-* xref:start/quick-start-java.adoc[] — herhangi bir Java uygulaması: bir `Muster` oluşturun ve `check`'i kendiniz çağırın.
+* xref:start/quick-start-java.adoc[] — herhangi bir Java uygulaması: bir `Muster` oluşturun ve `check`’i kendiniz çağırın.
 
 == Seviye 2: gerçek kurallar
 
@@ -29,7 +29,7 @@ Spring Boot ile, sırayla:
 Spring olmadan, sırayla:
 
 . xref:core/rules.adoc[] — bir kuralın her parçası, ihlaller ve bir kuralı test etmek.
-. xref:core/checking.adoc[] — `Muster`'ı oluşturmak, zincirler, bir türün kuralları, bağlamalar ve başka kuralları gerektiren kurallar.
+. xref:core/checking.adoc[] — `Muster`’ı oluşturmak, zincirler, bir türün kuralları, bağlamalar ve başka kuralları gerektiren kurallar.
 . xref:core/errors.adoc[] — reddedilen bir kontrolün ne fırlattığı ve ona nasıl cevap verileceği, örneğin bir HTTP durum koduyla.
 . xref:core/messages.adoc[] — bir ihlali çağıranın dilinde bir mesaja dönüştürmek.
 

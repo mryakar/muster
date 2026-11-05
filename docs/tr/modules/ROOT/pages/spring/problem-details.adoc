@@ -51,6 +51,6 @@ Problem details cevabının başlığı (`title`), uygulamanın message source'u
 
 == İhlalleri kendiniz cevaplamak
 
-Spring Boot'un kendi problem details handler'ı gibi, starter'ın handler'ının sırası (order) da 0'dır; bu yüzden her `Exception`'ı ele alan ve sırası belirtilmemiş bir controller advice, ihlalleri sunucu hatasına çevirmez.
+Spring Boot'un kendi problem details handler'ı gibi, starter'ın handler'ının sırası (order) da 0'dır; bu yüzden her `Exception`’ı ele alan ve sırası belirtilmemiş bir controller advice, ihlalleri sunucu hatasına çevirmez.
 Bir `@ExceptionHandler` içinde link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] adını veren bir controller advice, yalnızca bazı controller'lara uygulansa bile, her controller için starter'ın handler'ının yerini alır; mesajları çözmek için starter'ın `MessageResolver` bean'ini enjekte edebilir.
 Controller'ın kendi içindeki bir handler ise her durumda önce gelir.

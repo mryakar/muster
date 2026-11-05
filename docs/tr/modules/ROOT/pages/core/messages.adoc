@@ -25,7 +25,7 @@ include::example$plain-java/resources/example/plain/messages_tr.properties[tag=m
 ----
 
 `name` istemci argümanı `Atlas` olan alınmış ad ihlali `The name Atlas is taken` diye, yerel ayarı Türkçe olan bir çağıran için ise `Atlas adı kullanılıyor` diye okunur.
-Lambda, `ResourceBundle.getBundle`'ı uygulamanın kendi modülünden çağırır; bundle'ları modül yolunda (module path) bulabilmesini sağlayan da budur.
+Lambda, `ResourceBundle.getBundle`’ı uygulamanın kendi modülünden çağırır; bundle'ları modül yolunda (module path) bulabilmesini sağlayan da budur.
 
 Dili için bundle bulunmayan bir çağıran, temel bundle'ı, yani adında yerel ayar olmayan bundle'ı okur.
 Bu, sunucunun kendi varsayılan yerel ayarı Türkçe olsa bile böyledir: örnek, böyle bir sunucuda Fransızca konuşan bir çağıranın İngilizce okuduğunu kontrol eder.
@@ -33,7 +33,7 @@ Temel bundle yoksa `ofResourceBundles` bu bundle ailesini kabul etmez.
 
 == Şablonlar
 
-Bir argümanın değeri mesaja, `String.valueOf`'un yazdığı hâliyle girer.
+Bir argümanın değeri mesaja, `String.valueOf`’un yazdığı hâliyle girer.
 Bu yüzden kural ya olduğu gibi iyi okunan bir değer verir ya da dış katman, mesaj yazılmadan önce değeri biçimlendirir.
 Şablon metni okunacağı gibi yazılır, kesme işaretleri de dahil.
 `+{{+` ya da `+}}+`, aksi hâlde bir yer tutucunun (placeholder) parçası gibi okunacak bir yerde süslü parantez yazar.
@@ -42,7 +42,7 @@ Bu yüzden kural ya olduğu gibi iyi okunan bir değer verir ya da dış katman,
 == Başka kaynaklardan
 
 Bir veritabanı tablosunda ya da bir framework'ün message source'unda tutulan şablonlar, Muster'a link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver.ofTemplates`] üzerinden ulaşır; bu metot, bir kodun bir yerel ayardaki şablonunu ister ve onu aynı şekilde doldurur.
-Mesaj yazmanın kendine özgü bir yolu olan bir uygulama, `MessageResolver`'ı kendisi uygular.
+Mesaj yazmanın kendine özgü bir yolu olan bir uygulama, `MessageResolver`’ı kendisi uygular.
 
 == İstemci argümanları ve iç argümanlar
 

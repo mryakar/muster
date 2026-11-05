@@ -2,7 +2,7 @@
 :description: Bir dinleyicinin, hangi kuralların çalıştığını, her birinin nasıl bittiğini ve ne kadar sürdüğünü loglamak için Muster'ın her kontrolünü nasıl izlediği.
 include::partial$javadoc.adoc[]
 
-Bir dinleyici (listener), bir link:{javadoc-core}/Muster.html[`Muster`]'ın yaptığı her kontrolü ve o kontroldeki her kuralı görür; bunun için ne kurallarda ne de kontrol eden kodda değişiklik gerekir.
+Bir dinleyici (listener), bir link:{javadoc-core}/Muster.html[`Muster`]’ın yaptığı her kontrolü ve o kontroldeki her kuralı görür; bunun için ne kurallarda ne de kontrol eden kodda değişiklik gerekir.
 Örnekteki dinleyici her kuralı loglar:
 
 [source,java]
@@ -34,7 +34,7 @@ Dinleyicinin kendisi ise bütün thread'lerdeki bütün kontroller tarafından p
 
 == Birden çok dinleyici ve exception fırlatan dinleyiciler
 
-Bir `Muster`'ın birkaç dinleyicisi olabilir; örneğin biri loglayan, biri ölçüm yapan.
+Bir `Muster`’ın birkaç dinleyicisi olabilir; örneğin biri loglayan, biri ölçüm yapan.
 Dinleyiciler bir kontrolün başladığını eklendikleri sırayla, bittiğini ise ters sırayla duyar; böylece iç içe açılan span'ler doğru sırayla kapanır: içteki önce.
 
 Exception fırlatan bir dinleyici, exception fırlatan bir kural gibi kontrolü durdurur; diğer dinleyiciler kontrolün bittiğini yine de duyar.

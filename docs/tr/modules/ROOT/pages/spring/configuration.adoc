@@ -24,8 +24,8 @@ Bir kural bean'i singleton'dır, çünkü Muster her kuralı bir kez oluşturur 
 Uygulamanın bean'leri, starter'ınkilerin yerini alır ya da onlara katılır:
 
 * Bir link:{javadoc-core}/Muster.html[`Muster`] bean'i, starter'ın oluşturduğunun yerini alır.
-Bu durumda uygulama onu kendi kuralları, dinleyicileri, çağıranı ve yerel ayarıyla kendisi oluşturur, çünkü starter, kendi oluşturmadığı bir `Muster`'a bunların hiçbirini kaydetmez; bu `Muster`'ın kontrolleri de gözlemlenmez (observation).
-Böyle bir uygulama, `muster.mode` ayarını ya da `muster.rules` altında bir anahtarı da belirlerse başlamaz, çünkü bunları yalnızca starter'ın `Muster`'ı okur.
+Bu durumda uygulama onu kendi kuralları, dinleyicileri, çağıranı ve yerel ayarıyla kendisi oluşturur, çünkü starter, kendi oluşturmadığı bir `Muster`’a bunların hiçbirini kaydetmez; bu `Muster`’ın kontrolleri de gözlemlenmez (observation).
+Böyle bir uygulama, `muster.mode` ayarını ya da `muster.rules` altında bir anahtarı da belirlerse başlamaz, çünkü bunları yalnızca starter'ın `Muster`’ı okur.
 * Bir link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver`] bean'i, xref:spring/problem-details.adoc#_messages[Mesajlar] bölümünün anlattığı gibi starter'ınkinin yerini alır.
 * `Supplier<Principal>` ve `Supplier<Locale>` bean'leri, xref:spring/caller-and-locale.adoc#_from_elsewhere[Çağıran ve yerel ayar] sayfasının anlattığı gibi çağıranın ve yerel ayarın kaynağını değiştirir.
 * link:{javadoc-core}/spi/CheckListener.html[`CheckListener`] bean'leri, xref:spring/observability.adoc#listeners[Kontrolleri gözlemlemek] sayfasının anlattığı gibi dinleyicilere katılır.
