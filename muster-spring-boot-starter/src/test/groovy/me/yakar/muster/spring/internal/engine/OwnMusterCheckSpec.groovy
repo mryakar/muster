@@ -21,6 +21,9 @@ import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 import me.yakar.muster.Muster
 import me.yakar.muster.spring.MusterAutoConfiguration
 import org.springframework.beans.factory.FactoryBean
+import org.springframework.beans.factory.aot.BeanInstanceSupplier
+import org.springframework.beans.factory.support.DefaultListableBeanFactory
+import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.beans.factory.support.RootBeanDefinition
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -28,6 +31,7 @@ import org.springframework.context.annotation.AnnotationBeanNameGenerator
 import org.springframework.context.annotation.AnnotationConfigUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.mock.env.MockEnvironment
 import spock.lang.Specification
 
 class OwnMusterCheckSpec extends Specification {
@@ -109,6 +113,8 @@ class OwnMusterCheckSpec extends Specification {
     'as a singleton' || 'ownMuster'
     'with a bean supplier' || 'muster'
     'with a plain definition' || 'ownMuster'
+    'with a generic definition' || 'ownMuster'
+    'as ahead-of-time processing generates it' || 'ownMuster'
   }
 
   static ApplicationContextRunner registered(ApplicationContextRunner runner, String how) {
@@ -119,6 +125,17 @@ class OwnMusterCheckSpec extends Specification {
         }
       case 'with a bean supplier':
         return runner.withBean(Muster, { Muster.builder().build() })
+      case 'with a generic definition':
+        return runner.withInitializer {
+          def definition = new GenericBeanDefinition()
+          definition.beanClass = Muster
+          definition.instanceSupplier = { Muster.builder().build() }
+          it.registerBeanDefinition('ownMuster', definition)
+        }
+      case 'as ahead-of-time processing generates it':
+        return runner.withInitializer {
+          it.registerBeanDefinition('ownMuster', generated(OwnMuster))
+        }
       default:
         return runner.withInitializer {
           it.registerBeanDefinition('ownMuster', new RootBeanDefinition(Muster, {
@@ -126,6 +143,28 @@ class OwnMusterCheckSpec extends Specification {
           }))
         }
     }
+  }
+
+  /** A definition as ahead-of-time processing generates it, without annotations. */
+  static RootBeanDefinition generated(Class<?> configuration) {
+    def parameterTypes = configuration.declaredMethods.find { it.name == 'muster' }.parameterTypes
+    def definition = new RootBeanDefinition(Muster)
+    definition.instanceSupplier = BeanInstanceSupplier.forFactoryMethod(configuration, 'muster', parameterTypes)
+    definition
+  }
+
+  def 'the Muster built here takes the properties also as ahead-of-time processing generates it'() {
+    given:
+    def beanFactory = new DefaultListableBeanFactory()
+    beanFactory.registerBeanDefinition('muster', generated(EngineConfiguration))
+    def check = new OwnMusterCheck()
+    check.environment = new MockEnvironment().withProperty('muster.mode', 'collect-all')
+
+    when:
+    check.postProcessBeanFactory(beanFactory)
+
+    then:
+    noExceptionThrown()
   }
 
   def 'with a Muster of its own, the application starts with the properties that the starter itself reads: #properties'() {

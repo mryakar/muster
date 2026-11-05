@@ -23,6 +23,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 
@@ -33,7 +34,8 @@ import org.springframework.core.env.Environment;
  * a child context that uses the {@code Muster} of its parent defines none.
  *
  * <p>A definition is the starter's when {@link EngineConfiguration} declares its factory method,
- * whatever the names of the bean and of the configuration, which an application may choose.
+ * whatever the names of the bean and of the configuration, which an application may choose, also
+ * when the application starts from the code that ahead-of-time processing generated.
  */
 final class OwnMusterCheck implements BeanFactoryPostProcessor, EnvironmentAware {
 
@@ -61,11 +63,16 @@ final class OwnMusterCheck implements BeanFactoryPostProcessor, EnvironmentAware
     if (!beanFactory.containsBeanDefinition(name)) {
       return false;
     }
+    var definition = beanFactory.getBeanDefinition(name);
+    if (definition instanceof AnnotatedBeanDefinition annotated) {
+      var factoryMethod = annotated.getFactoryMethodMetadata();
+      return factoryMethod != null
+          && EngineConfiguration.class.getName().equals(factoryMethod.getDeclaringClassName());
+    }
+    // Generated ahead of time: the definition carries no annotations, its instance supplier names
+    // the factory method.
     var factoryMethod =
-        beanFactory.getBeanDefinition(name) instanceof AnnotatedBeanDefinition annotated
-            ? annotated.getFactoryMethodMetadata()
-            : null;
-    return factoryMethod != null
-        && EngineConfiguration.class.getName().equals(factoryMethod.getDeclaringClassName());
+        definition instanceof RootBeanDefinition root ? root.getResolvedFactoryMethod() : null;
+    return factoryMethod != null && factoryMethod.getDeclaringClass() == EngineConfiguration.class;
   }
 }
