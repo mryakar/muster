@@ -22,6 +22,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - A rule of the whole collection, such as one of `List<E>` input, may require a rule of its elements of `E` input, as `@RequiresRule` documents; Muster used to reject it unless the required rule took `Object`. A chain that checks no collection rejects such a rule when it is created.
 - In an application processed ahead of time, the starter no longer overrides an order that the application gives the transaction advice, as with `@EnableTransactionManagement(order = ...)`, when it starts from the generated code.
+- An application processed ahead of time that sets `muster.mode` or a key under `muster.rules` no longer fails to start from the generated code: the starter took its own `Muster` bean for one that the application defines.
 - The starter no longer makes each application context in one JVM, as in a test suite, generate new proxy classes for the beans it advises.
 
 ### Security

@@ -15,6 +15,7 @@
  */
 package me.yakar.muster.spring.internal.advice
 
+import static me.yakar.muster.spring.AheadOfTime.startedAheadOfTime
 import static org.junit.jupiter.api.Assertions.assertThrows
 
 import me.yakar.muster.spring.MusterAutoConfiguration
@@ -24,19 +25,12 @@ import me.yakar.muster.spring.fixture.validation.ValidatedService
 import me.yakar.muster.spring.fixture.validation.ValidationProbe
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.aot.test.generate.TestGenerationContext
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration
-import org.springframework.context.ApplicationContextInitializer
-import org.springframework.context.aot.ApplicationContextAotGenerator
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.support.GenericApplicationContext
-import org.springframework.core.env.MapPropertySource
 import org.springframework.core.test.tools.CompileWithForkedClassLoader
-import org.springframework.core.test.tools.TestCompiler
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor
@@ -109,43 +103,8 @@ class AheadOfTimeTest {
   void 'the start fails if the transaction advice would not run around Muster\'s'() {
     // Read when the application is processed, which leaves the order the application starts with.
     def failure = assertThrows(IllegalStateException) {
-      startedAheadOfTime(Application, ['muster.transaction.reorder-advisor': 'false']) {}
+      startedAheadOfTime(Application, ['muster.transaction.reorder-advisor': 'false'], [:]) {}
     }
     assert failure.message.contains('does not come before Muster\'s')
-  }
-
-  /**
-   * Processes the configuration ahead of time, with the given properties, compiles what it
-   * generates and starts from it.
-   */
-  static void startedAheadOfTime(Class<?> configuration, Map<String, Object> properties = [:], Closure check) {
-    def generation = new TestGenerationContext()
-    def processed = new AnnotationConfigApplicationContext()
-    def initializer
-    try {
-      processed.environment.propertySources.addFirst(new MapPropertySource('test', properties))
-      processed.register(configuration)
-      initializer = new ApplicationContextAotGenerator().processAheadOfTime(processed, generation)
-    } finally {
-      processed.close()
-    }
-    generation.writeGeneratedContent()
-    TestCompiler.forSystem().with(generation).compile { compiled ->
-      // As Spring Boot starts an application from generated code: with ahead-of-time mode on.
-      def aotEnabled = System.setProperty('spring.aot.enabled', 'true')
-      def context = new GenericApplicationContext()
-      try {
-        compiled.getInstance(ApplicationContextInitializer, initializer.toString()).initialize(context)
-        context.refresh()
-        check(context)
-      } finally {
-        context.close()
-        if (aotEnabled == null) {
-          System.clearProperty('spring.aot.enabled')
-        } else {
-          System.setProperty('spring.aot.enabled', aotEnabled)
-        }
-      }
-    }
   }
 }
