@@ -80,7 +80,7 @@ public enum SelfInvocationMode {
    * @param nativeImage whether the application runs as a native image
    * @return the mode to scan in
    */
-  public SelfInvocationMode inNativeImage(boolean nativeImage) {
+  public SelfInvocationMode scanning(boolean nativeImage) {
     if (!nativeImage || this == OFF) {
       return this;
     }
