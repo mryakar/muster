@@ -22,6 +22,7 @@ import java.util.HashSet;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Rule;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.AotDetector;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -67,6 +68,11 @@ final class RuleScanner
 
   @Override
   public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+    // Started from the code that ahead-of-time processing generated: the processing registered the
+    // rules already.
+    if (AotDetector.useGeneratedArtifacts()) {
+      return;
+    }
     // In an application context, the registry is the bean factory.
     var beanFactory = (ConfigurableListableBeanFactory) registry;
     if (!AutoConfigurationPackages.has(beanFactory)) {
