@@ -19,6 +19,7 @@ import example.plain.quickstart.QuickStart;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -82,6 +83,7 @@ public final class Main {
     CurrentCall.run(ECE, TURKISH, () -> createsAll(muster, service, problems));
     switchesOff(vehicles);
     CurrentCall.run(ECE, TURKISH, () -> resolvesMessages(muster, messages, problems));
+    CurrentCall.run(ECE, TURKISH, () -> transacts(service));
     System.out.println("The plain Java example works");
   }
 
@@ -236,6 +238,46 @@ public final class Main {
         RuleContext.forRule("vehicle.batch-limit").violation().clientArg("limit", 1500).build();
     expect(problems.message(limit, TURKISH), "Bir seferde en fazla 1.500 araç");
     expect(problems.message(limit, Locale.ENGLISH), "At most 1,500 vehicles at once");
+  }
+
+  private static void transacts(VehicleService service) {
+    var ends = new ArrayList<String>();
+    var begun = new ArrayList<Transactions.Transaction>();
+    var transactions =
+        new Transactions(
+            () -> {
+              var transaction =
+                  new Transactions.Transaction() {
+                    @Override
+                    public void commit() {
+                      ends.add("commit");
+                    }
+
+                    @Override
+                    public void rollback() {
+                      ends.add("rollback");
+                    }
+
+                    @Override
+                    public void close() {
+                      ends.add("close");
+                    }
+                  };
+              begun.add(transaction);
+              return transaction;
+            });
+    // The rules and the repositories find the transaction on the thread of the call.
+    transactions.inTransaction(
+        () -> {
+          expect(Transactions.current(), begun.getLast());
+          return service.create(new CreateVehicle("Pampero", "34 PAM 70"));
+        });
+    expectRejected(
+        () ->
+            transactions.inTransaction(
+                () -> service.create(new CreateVehicle("Pampero", "34 PAM 71"))),
+        "vehicle.name-unique");
+    expect(ends, List.of("commit", "close", "rollback", "close"));
   }
 
   private static BusinessRuleViolationException expectRejected(Runnable call, String... codes) {

@@ -41,6 +41,19 @@ In an application with a database, the check is the first step inside the transa
 A rule reads the data but does not lock it, so two calls that create a vehicle named Atlas at the same moment can both pass the check.
 The unique constraint of the database stays the last guard; the rule is what gives the client a clear answer in the usual case.
 
+== A transaction without Spring
+
+Without Spring, the application opens the transaction itself and puts it where the rules and the repositories find it, on the thread of the call, as it does with the caller in xref:core/context.adoc[]:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Transactions.java[tag=transaction,indent=0]
+----
+
+With JDBC, the transaction is a connection whose auto-commit is off, and a rule that queries the database reads through that connection, so it sees what the transaction wrote before the check, and the writes that follow it are part of the same transaction.
+A rejected check throws before anything is written, and the rollback ends the transaction; `remove` leaves nothing behind on a thread of a pool, and `close` gives the connection back.
+A second transaction on the same thread is refused rather than mixed with the first.
+
 == Rules of a type
 
 An input can carry its rules with it instead.
