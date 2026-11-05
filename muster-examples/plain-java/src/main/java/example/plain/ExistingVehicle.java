@@ -17,7 +17,9 @@ package example.plain;
 
 import me.yakar.muster.rule.RuleTarget;
 
+// tag::existing[]
 /** A command about a vehicle that must exist. */
 interface ExistingVehicle extends RuleTarget {
   long vehicleId();
 }
+// end::existing[]

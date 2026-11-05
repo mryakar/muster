@@ -75,6 +75,13 @@ Bir bağlama, türe göre bağlanacak bir kuralı `exclude` ile dışarıda da b
 
 == Başka kuralları gerektiren kurallar
 
+Aşağıdaki iki kural da var olması gereken bir araçla ilgili her komutu kontrol eder; böyle bir komut aracın kimliğini taşır:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/ExistingVehicle.java[tag=existing,indent=0]
+----
+
 Aracın var olduğu bilinmeden, çağıranla karşılaştırılacak bir sahip de yoktur:
 
 [source,java]
@@ -116,6 +123,7 @@ include::example$plain-java/java/example/plain/Main.java[tag=bound-rule-ids,inde
 ----
 
 Sormak hiçbir şeyi bağlamaz; bir sınıf, o sınıftan bir girdi kontrol edildikten sonra listede görünür.
+Bir zincirin tek bir sırası vardır, bu yüzden `ruleIds()` bir liste döndürür; bir bağlama ise kontrol ettiği her sınıf için ayrı bir zincir tutar, bu yüzden onun `ruleIds()` metodu her sınıfı kendi zincirinin sırasına eşleyen bir harita döndürür.
 
 == Loglama
 

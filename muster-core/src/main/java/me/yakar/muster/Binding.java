@@ -102,7 +102,9 @@ public final class Binding<I> {
    * Returns the ids of the rules of the chains bound so far, by class in the order of their names,
    * each list in the order the rules run: the chain of the input type, bound when the binding was
    * built, for a type that is final or not a rule target, and the chain of the class of each rule
-   * target checked so far. The map is a copy, taken now, that later checks do not change.
+   * target checked so far. The map is a copy, taken now, that later checks do not change. Unlike
+   * {@link RuleChain#ruleIds()}, a list since a chain has one order, the ids come by class, since a
+   * binding keeps a chain for each class it checks.
    *
    * @return the ids by class, unmodifiable
    */
