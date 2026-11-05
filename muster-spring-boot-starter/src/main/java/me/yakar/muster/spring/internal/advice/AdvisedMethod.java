@@ -30,8 +30,8 @@ import me.yakar.muster.CheckMode;
  * @param rules the ids of the rules the method lists, as it lists them; {@code ruleIds} tells what
  *     runs
  * @param excluded the ids of the rules the method excludes, as it lists them
- * @param ruleIds the ids of the rules of the chains bound so far, by class, as {@link
- *     me.yakar.muster.Binding#ruleIds} reports them
+ * @param ruleIds the ids of the rules of the chains bound so far, by class, as the binding of the
+ *     method reports them
  */
 public record AdvisedMethod(
     String label,

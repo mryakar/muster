@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 /**
- * Muster's advice: checks the input of advised methods against their rules, inside their
- * transaction. Not part of the API: anything in this package may change in any release.
+ * Muster's advice: checks the input of advised methods against their rules, after their constraints
+ * unless {@code muster.validation.reorder-advisor} is off, and inside their transaction. Not part
+ * of the API: anything in this package may change in any release.
  */
 @NullMarked
 package me.yakar.muster.spring.internal.advice;
