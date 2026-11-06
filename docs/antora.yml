@@ -3,6 +3,7 @@
 # and the snapshot commit that follows it puts it back.
 name: muster
 title: Muster
+prerelease: true
 nav:
   - modules/ROOT/nav.adoc
 asciidoc:
