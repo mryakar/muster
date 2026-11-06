@@ -3,6 +3,7 @@
 # and the release commit changes both files the same way.
 name: muster-tr
 title: Muster (Türkçe)
+prerelease: true
 nav:
   - modules/ROOT/nav.adoc
 asciidoc:
