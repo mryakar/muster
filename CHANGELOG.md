@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+
 ### Added
 
 - The documentation site at https://mryakar.github.io/muster/, with a guide to the Spring Boot starter and one without Spring, the reference, the benchmarks and the Javadoc of each version, in English and in Turkish. The README is the short way in.
@@ -117,7 +119,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - JMH benchmarks in `muster-benchmarks`, which is not published, measure what a check adds to a call, also from many threads at once. `./gradlew jmh` runs them.
 - The measured cost of a check and the budget it is held to, in `docs/benchmarks`, with a chart in the README. A passing check of 20 rules adds about 100 ns over calling them by hand.
 
-[Unreleased]: https://github.com/mryakar/muster/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/mryakar/muster/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/mryakar/muster/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mryakar/muster/releases/tag/v0.3.0
 [0.2.0]: https://github.com/mryakar/muster/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mryakar/muster/releases/tag/v0.1.0
