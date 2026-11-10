@@ -27,15 +27,14 @@ import org.junit.jupiter.api.Test;
 class VehicleOwnedByCallerTest {
 
   // tag::test-caller[]
-  private final Vehicles vehicles = new Vehicles();
-  private final VehicleOwnedByCaller rule = new VehicleOwnedByCaller(vehicles);
-  private final long atlas = vehicles.add("Atlas", "34 ABC 123", "ece").id();
+  private final VehicleOwnedByCaller rule = new VehicleOwnedByCaller(); // reads no vehicle itself
+  private final Vehicle atlas = new Vehicle(7, "Atlas", "34 ABC 123", "ece");
 
   // end::test-caller[]
 
   @Test
   void passesTheOwner() {
-    var result = rule.check(new RenameVehicle(atlas, "Atlas II"), as("ece"));
+    var result = rule.check(new RenameVehicle(atlas.id(), "Atlas II"), as("ece"));
 
     assertEquals(RuleResult.passed(), result);
   }
@@ -43,9 +42,13 @@ class VehicleOwnedByCallerTest {
   // tag::test-caller[]
   @Test
   void forbidsAnotherCaller() {
-    var ctx = RuleContext.builder(VehicleOwnedByCaller.class).caller(new User("can")).build();
+    var ctx =
+        RuleContext.builder(VehicleOwnedByCaller.class)
+            .caller(new User("can"))
+            .value(VehicleExists.class, atlas) // as VehicleExists leaves it
+            .build();
 
-    var result = rule.check(new RenameVehicle(atlas, "Atlas II"), ctx);
+    var result = rule.check(new RenameVehicle(atlas.id(), "Atlas II"), ctx);
 
     var violation = assertInstanceOf(RuleResult.Failed.class, result).violations().getFirst();
     assertEquals(Optional.of(Category.FORBIDDEN), violation.category());
@@ -55,14 +58,18 @@ class VehicleOwnedByCallerTest {
 
   @Test
   void forbidsACallWithoutACaller() {
-    var result =
-        rule.check(
-            new RenameVehicle(atlas, "Atlas II"), RuleContext.forRule(VehicleOwnedByCaller.class));
+    var ctx =
+        RuleContext.builder(VehicleOwnedByCaller.class).value(VehicleExists.class, atlas).build();
+
+    var result = rule.check(new RenameVehicle(atlas.id(), "Atlas II"), ctx);
 
     assertInstanceOf(RuleResult.Failed.class, result);
   }
 
-  private static RuleContext as(String name) {
-    return RuleContext.builder(VehicleOwnedByCaller.class).caller(new User(name)).build();
+  private RuleContext as(String name) {
+    return RuleContext.builder(VehicleOwnedByCaller.class)
+        .caller(new User(name))
+        .value(VehicleExists.class, atlas)
+        .build();
   }
 }

@@ -104,7 +104,7 @@ include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,ind
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
 ----
 
-link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`] puts `VehicleExists` in front of `VehicleOwnedByCaller`, and keeps `VehicleOwnedByCaller` from running when the vehicle does not exist, so it can look the owner up without checking again.
+link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`] puts `VehicleExists` in front of `VehicleOwnedByCaller`, and keeps `VehicleOwnedByCaller` from running when the vehicle does not exist, so it reads the owner from the vehicle that `VehicleExists` loaded, as xref:core/values.adoc[] explains.
 A caller who renames a vehicle that is not there is told that, and not that they may not rename it.
 A chain that lists only `VehicleOwnedByCaller` runs `VehicleExists` too, and logs that it added it.
 

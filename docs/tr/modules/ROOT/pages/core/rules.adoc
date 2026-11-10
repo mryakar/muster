@@ -56,6 +56,7 @@ include::example$plain-java/java/example/plain/VehicleNameUnique.java[tag=violat
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+Araç, bu kuralın gerektirdiği `VehicleExists`’ten gelir; bunu xref:core/values.adoc[] sayfası anlatır.
 Aracı yeniden adlandırmasına izin verilmeyen bir kullanıcıya bu söylenir, ama aracın kime ait olduğu asla söylenmez; uygulamanın loglarında ise sahibin kim olduğu yine de bulunur.
 Hiçbir kategori uymuyorsa kural kategoriyi boş bırakır; her kategoriye nasıl cevap verildiğini xref:core/errors.adoc[] gösterir.
 
@@ -83,4 +84,5 @@ link:{javadoc-core}/rule/RuleContext.html[`RuleContext.forRule`], kural için ç
 include::example$plain-java-test/java/example/plain/VehicleOwnedByCallerTest.java[tag=test-caller,indent=0]
 ----
 
+Test, `VehicleExists`’in bırakacağı aracı bağlama verir; bunu xref:core/values.adoc#testing[] bölümü gösterir.
 Bütün bir koleksiyonu tek seferde kontrol eden bir kuralın nasıl test edildiğini xref:core/collections.adoc#testing[Koleksiyonu kontrol etmek] gösterir.

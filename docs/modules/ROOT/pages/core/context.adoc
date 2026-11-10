@@ -31,6 +31,8 @@ Only the owner of a vehicle may rename it:
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+The vehicle comes from `VehicleExists`, which loaded it, as xref:core/values.adoc[] explains.
+
 Whether a caller has a role is for the security of the application to decide, before the call reaches the service.
 A rule checks what depends on the data: not whether the user may rename vehicles, but whether this vehicle is theirs.
 

@@ -53,6 +53,7 @@ Internal arguments keep from the caller what the rule had to know:
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+The vehicle comes from `VehicleExists`, which this rule requires, as xref:core/values.adoc[] explains.
 A user who may not rename the vehicle is told so, and never who owns it, while the logs of the application still have the owner.
 A rule leaves the category out when no category fits; xref:core/errors.adoc[] shows how each one is answered.
 
@@ -79,4 +80,5 @@ A test that needs a caller or a locale builds its context:
 include::example$plain-java-test/java/example/plain/VehicleOwnedByCallerTest.java[tag=test-caller,indent=0]
 ----
 
+The test gives the context the vehicle that `VehicleExists` would leave, as xref:core/values.adoc#testing[] shows.
 xref:core/collections.adoc#testing[Checking a collection] shows how to test a rule that checks a whole collection at once.

@@ -61,7 +61,7 @@ public final class Main {
                 new VehicleNameUnique(vehicles),
                 new VehiclePlateFormat(),
                 new VehicleExists(vehicles),
-                new VehicleOwnedByCaller(vehicles),
+                new VehicleOwnedByCaller(),
                 new BatchLimit(3))
             .caller(CurrentCall::caller)
             .locale(CurrentCall::locale)

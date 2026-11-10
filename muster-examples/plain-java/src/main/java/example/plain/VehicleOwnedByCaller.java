@@ -29,16 +29,10 @@ import me.yakar.muster.rule.RuleResult;
 @RequiresRule(VehicleExists.class)
 final class VehicleOwnedByCaller implements BusinessRule<ExistingVehicle> {
 
-  private final Vehicles vehicles;
-
-  VehicleOwnedByCaller(Vehicles vehicles) {
-    this.vehicles = vehicles;
-  }
-
   @Override
   public RuleResult check(ExistingVehicle input, RuleContext ctx) {
     // tag::caller[]
-    var owner = vehicles.find(input.vehicleId()).orElseThrow().owner(); // VehicleExists passed
+    var owner = ctx.valueOf(VehicleExists.class).owner(); // the vehicle VehicleExists loaded
     var caller = ctx.caller().map(Principal::getName);
     if (caller.filter(owner::equals).isPresent()) {
       return RuleResult.passed();
