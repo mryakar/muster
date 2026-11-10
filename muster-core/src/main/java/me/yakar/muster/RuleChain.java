@@ -25,8 +25,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
+import me.yakar.muster.internal.rule.Contexts;
 import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
+import me.yakar.muster.internal.rule.ValueReads;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
 import me.yakar.muster.rule.RuleTarget;
@@ -72,6 +74,9 @@ public final class RuleChain<I> {
    */
   private final boolean[] required;
 
+  /** Whether a rule of the chain leaves a value, so that a check keeps the values. */
+  private final boolean valued;
+
   private final Supplier<? extends @Nullable Principal> caller;
   private final Supplier<Locale> locale;
   private final CheckMode mode;
@@ -89,11 +94,14 @@ public final class RuleChain<I> {
     this.inputType = inputType;
     this.steps = List.copyOf(steps);
     this.required = new boolean[this.steps.size()];
+    var anyValue = false;
     for (var step : this.steps) {
       for (var index : step.requires()) {
         this.required[index] = true;
       }
+      anyValue |= step.rule().valueType() != null;
     }
+    this.valued = anyValue;
     this.caller = caller;
     this.locale = locale;
     this.mode = mode;
@@ -262,6 +270,8 @@ public final class RuleChain<I> {
     // The positions of every element, for the rules that require none, as the first rule. The rules
     // share it: the context of a rule that checks at once copies it, and the rest only read it.
     var all = eligible(NO_RULES, passed, size);
+    // The value each rule left: the value of each element, by position, for a rule of each element.
+    var values = valued ? new @Nullable Object[steps.size()] : null;
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
       var rule = step.rule();
@@ -269,7 +279,8 @@ public final class RuleChain<I> {
         observed.ruleStarted(rule);
       }
       var marks = unread;
-      if (required[i]) {
+      // A value rule reads its own marks, which another rule must not have left.
+      if (required[i] || rule.valueType() != null) {
         marks = new boolean[size];
         passed[i] = marks;
       }
@@ -281,7 +292,7 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      var ctx = context(rule, callLocale, callCaller);
+      var ctx = context(rule, callLocale, callCaller, step.collectionReads(), values);
       if (!rule.instance().appliesTo(ctx)) {
         if (observed != null) {
           observed.ruleSkipped();
@@ -290,10 +301,10 @@ public final class RuleChain<I> {
       }
       var violations =
           step.whole()
-              ? checkWhole(rule, inputs, ctx, marks)
+              ? checkWhole(rule, inputs, ctx, marks, values, i)
               : rule.checksAll()
-                  ? checkAtOnce(rule, inputs, ctx, eligible, marks)
-                  : checkOneByOne(rule, inputs, ctx, eligible, marks, mode);
+                  ? checkAtOnce(rule, inputs, ctx, eligible, marks, values, i)
+                  : checkOneByOne(rule, inputs, ctx, eligible, marks, mode, values, i);
       if (violations == null) {
         if (observed != null) {
           observed.rulePassed();
@@ -320,9 +331,16 @@ public final class RuleChain<I> {
    * @return the violations, or {@code null} if the rule passed
    */
   private static @Nullable List<Violation> checkWhole(
-      PreparedRule rule, List<?> inputs, RuleContext ctx, boolean[] passed) {
-    var violations = violations(rule, rule.instance().check(inputs, ctx), NO_ELEMENT);
+      PreparedRule rule,
+      List<?> inputs,
+      RuleContext ctx,
+      boolean[] passed,
+      @Nullable Object @Nullable [] values,
+      int slot) {
+    var result = rule.instance().check(inputs, ctx);
+    var violations = violations(rule, result, NO_ELEMENT);
     if (violations == null) {
+      keep(values, slot, value(rule, result, NO_ELEMENT));
       Arrays.fill(passed, true);
     }
     return violations;
@@ -334,27 +352,106 @@ public final class RuleChain<I> {
    * @return the violations, or {@code null} if the rule passed
    */
   private static @Nullable List<Violation> checkAtOnce(
-      PreparedRule rule, List<?> inputs, RuleContext ctx, int[] eligible, boolean[] passed) {
+      PreparedRule rule,
+      List<?> inputs,
+      RuleContext ctx,
+      int[] eligible,
+      boolean[] passed,
+      @Nullable Object @Nullable [] values,
+      int slot) {
     // The positions also tell the context how many inputs there are, so that it rejects an index
     // past them.
-    var violations =
-        violations(
-            rule,
-            rule.instance()
-                .checkAll(
-                    eligible.length == inputs.size()
-                        ? inputs
-                        : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
-                    ctx.toBuilder().positions(eligible).build()),
-            NO_ELEMENT);
+    var result =
+        rule.instance()
+            .checkAll(
+                eligible.length == inputs.size()
+                    ? inputs
+                    : Arrays.stream(eligible).mapToObj(inputs::get).toList(),
+                ctx.toBuilder().positions(eligible).build());
+    if (result instanceof RuleResult.Elements elements) {
+      return checkElements(rule, elements.results(), eligible, passed, values, slot, inputs.size());
+    }
+    var violations = violations(rule, result, NO_ELEMENT);
     if (violations == null) {
+      if (rule.valueType() == null) {
+        // Checks that a rule that leaves no value passed without one.
+        value(rule, result, NO_ELEMENT);
+      }
       for (var position : eligible) {
         passed[position] = true;
       }
     } else {
       markPassed(passed, eligible, violations);
     }
+    // A value rule leaves the value of each element it passes in the result of that element.
+    if (rule.valueType() != null) {
+      for (var position : eligible) {
+        if (passed[position]) {
+          throw new IllegalStateException(
+              "value rule '"
+                  + rule.id()
+                  + "' checked a collection at once without the value of each element it passed;"
+                  + " return the result of each element with RuleResult.ofElements");
+        }
+      }
+    }
     return violations;
+  }
+
+  /**
+   * Takes the result of each element from a rule that checked them at once: marks those it passed,
+   * keeps their values, and gathers the violations of the others, which must be about them.
+   *
+   * @return the violations, in the order of the elements, or {@code null} if the rule passed
+   */
+  private static @Nullable List<Violation> checkElements(
+      PreparedRule rule,
+      List<RuleResult> results,
+      int[] eligible,
+      boolean[] passed,
+      @Nullable Object @Nullable [] values,
+      int slot,
+      int size) {
+    if (results.size() != eligible.length) {
+      throw new IllegalStateException(
+          "rule '"
+              + rule.id()
+              + "' returned "
+              + results.size()
+              + " results for "
+              + eligible.length
+              + " inputs; return the result of each input it received");
+    }
+    var each = rule.valueType() == null ? null : new @Nullable Object[size];
+    ArrayList<Violation> found = null;
+    for (var index = 0; index < eligible.length; index++) {
+      var position = eligible[index];
+      var result = results.get(index);
+      var violations = violations(rule, result, position);
+      if (violations == null) {
+        var value = value(rule, result, position);
+        if (each != null) {
+          each[position] = value;
+        }
+        passed[position] = true;
+        continue;
+      }
+      for (var violation : violations) {
+        if (position(violation) != position) {
+          throw new IllegalStateException(
+              "rule '"
+                  + rule.id()
+                  + "' gave the input at index "
+                  + index
+                  + " a violation that is not about it; build it from ctx.element("
+                  + index
+                  + ")");
+        }
+      }
+      found = add(found, violations);
+    }
+    keep(values, slot, each);
+    return found;
   }
 
   /**
@@ -369,7 +466,9 @@ public final class RuleChain<I> {
       RuleContext ctx,
       int[] eligible,
       boolean[] passed,
-      CheckMode mode) {
+      CheckMode mode,
+      @Nullable Object @Nullable [] values,
+      int slot) {
     if (rule.firstOneByOne()) {
       LOGGER.log(
           System.Logger.Level.WARNING,
@@ -380,11 +479,16 @@ public final class RuleChain<I> {
               + " BusinessRule.super.checkAll from it to keep checking them one by one");
     }
     ArrayList<Violation> found = null;
+    var each = rule.valueType() == null ? null : new @Nullable Object[inputs.size()];
+    keep(values, slot, each);
     for (var position : eligible) {
-      var violations =
-          violations(
-              rule, rule.instance().check(inputs.get(position), ctx.element(position)), position);
+      var result = rule.instance().check(inputs.get(position), ctx.element(position));
+      var violations = violations(rule, result, position);
       if (violations == null) {
+        var value = value(rule, result, position);
+        if (each != null) {
+          each[position] = value;
+        }
         passed[position] = true;
       } else if (mode == CheckMode.FAIL_FAST) {
         return violations;
@@ -409,6 +513,70 @@ public final class RuleChain<I> {
       throw nullResult(rule, position);
     }
     return null;
+  }
+
+  /**
+   * Returns the value of a result that is not failed, or {@code null} for a rule that leaves none,
+   * after checking that it fits the rule: a value rule passes with a value of its value type, any
+   * other without one. The position tells which element the result is of, if any. Small enough to
+   * be inlined; what a failure needs is in the methods it calls.
+   */
+  private static @Nullable Object value(PreparedRule rule, RuleResult result, int position) {
+    if (result instanceof RuleResult.Passed passed) {
+      var value = passed.value();
+      var valueType = rule.valueType();
+      if (valueType == null ? value == null : valueType.isInstance(value)) {
+        return value;
+      }
+      throw wrongValue(rule, value, position);
+    }
+    throw resultOfCollection(rule, position);
+  }
+
+  /** The exception for a result whose value does not fit the rule. */
+  private static IllegalStateException wrongValue(
+      PreparedRule rule, @Nullable Object value, int position) {
+    var element = position == NO_ELEMENT ? "" : " for the element at [" + position + "]";
+    var valueType = rule.valueType();
+    if (valueType == null) {
+      return new IllegalStateException(
+          "rule '"
+              + rule.id()
+              + "' passed with a value"
+              + element
+              + ", but is not a value rule; implement ValueRule<Input, Value> to leave a value");
+    }
+    return new IllegalStateException(
+        value == null
+            ? "value rule '"
+                + rule.id()
+                + "' passed without a value"
+                + element
+                + "; pass with RuleResult.passed(value)"
+            : "value rule '"
+                + rule.id()
+                + "' left a "
+                + value.getClass().getTypeName()
+                + element
+                + ", not a "
+                + valueType.getTypeName());
+  }
+
+  /** The exception for the result of a collection where the result of one input belongs. */
+  private static IllegalStateException resultOfCollection(PreparedRule rule, int position) {
+    return new IllegalStateException(
+        "rule '"
+            + rule.id()
+            + "' returned the result of a collection"
+            + (position == NO_ELEMENT ? "" : " for the element at [" + position + "]")
+            + "; RuleResult.ofElements is for checkAll");
+  }
+
+  /** Keeps the value a rule left in its slot, if the check keeps values. */
+  private static void keep(@Nullable Object @Nullable [] values, int slot, @Nullable Object value) {
+    if (values != null) {
+      values[slot] = value;
+    }
   }
 
   /** Returns the violations a rule reported, after checking that they are its own. */
@@ -442,7 +610,15 @@ public final class RuleChain<I> {
    * Returns the context of a rule for one call: the one prepared with the rule, so that the rule id
    * is not checked again, with the locale and the caller of the call.
    */
-  private static RuleContext context(PreparedRule rule, Locale locale, @Nullable Principal caller) {
+  private static RuleContext context(
+      PreparedRule rule,
+      Locale locale,
+      @Nullable Principal caller,
+      @Nullable ValueReads reads,
+      @Nullable Object @Nullable [] values) {
+    if (reads != null) {
+      return Contexts.create(rule.context(), locale, caller, reads, requireNonNull(values));
+    }
     var context = rule.context().toBuilder().locale(locale);
     if (caller != null) {
       context.caller(caller);
@@ -563,6 +739,8 @@ public final class RuleChain<I> {
     // Created on the first failure, so that a passing check allocates no list.
     ArrayList<Violation> found = null;
     var passed = new boolean[steps.size()];
+    // The value each rule left, kept only by a chain that has a value rule.
+    var values = valued ? new @Nullable Object[steps.size()] : null;
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
       var rule = step.rule();
@@ -575,12 +753,19 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      // From the context prepared with the rule, so that the rule id is not checked again.
-      var context = rule.context().toBuilder().locale(callLocale);
-      if (callCaller != null) {
-        context.caller(callCaller);
+      RuleContext ctx;
+      var reads = step.reads();
+      if (reads == null) {
+        // From the context prepared with the rule, so that the rule id is not checked again.
+        var context = rule.context().toBuilder().locale(callLocale);
+        if (callCaller != null) {
+          context.caller(callCaller);
+        }
+        ctx = context.build();
+      } else {
+        ctx =
+            Contexts.create(rule.context(), callLocale, callCaller, reads, requireNonNull(values));
       }
-      var ctx = context.build();
       if (!rule.instance().appliesTo(ctx)) {
         if (observed != null) {
           observed.ruleSkipped();
@@ -615,6 +800,10 @@ public final class RuleChain<I> {
         }
         found.addAll(violations);
       } else {
+        var value = value(rule, result, NO_ELEMENT);
+        if (value != null) {
+          requireNonNull(values)[i] = value;
+        }
         passed[i] = true;
         if (observed != null) {
           observed.rulePassed();

@@ -21,6 +21,7 @@ import me.yakar.muster.rule.RequiresRule
 import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.rule.ValueRule
 import spock.lang.Specification
 
 class RuleDefinitionSpec extends Specification {
@@ -131,7 +132,19 @@ class RuleDefinitionSpec extends Specification {
 
   def 'a definition holds the class, the id and the input type of a rule'() {
     expect:
-    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String, [], null)
+    RuleDefinition.of(NameUnique) == new RuleDefinition(NameUnique, 'vehicle.name-unique', String, [], null, null)
+  }
+
+  @Rule(id = 'vehicle.exists')
+  static class Exists implements ValueRule<Long, StringBuilder> {
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed(new StringBuilder())
+    }
+  }
+
+  def 'a definition of a value rule holds the type of its value'() {
+    expect:
+    RuleDefinition.of(Exists).valueType() == StringBuilder
   }
 
   def 'a definition of a rule that checks collections holds the type of their elements'() {

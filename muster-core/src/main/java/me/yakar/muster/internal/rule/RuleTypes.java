@@ -28,11 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import me.yakar.muster.rule.BusinessRule;
+import me.yakar.muster.rule.ValueRule;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Reads the input type of a rule, and the element type of the collections it checks, from its class
- * declaration.
+ * Reads the input type of a rule, the element type of the collections it checks, and the type of
+ * the value it leaves, from its class declaration.
  */
 final class RuleTypes {
 
@@ -48,7 +49,7 @@ final class RuleTypes {
    * @throws IllegalArgumentException if the class does not name its input type
    */
   static Class<?> inputType(Class<?> ruleClass) {
-    var found = typeArgument(ruleClass, BusinessRule.class, Map.of());
+    var found = typeArgument(ruleClass, BusinessRule.class, 0, Map.of());
     var inputType = found == null ? null : rawClass(found.type());
     if (inputType == null) {
       throw new IllegalArgumentException(
@@ -69,13 +70,37 @@ final class RuleTypes {
    * @return the element type, or {@code null} if the input type is not a collection
    */
   static @Nullable Class<?> elementType(Class<?> ruleClass) {
-    var input = requireNonNull(typeArgument(ruleClass, BusinessRule.class, Map.of()));
+    var input = requireNonNull(typeArgument(ruleClass, BusinessRule.class, 0, Map.of()));
     // The input type was read first, so it is known.
     if (!Collection.class.isAssignableFrom(requireNonNull(rawClass(input.type())))) {
       return null;
     }
     return boundClass(
-        requireNonNull(typeArgument(input.type(), Collection.class, input.bindings())).type());
+        requireNonNull(typeArgument(input.type(), Collection.class, 0, input.bindings())).type());
+  }
+
+  /**
+   * Returns the type of value a rule class leaves when it passes: the {@code V} of {@link
+   * ValueRule}, resolved as the input type is.
+   *
+   * @param ruleClass the rule class
+   * @return the value type, or {@code null} if the class is not a value rule
+   * @throws IllegalArgumentException if a value rule does not name its value type
+   */
+  static @Nullable Class<?> valueType(Class<?> ruleClass) {
+    if (!ValueRule.class.isAssignableFrom(ruleClass)) {
+      return null;
+    }
+    var valueType =
+        rawClass(requireNonNull(typeArgument(ruleClass, ValueRule.class, 1, Map.of())).type());
+    if (valueType == null) {
+      throw new IllegalArgumentException(
+          "cannot tell what value "
+              + ruleClass.getTypeName()
+              + " leaves; a value rule names its value type, as in"
+              + " 'implements ValueRule<Input, Value>'");
+    }
+    return valueType;
   }
 
   /** Returns the class a type stands for, taking a wildcard or a type variable at its bound. */
@@ -103,13 +128,14 @@ final class RuleTypes {
   private record Found(Type type, Map<TypeVariable<?>, Type> bindings) {}
 
   /**
-   * Finds the first type argument of {@code target} in {@code type} and its supertypes. A raw
-   * {@code target} gives its own type variable.
+   * Finds a type argument of {@code target} in {@code type} and its supertypes. A raw {@code
+   * target} gives its own type variable.
    *
+   * @param index the position of the type argument among those of {@code target}
    * @param bindings what the type variables used in {@code type} stand for
    */
   private static @Nullable Found typeArgument(
-      Type type, Class<?> target, Map<TypeVariable<?>, Type> bindings) {
+      Type type, Class<?> target, int index, Map<TypeVariable<?>, Type> bindings) {
     Class<?> raw;
     // Keeps the bindings of the levels below as well: a type argument found higher up may hold a
     // variable of any of them, as BusinessRule<X> does with X = List<E>. A type variable belongs to
@@ -126,11 +152,11 @@ final class RuleTypes {
       raw = (Class<?>) type;
     }
     if (raw == target) {
-      var variable = raw.getTypeParameters()[0];
+      var variable = raw.getTypeParameters()[index];
       return new Found(ownBindings.getOrDefault(variable, variable), bindings);
     }
     for (var supertype : supertypes(raw)) {
-      var found = typeArgument(supertype, target, ownBindings);
+      var found = typeArgument(supertype, target, index, ownBindings);
       if (found != null) {
         return found;
       }

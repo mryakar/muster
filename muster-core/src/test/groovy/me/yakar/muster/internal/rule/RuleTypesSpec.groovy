@@ -18,6 +18,7 @@ package me.yakar.muster.internal.rule
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
+import me.yakar.muster.rule.ValueRule
 import spock.lang.Specification
 
 class RuleTypesSpec extends Specification {
@@ -277,5 +278,68 @@ class RuleTypesSpec extends Specification {
 
     where:
     ruleClass << [Open, OpenArray, Raw, String]
+  }
+
+  static class Vehicle {}
+
+  static class LeavesVehicle implements ValueRule<Long, Vehicle> {
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed(new Vehicle())
+    }
+  }
+
+  static abstract class ValueBase<V> implements ValueRule<String, V> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class LeavesThroughBase extends ValueBase<Integer> {}
+
+  static class LeavesList implements ValueRule<String, List<Vehicle>> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed([])
+    }
+  }
+
+  static class LeavesOpen<V> implements ValueRule<String, V> {
+    RuleResult check(String input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  static class LeavesRaw implements ValueRule {
+    RuleResult check(Object input, RuleContext ctx) {
+      RuleResult.passed()
+    }
+  }
+
+  def 'the value type of a value rule is read from the class declaration: #ruleClass.simpleName'() {
+    expect:
+    RuleTypes.valueType(ruleClass) == valueType
+    RuleTypes.inputType(ruleClass) == inputType
+
+    where:
+    ruleClass || valueType | inputType
+    LeavesVehicle || Vehicle   | Long
+    LeavesThroughBase || Integer   | String
+    LeavesList || List      | String
+  }
+
+  def 'a rule that is not a value rule has no value type'() {
+    expect:
+    RuleTypes.valueType(Direct) == null
+  }
+
+  def 'a value rule that does not name its value type is rejected: #ruleClass.simpleName'() {
+    when:
+    RuleTypes.valueType(ruleClass)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "cannot tell what value ${ruleClass.typeName} leaves; a value rule names its value type, as in 'implements ValueRule<Input, Value>'"
+
+    where:
+    ruleClass << [LeavesOpen, LeavesRaw]
   }
 }

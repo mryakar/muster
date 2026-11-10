@@ -27,7 +27,7 @@ class RuleGraphSpec extends Specification {
   static class E {}
 
   static RuleDefinition rule(Class<?> ruleClass, String id, List<Class<?>> requires = [], Class<?> inputType = Object, Class<?> elementType = null) {
-    new RuleDefinition(ruleClass, id, inputType, requires, elementType)
+    new RuleDefinition(ruleClass, id, inputType, requires, elementType, null)
   }
 
   static Map<Class<?>, RuleDefinition> byClass(RuleDefinition... rules) {

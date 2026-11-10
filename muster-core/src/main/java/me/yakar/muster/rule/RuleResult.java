@@ -18,11 +18,15 @@ package me.yakar.muster.rule;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
- * The outcome of a rule check: passed, or failed with one or more violations. Rules return a result
- * instead of throwing; Muster throws one {@link me.yakar.muster.BusinessRuleViolationException}
- * when the check ends.
+ * The outcome of a rule check: passed, possibly with a value, or failed with one or more
+ * violations. Rules return a result instead of throwing; Muster throws one {@link
+ * me.yakar.muster.BusinessRuleViolationException} when the check ends.
+ *
+ * <p>A rule that checks a collection at once, in {@link BusinessRule#checkAll}, may also return the
+ * result of each element, with {@link #ofElements(List)}.
  */
 public sealed interface RuleResult {
 
@@ -33,6 +37,17 @@ public sealed interface RuleResult {
    */
   static RuleResult passed() {
     return Passed.INSTANCE;
+  }
+
+  /**
+   * Returns the result of a {@link ValueRule} that passed, with the value it leaves for the rules
+   * that require it.
+   *
+   * @param value the value, of the value type of the rule
+   * @return the passed result
+   */
+  static RuleResult passed(Object value) {
+    return new Passed(requireNonNull(value, "value"));
   }
 
   /**
@@ -61,10 +76,47 @@ public sealed interface RuleResult {
     return new Failed(violations);
   }
 
-  /** A rule passed. */
-  record Passed() implements RuleResult {
+  /**
+   * Returns the result of a rule that checked a collection at once, in {@link
+   * BusinessRule#checkAll}, as the result of each of its inputs: passed, with a value for a {@link
+   * ValueRule}, or failed with violations created from the context of that element, {@code
+   * ctx.element(i)}.
+   *
+   * {@snippet :
+   * var results = new ArrayList<RuleResult>();
+   * for (var i = 0; i < inputs.size(); i++) {
+   *   var vehicle = found.get(inputs.get(i).vehicleId());
+   *   results.add(
+   *       vehicle != null
+   *           ? RuleResult.passed(vehicle)
+   *           : RuleResult.failed(ctx.element(i).violation().build()));
+   * }
+   * return RuleResult.ofElements(results);
+   * }
+   *
+   * @param results the result of each input, in the order of the inputs that {@code checkAll}
+   *     receives
+   * @return the result of the collection
+   * @throws IllegalArgumentException if {@code results} is empty or holds the result of a
+   *     collection
+   */
+  static RuleResult ofElements(List<RuleResult> results) {
+    return new Elements(results);
+  }
+
+  /**
+   * A rule passed.
+   *
+   * @param value the value a {@link ValueRule} leaves, or {@code null} for any other rule
+   */
+  record Passed(@Nullable Object value) implements RuleResult {
 
     private static final Passed INSTANCE = new Passed();
+
+    /** Creates the result of a rule that passed without a value. */
+    public Passed() {
+      this(null);
+    }
   }
 
   /**
@@ -83,6 +135,34 @@ public sealed interface RuleResult {
       violations = List.copyOf(requireNonNull(violations, "violations"));
       if (violations.isEmpty()) {
         throw new IllegalArgumentException("a failed result needs at least one violation");
+      }
+    }
+  }
+
+  /**
+   * A rule checked a collection at once and gave the result of each of its inputs.
+   *
+   * @param results the result of each input, in the order of the inputs, never empty; each is
+   *     {@link Passed} or {@link Failed}
+   */
+  record Elements(List<RuleResult> results) implements RuleResult {
+
+    /**
+     * Creates the result of a collection from the result of each input.
+     *
+     * @throws IllegalArgumentException if {@code results} is empty or holds the result of a
+     *     collection
+     */
+    public Elements {
+      results = List.copyOf(requireNonNull(results, "results"));
+      if (results.isEmpty()) {
+        throw new IllegalArgumentException("the result of a collection needs a result per input");
+      }
+      for (var result : results) {
+        if (result instanceof Elements) {
+          throw new IllegalArgumentException(
+              "the result of an input is passed or failed, not the result of a collection");
+        }
       }
     }
   }
