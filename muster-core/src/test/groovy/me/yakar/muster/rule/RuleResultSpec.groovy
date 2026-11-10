@@ -27,10 +27,31 @@ class RuleResultSpec extends Specification {
   @Shared
   def parcels = context.violation('plan.parcel-capacity').build()
 
-  def 'every passed result is the same instance'() {
+  def 'every passed result without a value is the same instance'() {
     expect:
     RuleResult.passed() instanceof RuleResult.Passed
     RuleResult.passed().is(RuleResult.passed())
+    (RuleResult.passed() as RuleResult.Passed).value() == null
+    new RuleResult.Passed() == RuleResult.passed()
+  }
+
+  def 'a passed result carries the value of a value rule'() {
+    given:
+    def vehicle = new StringBuilder('Atlas')
+
+    expect:
+    (RuleResult.passed(vehicle) as RuleResult.Passed).value().is(vehicle)
+    RuleResult.passed(vehicle) == RuleResult.passed(vehicle)
+    RuleResult.passed(vehicle) != RuleResult.passed()
+  }
+
+  def 'a passed result rejects a null value'() {
+    when:
+    RuleResult.passed((Object) null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'value'
   }
 
   def 'a failed result keeps the violations in order'() {
@@ -86,5 +107,43 @@ class RuleResultSpec extends Specification {
       { RuleResult.failed(passengers, (Violation) null) },
       { RuleResult.failed((Violation) null) }
     ]
+  }
+
+  def 'the result of a collection keeps the result of each input in order'() {
+    given:
+    def failed = RuleResult.failed(passengers)
+
+    when:
+    def results = [RuleResult.passed('a'), failed, RuleResult.passed()]
+    def result = RuleResult.ofElements(results) as RuleResult.Elements
+    results.clear()
+
+    then:
+    result.results() == [RuleResult.passed('a'), failed, RuleResult.passed()]
+  }
+
+  def 'the result of a collection needs the result of an input: #problem'() {
+    when:
+    RuleResult.ofElements(results)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == message
+
+    where:
+    problem         | results || message
+    'none'          | [] || 'the result of a collection needs a result per input'
+    'a collection'  | [RuleResult.passed(), RuleResult.ofElements([RuleResult.passed()])] || 'the result of an input is passed or failed, not the result of a collection'
+  }
+
+  def 'the result of a collection rejects null'() {
+    when:
+    RuleResult.ofElements(results)
+
+    then:
+    thrown(NullPointerException)
+
+    where:
+    results << [null, [RuleResult.passed(), null]]
   }
 }

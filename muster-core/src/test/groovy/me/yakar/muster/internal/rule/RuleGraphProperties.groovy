@@ -46,7 +46,7 @@ class RuleGraphProperties {
     Combinators.combine(sizes, ids, masks, Arbitraries.randoms()).as { size, idList, maskList, random ->
       def rules = (0..<size).collect { i ->
         def requires = (0..<i).findAll { j -> (maskList[i] >> j) & 1 }.collect { CLASSES[it] }
-        new RuleDefinition(CLASSES[i], idList[i], Object, requires, null)
+        new RuleDefinition(CLASSES[i], idList[i], Object, requires, null, null)
       }
       Collections.shuffle(rules, random)
       rules

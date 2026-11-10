@@ -15,6 +15,8 @@
  */
 package me.yakar.muster.internal.rule;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A rule in a chain. The array is filled before the step is created and never changed, so chains
  * share steps across threads.
@@ -23,5 +25,13 @@ package me.yakar.muster.internal.rule;
  * @param requires the positions in the chain of the rules it requires, all before its own
  * @param whole whether the rule checks a checked collection as a whole, rather than each of its
  *     elements
+ * @param reads the values the rule may read in a check of a single input, or {@code null} if none
+ * @param collectionReads the values the rule may read in a check of a collection, or {@code null}
+ *     if none
  */
-public record Step(PreparedRule rule, int[] requires, boolean whole) {}
+public record Step(
+    PreparedRule rule,
+    int[] requires,
+    boolean whole,
+    @Nullable ValueReads reads,
+    @Nullable ValueReads collectionReads) {}

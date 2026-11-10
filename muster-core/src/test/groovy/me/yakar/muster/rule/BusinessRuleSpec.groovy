@@ -94,4 +94,42 @@ class BusinessRuleSpec extends Specification {
     where:
     annotation << [Rule, RequiresRule]
   }
+
+  /** Finds a vehicle by its number, which is its name; 404 is missing; returns null for 0. */
+  @Rule(id = 'vehicle.exists')
+  static class VehicleExists implements ValueRule<Long, String> {
+    RuleResult check(Long input, RuleContext ctx) {
+      if (input == 0L) {
+        return null
+      }
+      input == 404L ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed('vehicle ' + input)
+    }
+  }
+
+  def 'checkAll of a value rule gives the result of each input, with the value of those it passed'() {
+    given:
+    def ctx = RuleContext.builder('vehicle.exists').positions(2, 5, 9).build()
+
+    when:
+    def result = new VehicleExists().checkAll([7L, 404L, 8L], ctx) as RuleResult.Elements
+
+    then:
+    result.results()[0] == RuleResult.passed('vehicle 7')
+    (result.results()[1] as RuleResult.Failed).violations()*.target()*.orElse(null) == ['[5]']
+    result.results()[2] == RuleResult.passed('vehicle 8')
+  }
+
+  def 'checkAll of a value rule passes no input without a result'() {
+    expect:
+    new VehicleExists().checkAll([], RuleContext.forRule('vehicle.exists')) == RuleResult.passed()
+  }
+
+  def 'checkAll of a value rule rejects a null result, naming the element'() {
+    when:
+    new VehicleExists().checkAll([7L, 0L], RuleContext.builder('vehicle.exists').positions(3, 4).build())
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == "rule 'vehicle.exists' returned null for the element at [4]"
+  }
 }

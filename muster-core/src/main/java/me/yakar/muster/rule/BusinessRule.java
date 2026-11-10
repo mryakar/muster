@@ -52,8 +52,9 @@ public interface BusinessRule<T> {
    *
    * @param input the input of the call
    * @param ctx the context of the call, which also creates the violations
-   * @return {@link RuleResult#passed()}, or a failed result with the violations; must not be {@code
-   *     null}, or the check fails with a {@link NullPointerException}
+   * @return {@link RuleResult#passed()}, or for a {@link ValueRule} {@link
+   *     RuleResult#passed(Object)} with its value, or a failed result with the violations; must not
+   *     be {@code null}, or the check fails with a {@link NullPointerException}
    */
   RuleResult check(T input, RuleContext ctx);
 
@@ -73,14 +74,21 @@ public interface BusinessRule<T> {
    * and Muster warns once. An override that returns {@code BusinessRule.super.checkAll(inputs,
    * ctx)} drops the warning and checks every element, also in fail-fast mode.
    *
+   * <p>A {@link ValueRule} that overrides this method leaves the value of each element it passes by
+   * returning the result of each element, with {@link RuleResult#ofElements(List)}; this method
+   * does so for a value rule.
+   *
    * @param inputs the inputs of the call, in the order of the collection; the elements that failed
    *     a rule this rule requires are left out
    * @param ctx the context of the call; {@link RuleContext#element(int)} gives the context of each
    *     input
-   * @return {@link RuleResult#passed()}, or a failed result with the violations; must not be {@code
-   *     null}, or the check fails with a {@link NullPointerException}
+   * @return {@link RuleResult#passed()}, a failed result with the violations, or the result of each
+   *     input; must not be {@code null}, or the check fails with a {@link NullPointerException}
    */
   default RuleResult checkAll(List<? extends T> inputs, RuleContext ctx) {
+    // A value rule leaves a value for each element, which only the result of each element holds.
+    var values = this instanceof ValueRule<?, ?>;
+    var results = values ? new ArrayList<RuleResult>(inputs.size()) : null;
     var violations = new ArrayList<Violation>();
     for (var i = 0; i < inputs.size(); i++) {
       var element = ctx.element(i);
@@ -93,9 +101,14 @@ public interface BusinessRule<T> {
                 + element.elementPosition().getAsInt()
                 + "]");
       }
-      if (result instanceof RuleResult.Failed failed) {
+      if (results != null) {
+        results.add(result);
+      } else if (result instanceof RuleResult.Failed failed) {
         violations.addAll(failed.violations());
       }
+    }
+    if (results != null) {
+      return inputs.isEmpty() ? RuleResult.passed() : RuleResult.ofElements(results);
     }
     return violations.isEmpty() ? RuleResult.passed() : RuleResult.failed(violations);
   }

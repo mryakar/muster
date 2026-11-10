@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A rule that loads data, such as the entity a command is about, leaves it for the rules that require it, which then do not load it again: a `ValueRule<T, V>` passes with `RuleResult.passed(value)`, and a rule that requires it, directly or through other rules, reads the value with `ctx.valueOf(TheRule.class)`. In a check of a collection, a rule of each element leaves a value for each element, and one that checks them at once gives the result of each element with `RuleResult.ofElements`. A test gives a rule the values it reads with `RuleContext.Builder.value` and `values`.
+
+### Changed
+
+- **Breaking:** `RuleResult.Passed` has a component, the value of a value rule, and `RuleResult` has a third kind of result, `Elements`. A record pattern `Passed()` no longer compiles, nor does a `switch` over `RuleResult` without a `default` until it handles `Elements`.
+
 ## [0.4.0] - 2026-11-06
 
 ### Added

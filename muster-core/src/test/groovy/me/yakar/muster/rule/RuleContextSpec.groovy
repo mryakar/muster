@@ -16,6 +16,7 @@
 package me.yakar.muster.rule
 
 import java.security.Principal
+import spock.lang.Shared
 import spock.lang.Specification
 
 class RuleContextSpec extends Specification {
@@ -315,5 +316,175 @@ class RuleContextSpec extends Specification {
     RuleResult check(String input, RuleContext ctx) {
       RuleResult.passed()
     }
+  }
+
+  @Rule(id = 'vehicle.exists')
+  static class VehicleExists implements ValueRule<Long, StringBuilder> {
+    @Override
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed(new StringBuilder())
+    }
+  }
+
+  @Rule(id = 'driver.exists')
+  static class DriverExists implements ValueRule<Long, String> {
+    @Override
+    RuleResult check(Long input, RuleContext ctx) {
+      RuleResult.passed('driver')
+    }
+  }
+
+  @Shared
+  def atlas = new StringBuilder('Atlas')
+  @Shared
+  def zeus = new StringBuilder('Zeus')
+
+  def 'a test gives the value a required rule left, and the context reads it'() {
+    when:
+    def ctx = RuleContext.builder('vehicle.owned').value(VehicleExists, atlas).value(DriverExists, 'ece').build()
+
+    then:
+    ctx.valueOf(VehicleExists).is(atlas)
+    ctx.valueOf(DriverExists) == 'ece'
+    ctx.toBuilder().locale(Locale.GERMANY).build().valueOf(VehicleExists).is(atlas)
+  }
+
+  def 'a builder from a context with given values keeps them, and more can be given'() {
+    given:
+    def ctx = RuleContext.builder('vehicle.owned').value(VehicleExists, atlas).values(DriverExists, ['ece', 'can']).positions(1, 3).build()
+
+    when:
+    def more = ctx.toBuilder().value(DriverExists, 'amo').build()
+    def same = ctx.toBuilder().locale(Locale.GERMANY).build()
+
+    then:
+    more.valueOf(VehicleExists).is(atlas)
+    more.valueOf(DriverExists) == 'amo'
+    same.valueOf(VehicleExists).is(atlas)
+    same.element(1).valueOf(DriverExists) == 'can'
+    same.element(1).elementPosition().asInt == 3
+  }
+
+  def 'a value given again replaces the one before'() {
+    expect:
+    RuleContext.builder('vehicle.owned').value(VehicleExists, atlas).value(VehicleExists, zeus).build().valueOf(VehicleExists).is(zeus)
+  }
+
+  def 'a context reads no value that was not given: #how'() {
+    when:
+    create().valueOf(VehicleExists)
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.message == message
+
+    where:
+    how            | create || message
+    'none given'   | {
+      RuleContext.forRule('vehicle.owned')
+    } || "rule 'vehicle.owned' has no value of rule 'vehicle.exists': add VehicleExists to its @RequiresRule, or to that of a rule it requires; in a test, give the value with RuleContext.Builder.value"
+    'another given' | {
+      RuleContext.builder('vehicle.owned').value(DriverExists, 'ece').build()
+    } || "no value of rule 'vehicle.exists' was given to this context; give it with RuleContext.Builder.value, or with values for each element"
+  }
+
+  def 'a test gives a value only of a value rule, and of its value type: #what'() {
+    when:
+    give()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == message
+
+    where:
+    what            | give || message
+    'not a value rule' | {
+      RuleContext.builder('vehicle.owned').value((Class) TaskReady, 'x')
+    } || "${TaskReady.typeName} is not a value rule; it leaves no value"
+    'another type'  | {
+      RuleContext.builder('vehicle.owned').value((Class) VehicleExists, 'Atlas')
+    } || "the value of ${VehicleExists.typeName} is a java.lang.String, not a java.lang.StringBuilder"
+    'another type in a list' | {
+      RuleContext.builder('vehicle.owned').values((Class) VehicleExists, [atlas, 'x'])
+    } || "the value of ${VehicleExists.typeName} is a java.lang.String, not a java.lang.StringBuilder"
+  }
+
+  def 'a given value rejects null'() {
+    when:
+    give()
+
+    then:
+    thrown(NullPointerException)
+
+    where:
+    give << [
+      { RuleContext.builder('vehicle.owned').value(null, atlas) },
+      { RuleContext.builder('vehicle.owned').value(VehicleExists, null) },
+      { RuleContext.builder('vehicle.owned').values(VehicleExists, null) },
+      { RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas, null]) },
+      { RuleContext.forRule('vehicle.owned').valueOf(null) }
+    ]
+  }
+
+  def 'a test gives the value of each input, and the context of each element reads its own'() {
+    when:
+    def ctx = RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas, zeus]).build()
+
+    then:
+    ctx.element(0).valueOf(VehicleExists).is(atlas)
+    ctx.element(1).valueOf(VehicleExists).is(zeus)
+  }
+
+  def 'with positions, the value of each input is that of its element'() {
+    when:
+    def ctx = RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas, zeus]).positions(2, 5).build()
+
+    then:
+    ctx.element(0).valueOf(VehicleExists).is(atlas)
+    ctx.element(0).elementPosition().asInt == 2
+    ctx.element(1).valueOf(VehicleExists).is(zeus)
+  }
+
+  def 'with no positions and no inputs, no element has a value'() {
+    when:
+    RuleContext.builder('vehicle.owned').values(VehicleExists, []).positions().build()
+
+    then:
+    notThrown(Exception)
+  }
+
+  def 'the values of each input are as many as the positions'() {
+    when:
+    RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas]).positions(2, 5).build()
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "the values of ${VehicleExists.typeName} are 1, the inputs 2"
+  }
+
+  def 'a value of each element is read from the context of an element only, and a value for the whole from no element: #how'() {
+    when:
+    read()
+
+    then:
+    def e = thrown(IllegalStateException)
+    e.message == message
+
+    where:
+    how                    | read || message
+    'each, from the whole' | {
+      RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas]).build().valueOf(VehicleExists)
+    } || "rule 'vehicle.exists' leaves a value for each element; read it from the context of an element, as in ctx.element(i).valueOf(VehicleExists.class)"
+    'each, past the inputs' | {
+      RuleContext.builder('vehicle.owned').values(VehicleExists, [atlas]).build().element(1).valueOf(VehicleExists)
+    } || "no value of rule 'vehicle.exists' was given for the element at [1]; give one for each input with RuleContext.Builder.values"
+    'whole, from an element' | {
+      RuleContext.builder('vehicle.owned').value(VehicleExists, atlas).build().element(0).valueOf(VehicleExists)
+    } || "the value of rule 'vehicle.exists' was given for the whole context, not for each element; give one for each input with RuleContext.Builder.values"
+  }
+
+  def 'a context with values is not the plain class'() {
+    expect:
+    RuleContext.builder('vehicle.owned').value(VehicleExists, atlas).build().getClass() != RuleContext
   }
 }

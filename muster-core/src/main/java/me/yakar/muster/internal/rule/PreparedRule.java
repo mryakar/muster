@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleContext;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A rule definition with the instance that checks it, and a context to start each call's context
@@ -34,6 +35,7 @@ public final class PreparedRule {
   private final BusinessRule<Object> instance;
   private final RuleContext context;
   private final boolean checksAll;
+  private final @Nullable Class<?> valueType;
   private final AtomicBoolean toldOneByOne = new AtomicBoolean();
 
   private PreparedRule(RuleDefinition definition, BusinessRule<Object> instance) {
@@ -42,6 +44,7 @@ public final class PreparedRule {
     // Every call derives its context from this one, so the id is checked once, here.
     this.context = RuleContext.forRule(definition.id());
     this.checksAll = overridesCheckAll(definition.ruleClass());
+    this.valueType = definition.valueType();
   }
 
   /**
@@ -92,6 +95,15 @@ public final class PreparedRule {
    */
   public String id() {
     return definition.id();
+  }
+
+  /**
+   * Returns the type of value the rule leaves when it passes.
+   *
+   * @return the value type, or {@code null} if the rule is not a value rule
+   */
+  public @Nullable Class<?> valueType() {
+    return valueType;
   }
 
   /**

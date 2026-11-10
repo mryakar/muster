@@ -220,7 +220,13 @@ public final class ChainPlan {
                 + " nor a rule of the whole collection; "
                 + RuleCatalog.WHOLE_COLLECTION);
       }
-      steps.add(new Step(requireNonNull(included.get(definition.ruleClass())), requires, whole));
+      steps.add(
+          new Step(
+              requireNonNull(included.get(definition.ruleClass())),
+              requires,
+              whole,
+              ValueReads.of(steps, requires, false),
+              ValueReads.of(steps, requires, true)));
     }
     return List.copyOf(steps);
   }

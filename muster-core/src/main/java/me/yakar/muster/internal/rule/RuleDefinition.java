@@ -31,22 +31,25 @@ import org.jspecify.annotations.Nullable;
  * @param requires the rules that must pass first, in the order the rule lists them
  * @param elementType the type of the elements of the collections the rule checks, or {@code null}
  *     if its input type is not a collection
+ * @param valueType the type of the value the rule leaves when it passes, or {@code null} if it is
+ *     not a value rule
  */
 public record RuleDefinition(
     Class<?> ruleClass,
     String id,
     Class<?> inputType,
     List<Class<?>> requires,
-    @Nullable Class<?> elementType) {
+    @Nullable Class<?> elementType,
+    @Nullable Class<?> valueType) {
 
   /**
    * Reads the definition of a rule class.
    *
    * @param ruleClass the rule class
    * @return the definition
-   * @throws IllegalArgumentException if the class has no {@code @Rule}, an invalid id, or no input
-   *     type, requires a rule twice, or leaves out a {@code @RequiresRule} that a supertype
-   *     declares
+   * @throws IllegalArgumentException if the class has no {@code @Rule}, an invalid id, no input
+   *     type, or, for a value rule, no value type, requires a rule twice, or leaves out a
+   *     {@code @RequiresRule} that a supertype declares
    */
   public static RuleDefinition of(Class<?> ruleClass) {
     return new RuleDefinition(
@@ -54,7 +57,8 @@ public record RuleDefinition(
         idOf(ruleClass),
         RuleTypes.inputType(ruleClass),
         requires(ruleClass),
-        RuleTypes.elementType(ruleClass));
+        RuleTypes.elementType(ruleClass),
+        RuleTypes.valueType(ruleClass));
   }
 
   /**
