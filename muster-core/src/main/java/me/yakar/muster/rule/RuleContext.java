@@ -550,7 +550,7 @@ public sealed class RuleContext {
             builtValues[i] = byPosition(rules.get(i), each);
           } else if (value instanceof Placed placed) {
             perElement[i] = true;
-            builtValues[i] = placed.byPosition();
+            builtValues[i] = placed.byPosition;
           } else {
             builtValues[i] = value;
           }
@@ -563,7 +563,14 @@ public sealed class RuleContext {
     }
 
     /** The values of each element that a context built before placed at their positions. */
-    private record Placed(@Nullable Object[] byPosition) {}
+    private static final class Placed {
+
+      private final @Nullable Object[] byPosition;
+
+      private Placed(@Nullable Object[] byPosition) {
+        this.byPosition = byPosition;
+      }
+    }
 
     /** Places the values of each input at the position of its element in the collection. */
     private Object[] byPosition(Class<?> rule, List<?> each) {
