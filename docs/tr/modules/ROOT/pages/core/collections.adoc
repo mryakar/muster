@@ -74,6 +74,8 @@ Böyle bir kural yalnızca bir koleksiyonun parçası olarak kontrol edilir; kol
 Gerektirmediği bir kural ise zincirin sırasıyla, türe göre bağlanan kurallar için kimlik sırasıyla çalışır; bu yüzden yalnızca her eleman geçerliyken çalışması gereken bir bütün kuralı, örneğin elemanların tutarlarını toplayan bir kural, elemanları geçerli kılan kuralları gerektirir.
 Her elemanın kuralları gibi o da türe göre, o elemanların sınıfından oluşan koleksiyonlara bağlanır; bu yüzden `muster.checkAll` onu da çalıştırır.
 
+Elemanı yükleyen bir eleman kuralı ya da hepsini tek seferde yükleyen bir kural, yüklediğini onu gerektiren kurallar için, bütün koleksiyonun kuralı dahil, bırakabilir; bunu xref:core/values.adoc#_values_in_a_check_of_a_collection[Koleksiyon kontrolünde değerler] anlatır.
+
 [[testing]]
 == Her elemanı tek seferde kontrol eden kuralı test etmek
 

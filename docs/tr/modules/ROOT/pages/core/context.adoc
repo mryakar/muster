@@ -32,6 +32,8 @@ Bir aracı yalnızca sahibi yeniden adlandırabilir:
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+Araç, onu yükleyen `VehicleExists`’ten gelir; bunu xref:core/values.adoc[] sayfası anlatır.
+
 Çağıranın bir rolü olup olmadığına, çağrı servise ulaşmadan önce uygulamanın güvenlik katmanı karar verir.
 Kural ise veriye bağlı olanı kontrol eder: kullanıcının araçları yeniden adlandırma yetkisi olup olmadığını değil, bu aracın onun olup olmadığını.
 

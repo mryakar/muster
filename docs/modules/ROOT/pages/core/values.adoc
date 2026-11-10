@@ -1,0 +1,57 @@
+= Sharing values between rules
+:description: A rule that loads data leaves it for the rules that require it, so that they do not load it again.
+include::partial$javadoc.adoc[]
+
+A rule that checks whether a vehicle exists has loaded the vehicle by the time it passes.
+The rules that require it need the same vehicle, and without a way to share it each would load it again.
+A value rule leaves what it loaded for them.
+
+== A value rule
+
+`VehicleExists` passes with the vehicle it found:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,indent=0]
+----
+
+link:{javadoc-core}/rule/ValueRule.html[`ValueRule<ExistingVehicle, Vehicle>`] is a business rule that leaves a `Vehicle` when it passes.
+Muster reads the type of the value from the class declaration, as it reads the type of the input, and checks that the value the rule passes with, through link:{javadoc-core}/rule/RuleResult.html#passed(java.lang.Object)[`RuleResult.passed(value)`], is of that type.
+A value rule that passes without a value, or a rule that passes with a value without being a value rule, fails the check with an `IllegalStateException`: that is a mistake in the rule, not an answer about the input.
+
+== Reading the value
+
+`VehicleOwnedByCaller` requires `VehicleExists`, and reads the vehicle from its context:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
+----
+
+link:{javadoc-core}/rule/RuleContext.html#valueOf(java.lang.Class)[`ctx.valueOf(VehicleExists.class)`] returns a `Vehicle`, typed by the class of the rule.
+The value is always there: a rule runs only after the rules it requires passed, so it never has to ask whether the vehicle was found.
+A rule reads the value of every value rule it requires, directly or through other rules; reading the value of a rule it does not require fails with an `IllegalStateException` that names the `@RequiresRule` to add.
+
+A value lives for one check.
+Muster keeps no value from one call to the next, and tells no listener what a value is: a value is often an entity, with data that belongs to no log.
+
+== Values in a check of a collection
+
+In a xref:core/collections.adoc[check of a collection], a rule of each element leaves a value for each element it passes.
+A rule that requires it reads the value of an element from the context of that element: Muster checks it one by one with that context, and a rule that checks every element at once reads `ctx.element(i).valueOf(VehicleExists.class)`.
+A rule of the whole collection reads the values of its elements the same way, and the value it leaves itself from any context.
+
+A value rule that checks every element at once, as one query for the whole collection, returns the result of each element with link:{javadoc-core}/rule/RuleResult.html#ofElements(java.util.List)[`RuleResult.ofElements`]: the value of each element it found, and a violation from the context of each element it did not.
+
+[#testing]
+== Testing a rule that reads a value
+
+A test gives the context the value that the required rule would leave, and the rule reads no data itself:
+
+[source,java]
+----
+include::example$plain-java-test/java/example/plain/VehicleOwnedByCallerTest.java[tag=test-caller,indent=0]
+----
+
+link:{javadoc-core}/rule/RuleContext.Builder.html#value(java.lang.Class,java.lang.Object)[`RuleContext.Builder.value`] checks that the value is of the type the rule leaves.
+For a rule that checks a collection at once, link:{javadoc-core}/rule/RuleContext.Builder.html#values(java.lang.Class,java.util.List)[`values`] gives the value of each input, in their order, and `ctx.element(i)` reads its own.

@@ -21,6 +21,7 @@
 ** xref:core/checking.adoc[]
 ** xref:core/modes.adoc[]
 ** xref:core/collections.adoc[]
+** xref:core/values.adoc[]
 ** xref:core/context.adoc[]
 ** xref:core/messages.adoc[]
 ** xref:core/errors.adoc[]

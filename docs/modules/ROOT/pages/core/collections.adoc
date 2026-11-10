@@ -71,6 +71,8 @@ Those may be rules of each element, such as a rule of `CreateVehicle` input requ
 A rule it does not require runs in the order of the chain, by id for rules bound by type, so a rule of the whole collection that should run only once every element is valid, such as one that totals their amounts, requires the rules that make them valid.
 Like the rules of each element, it binds by type to collections of their class, so `muster.checkAll` runs it too.
 
+A rule of each element that loads the element, or one that loads them all at once, can leave what it loaded for the rules that require it, including a rule of the whole collection, as xref:core/values.adoc#_values_in_a_check_of_a_collection[Values in a check of a collection] describes.
+
 [[testing]]
 == Testing a rule that checks every element at once
 

@@ -107,7 +107,7 @@ include::example$plain-java/java/example/plain/VehicleExists.java[tag=exists,ind
 include::example$plain-java/java/example/plain/VehicleOwnedByCaller.java[tag=requires,indent=0]
 ----
 
-link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`], `VehicleExists`’i `VehicleOwnedByCaller`’ın önüne koyar ve araç yoksa `VehicleOwnedByCaller`’ın çalışmasını engeller; böylece `VehicleOwnedByCaller`, aracın varlığını yeniden kontrol etmeden sahibine bakabilir.
+link:{javadoc-core}/rule/RequiresRule.html[`@RequiresRule`], `VehicleExists`’i `VehicleOwnedByCaller`’ın önüne koyar ve araç yoksa `VehicleOwnedByCaller`’ın çalışmasını engeller; böylece `VehicleOwnedByCaller`, sahibi `VehicleExists`’in yüklediği araçtan okur; bunu xref:core/values.adoc[] sayfası anlatır.
 Var olmayan bir aracı yeniden adlandırmak isteyen çağırana, aracı yeniden adlandıramayacağı değil, aracın var olmadığı söylenir.
 Yalnızca `VehicleOwnedByCaller`’ı listeleyen bir zincir `VehicleExists`’i de çalıştırır ve onu eklediğini loglar.
 
