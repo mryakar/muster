@@ -48,8 +48,8 @@ public class VehicleController {
   }
 
   @PutMapping("/{id}/name")
-  public void rename(@PathVariable("id") long id, @RequestBody NewName body) {
-    vehicles.rename(new RenameVehicle(id, body.name()));
+  public Vehicle rename(@PathVariable("id") long id, @RequestBody NewName body) {
+    return vehicles.rename(new RenameVehicle(id, body.name()));
   }
 
   @PostMapping("/{id}/name-after-plate")

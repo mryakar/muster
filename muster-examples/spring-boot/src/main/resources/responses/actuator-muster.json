@@ -48,5 +48,6 @@
     }
   ],
   "types": {},
-  "collections": {}
+  "collections": {},
+  "valueTypes": {"vehicle.exists": "example.spring.Vehicle"}
 }

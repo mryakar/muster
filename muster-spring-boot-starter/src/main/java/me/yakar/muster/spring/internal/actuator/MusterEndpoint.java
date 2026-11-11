@@ -50,8 +50,8 @@ public final class MusterEndpoint {
   /**
    * Lists the rules.
    *
-   * @return the mode of Muster, the disabled rules, the advised methods and the chains bound by
-   *     type
+   * @return the mode of Muster, the disabled rules, the advised methods, the chains bound by type
+   *     and the value types of the value rules
    */
   @ReadOperation
   public Report rules() {
@@ -61,7 +61,15 @@ public final class MusterEndpoint {
         List.copyOf(muster.disabledRuleIds()),
         table.advised().stream().map(Report.Method::of).toList(),
         byName(muster.boundRuleIds()),
-        byName(muster.collectionRuleIds()));
+        byName(muster.collectionRuleIds()),
+        typeNames(muster.valueTypes()));
+  }
+
+  /** Gives the names of the value types, by rule id in the same order. */
+  private static Map<String, String> typeNames(Map<String, Class<?>> valueTypes) {
+    var names = new LinkedHashMap<String, String>();
+    valueTypes.forEach((id, type) -> names.put(id, type.getTypeName()));
+    return Collections.unmodifiableMap(names);
   }
 
   /** Keys the ids of the rules by the names of their classes, in the same order. */
@@ -82,13 +90,16 @@ public final class MusterEndpoint {
    *     of its rules in the order they run
    * @param collections the chains that {@code Muster.checkAll} bound by type so far, by the class
    *     of the elements
+   * @param valueTypes the types of the values that the enabled value rules leave, by rule id in the
+   *     order of the ids
    */
   public record Report(
       CheckMode mode,
       List<String> disabled,
       List<Method> methods,
       Map<String, List<String>> types,
-      Map<String, List<String>> collections)
+      Map<String, List<String>> collections,
+      Map<String, String> valueTypes)
       implements OperationResponseBody {
 
     /**

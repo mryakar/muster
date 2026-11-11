@@ -22,6 +22,7 @@ import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.rule.RuleTarget
+import me.yakar.muster.rule.ValueRule
 import me.yakar.muster.spring.Rules
 import org.springframework.stereotype.Service
 
@@ -82,6 +83,14 @@ class BatchLimit implements BusinessRule<Collection<? extends Plated>> {
 class IdKnown implements BusinessRule<Long> {
   RuleResult check(Long input, RuleContext ctx) {
     input == 404L ? RuleResult.failed(ctx.violation().build()) : RuleResult.passed()
+  }
+}
+
+/** Finds a free parking spot, as its number; listed by no method. */
+@Rule(id = 'garage.spot-found')
+class SpotFound implements ValueRule<Long, Integer> {
+  RuleResult check(Long input, RuleContext ctx) {
+    RuleResult.passed(input.intValue())
   }
 }
 
