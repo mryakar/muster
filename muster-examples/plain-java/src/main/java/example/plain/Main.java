@@ -79,6 +79,7 @@ public final class Main {
     CurrentCall.run(ECE, TURKISH, () -> creates(service, problems));
     CurrentCall.run(ECE, TURKISH, () -> checksByType(muster));
     CurrentCall.run(ECE, TURKISH, () -> collectsAll(muster, problems));
+    CurrentCall.run(ECE, TURKISH, () -> namesChain(muster, log));
     renames(service, problems, log);
     CurrentCall.run(ECE, TURKISH, () -> createsAll(muster, service, problems));
     switchesOff(vehicles);
@@ -143,6 +144,16 @@ public final class Main {
         "vehicle.name-unique",
         "vehicle.plate-format");
     expect(everything.ruleIds(), List.of("vehicle.plate-format", "vehicle.name-unique"));
+  }
+
+  private static void namesChain(Muster muster, List<String> log) {
+    // tag::named-chain[]
+    RuleChain<CreateVehicle> plates =
+        muster.chain(CreateVehicle.class, VehiclePlateFormat.class).withName("plates");
+    // end::named-chain[]
+    plates.check(new CreateVehicle("Boreas", "34 BOR 10"));
+    // The listener hears the name of the chain, not the name of the type it checks.
+    expect(log.getLast().replaceFirst(" in \\d+ ns$", ""), "plates: vehicle.plate-format PASSED");
   }
 
   private static void renames(VehicleService service, Problems problems, List<String> log) {

@@ -18,9 +18,19 @@ When a vehicle that does not exist is renamed, it logs these lines, each followe
 include::example$plain-java/resources/example/plain/rename-missing.log[]
 ----
 
-The check is named after the binding, and a chain, or a binding without a name, after the type it checks.
+The check is named after the binding, and a chain or a binding without a name after the type it checks.
 The rename binding collects all, so the name is still checked; the owner is not, since the vehicle is not there.
 A rule ends `PASSED`, `FAILED` or `SKIPPED`, or `ERROR` when something went wrong in it, such as an exception.
+
+A chain can have a name as well.
+`withName` leaves the chain it is called on as it was, and returns a second chain, whose checks a listener hears about under that name:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=named-chain,indent=0]
+----
+
+Give a chain one name and keep the named chain, as a listener may count the checks of each name.
 
 == One observer for each check
 

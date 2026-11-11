@@ -18,9 +18,19 @@ Var olmayan bir araç yeniden adlandırıldığında dinleyici şu satırları l
 include::example$plain-java/resources/example/plain/rename-missing.log[]
 ----
 
-Kontrol, bağlamanın adını alır; bir zincirde ya da adı olmayan bir bağlamada ise kontrol ettiği türün adını alır.
+Kontrol, bağlamanın adını alır; adı olmayan bir zincirde ya da bağlamada ise kontrol ettiği türün adını alır.
 Yeniden adlandırma bağlaması hepsini toplar (collect-all); bu yüzden ad yine de kontrol edilir, ama sahip kontrol edilmez, çünkü araç yoktur.
 Bir kural `PASSED`, `FAILED` ya da `SKIPPED` ile biter; içinde bir şey ters gittiğinde, örneğin bir exception çıktığında, `ERROR` ile biter.
+
+Zincire de ad verilebilir.
+`withName`, çağrıldığı zinciri olduğu gibi bırakır ve ikinci bir zincir döndürür; dinleyici bu zincirin kontrollerini o adla duyar:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/Main.java[tag=named-chain,indent=0]
+----
+
+Zincire tek bir ad verin ve adlı zinciri saklayın; çünkü bir dinleyici her adın kontrollerini ayrı sayabilir.
 
 == Her kontrol için bir gözlemci
 
