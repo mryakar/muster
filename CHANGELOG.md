@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A rule that loads data, such as the entity a command is about, leaves it for the rules that require it, which then do not load it again: a `ValueRule<T, V>` passes with `RuleResult.passed(value)`, and a rule that requires it, directly or through other rules, reads the value with `ctx.valueOf(TheRule.class)`. In a check of a collection, a rule of each element leaves a value for each element, and one that checks them at once gives the result of each element with `RuleResult.ofElements`. A test gives a rule the values it reads with `RuleContext.Builder.value` and `values`.
 - A check that passes returns the values its value rules left, as a `Checked`, so that the code that runs the check uses what the rules loaded instead of loading it again: `checked.valueOf(TheRule.class)`, and in a check of a collection `checked.element(i).valueOf(...)`. `hasValue` tells whether a value rule that does not always apply ran, and `Muster.valueTypes()` gives the value type of each enabled value rule.
 - With the starter, a `@Rules` method reads the values of its rules from the `CheckedValues` bean while it runs, on its own thread; the actuator endpoint lists the value type of each value rule under `valueTypes`.
+- `RuleChain.withName` names a chain: listeners are told about its checks under that name instead of the name of its input type, as they are about those of a named binding.
 
 ### Changed
 

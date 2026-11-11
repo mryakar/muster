@@ -48,9 +48,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
  * gives it its own, and tells the {@link CheckListener listeners} of that {@code Muster} about
- * every check. A check that passes returns the values its {@linkplain
- * me.yakar.muster.rule.ValueRule value rules} left, as a {@link Checked}. Chains are immutable and
- * thread-safe.
+ * every check, under the name of its input type unless {@link #withName} gives it its own. A check
+ * that passes returns the values its {@linkplain me.yakar.muster.rule.ValueRule value rules} left,
+ * as a {@link Checked}. Chains are immutable and thread-safe.
  *
  * @param <I> the type of input
  */
@@ -64,7 +64,10 @@ public final class RuleChain<I> {
   /** No rule: what a rule that requires none requires. */
   private static final int[] NO_RULES = new int[0];
 
-  /** What a listener is told a check is of: the name of the binding, or of the input type. */
+  /**
+   * What a listener is told a check is of: the name of the chain or of the binding, or else of the
+   * input type.
+   */
   private final String name;
 
   private final Class<?> inputType;
@@ -120,6 +123,28 @@ public final class RuleChain<I> {
   public RuleChain<I> withMode(CheckMode mode) {
     return new RuleChain<>(
         name, inputType, steps, caller, locale, requireNonNull(mode, "mode"), listener);
+  }
+
+  /**
+   * Returns a chain with the same rules and the same mode whose checks the {@link CheckListener
+   * listeners} are told about under the given name, instead of the name of the input type. This
+   * chain is not changed. Nothing else carries the name: where what Muster logs or the message of
+   * an exception tells which chain it is about, it names the input type.
+   *
+   * <p>Give a chain one fixed name and keep the named chain: a listener may make a series of each
+   * name, as the metrics of the Spring Boot starter do, so a name made from the input makes a
+   * series of each input.
+   *
+   * @param name the name
+   * @return the chain with the given name
+   * @throws IllegalArgumentException if {@code name} is blank
+   */
+  public RuleChain<I> withName(String name) {
+    requireNonNull(name, "name");
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name must not be blank");
+    }
+    return new RuleChain<>(name, inputType, steps, caller, locale, mode, listener);
   }
 
   /**
