@@ -15,15 +15,15 @@
  */
 package example.spring;
 
-import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.Category;
 import me.yakar.muster.rule.Rule;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
+import me.yakar.muster.rule.ValueRule;
 
-/** The vehicle a command is about must exist. */
+/** The vehicle a command is about must exist; the rules that require it get the vehicle. */
 @Rule(id = "vehicle.exists")
-public class VehicleExists implements BusinessRule<ExistingVehicle> {
+public class VehicleExists implements ValueRule<ExistingVehicle, Vehicle> {
 
   private final VehicleRepository vehicles;
 
@@ -33,12 +33,15 @@ public class VehicleExists implements BusinessRule<ExistingVehicle> {
 
   @Override
   public RuleResult check(ExistingVehicle input, RuleContext ctx) {
-    return vehicles.find(input.vehicleId()).isPresent()
-        ? RuleResult.passed()
-        : RuleResult.failed(
-            ctx.violation()
-                .clientArg("id", input.vehicleId())
-                .category(Category.NOT_FOUND)
-                .build());
+    return vehicles
+        .find(input.vehicleId())
+        .map(RuleResult::passed) // leaves the vehicle for the rules and the service method
+        .orElseGet(
+            () ->
+                RuleResult.failed(
+                    ctx.violation()
+                        .clientArg("id", input.vehicleId())
+                        .category(Category.NOT_FOUND)
+                        .build()));
   }
 }

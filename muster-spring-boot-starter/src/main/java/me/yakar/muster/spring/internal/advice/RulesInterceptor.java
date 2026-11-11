@@ -46,7 +46,8 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
  * created under the lock. A class that the thread of a pass notes meanwhile, such as when getting
  * the {@code Muster} or preparing a class creates an advised bean, starts no pass of its own: the
  * running pass prepares it, since the pass repeats until no noted class is left unprepared. A call
- * reads the {@link AdviceTable table} without a lock: two map lookups.
+ * reads the {@link AdviceTable table} without a lock: two map lookups. A call that passes binds the
+ * values of its check to its thread while the method runs, through {@link CurrentCheck}.
  */
 final class RulesInterceptor implements MethodInterceptor, SmartInitializingSingleton {
 
@@ -209,8 +210,13 @@ final class RulesInterceptor implements MethodInterceptor, SmartInitializingSing
           "Muster has not prepared the rules of "
               + RulesPointcut.label(invocation.getMethod(), target.getClass()));
     }
-    advice.check(invocation.getArguments()[0]);
-    return invocation.proceed();
+    var previous = CurrentCheck.startCheck();
+    try {
+      CurrentCheck.bind(advice.check(invocation.getArguments()[0]));
+      return invocation.proceed();
+    } finally {
+      CurrentCheck.restore(previous);
+    }
   }
 
   /** Prepares a class that is called before the application has started, such as at its start. */

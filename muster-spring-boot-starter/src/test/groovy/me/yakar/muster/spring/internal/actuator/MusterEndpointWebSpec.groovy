@@ -99,5 +99,6 @@ class MusterEndpointWebSpec extends Specification {
     body.methods[4].rules == ['garage.id-known']
     body.types == [:]
     body.collections == [:]
+    body.valueTypes == ['garage.spot-found': 'java.lang.Integer']
   }
 }

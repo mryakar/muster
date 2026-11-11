@@ -66,6 +66,8 @@ final class Calls {
     var both = expect(put("/vehicles/1/name", "can", name("Ilgaz")), 422);
     expectCodes(both, "vehicle.name-unique", "vehicle.owned-by-caller");
     expectMessage(put("/vehicles/99/name", "ece", name("Atlas II")), "99 numaralı araç yok");
+    // The service answers with the vehicle that VehicleExists loaded, renamed.
+    expect(put("/vehicles/1/name", "ece", name("Atlas II")), 200, "renamed");
 
     expect(
         post("/vehicles/batch", "ece", TURKISH, batch("Boreas", "boreas")),

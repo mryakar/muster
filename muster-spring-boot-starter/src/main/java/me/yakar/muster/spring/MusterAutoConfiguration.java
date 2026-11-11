@@ -23,6 +23,7 @@ import me.yakar.muster.spring.internal.message.MessagesConfiguration;
 import me.yakar.muster.spring.internal.observation.ObservationConfiguration;
 import me.yakar.muster.spring.internal.problem.ProblemDetailsConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 /**
@@ -30,10 +31,11 @@ import org.springframework.context.annotation.Import;
  *
  * <p>It registers the rule classes in the packages of the application as beans, builds a {@link
  * Muster} bean from the rule beans and the {@link me.yakar.muster.spi.CheckListener} beans, and
- * checks the rules of advised methods; see {@link Rules}. A {@code Muster}, {@code
- * MessageResolver}, {@code Supplier<Principal>} or {@code Supplier<Locale>} bean of the application
- * replaces the starter's. The {@code muster.*} properties, problem details, observations and the
- * actuator endpoint are described in the <a
+ * checks the rules of advised methods; see {@link Rules}. An advised method reads the values its
+ * rules left from the {@link CheckedValues} bean. A {@code Muster}, {@code MessageResolver}, {@code
+ * Supplier<Principal>} or {@code Supplier<Locale>} bean of the application replaces the starter's.
+ * The {@code muster.*} properties, problem details, observations and the actuator endpoint are
+ * described in the <a
  * href="https://mryakar.github.io/muster/muster/current/spring/configuration.html">documentation</a>.
  */
 @AutoConfiguration(
@@ -42,6 +44,16 @@ import org.springframework.context.annotation.Import;
 public final class MusterAutoConfiguration {
 
   MusterAutoConfiguration() {}
+
+  /**
+   * The values of the check of the advised method that runs on the calling thread.
+   *
+   * @return the bean
+   */
+  @Bean
+  static CheckedValues musterCheckedValues() {
+    return new CheckedValues();
+  }
 
   /** The configurations of the starter, imported here so that its API docs do not name them. */
   @Import({

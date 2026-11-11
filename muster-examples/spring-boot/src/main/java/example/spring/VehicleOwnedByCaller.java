@@ -29,15 +29,9 @@ import me.yakar.muster.rule.RuleResult;
 @RequiresRule(VehicleExists.class)
 public class VehicleOwnedByCaller implements BusinessRule<ExistingVehicle> {
 
-  private final VehicleRepository vehicles;
-
-  public VehicleOwnedByCaller(VehicleRepository vehicles) {
-    this.vehicles = vehicles;
-  }
-
   @Override
   public RuleResult check(ExistingVehicle input, RuleContext ctx) {
-    var owner = vehicles.find(input.vehicleId()).orElseThrow().owner(); // VehicleExists passed
+    var owner = ctx.valueOf(VehicleExists.class).owner(); // the vehicle VehicleExists loaded
     var caller = ctx.caller().map(Principal::getName); // the user that Spring Security signed in
     if (caller.filter(owner::equals).isPresent()) {
       return RuleResult.passed();

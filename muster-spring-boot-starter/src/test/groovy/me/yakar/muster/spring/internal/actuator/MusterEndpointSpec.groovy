@@ -121,6 +121,7 @@ class MusterEndpointSpec extends Specification {
       ]
       assert report.types() == [:]
       assert report.collections() == [:]
+      assert report.valueTypes() == ['garage.spot-found': Integer.name]
 
       // The method of a type that is not final is called with two classes, one through the interface of its bean.
       def service = context.getBean(GarageService)
@@ -160,6 +161,7 @@ class MusterEndpointSpec extends Specification {
         report.methods(),
         report.types(),
         report.collections(),
+        report.valueTypes(),
         report.methods()[0].ruleIds()
       ].each { collection ->
         failure(UnsupportedOperationException) {

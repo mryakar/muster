@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import me.yakar.muster.Binding;
 import me.yakar.muster.CheckMode;
+import me.yakar.muster.Checked;
 import me.yakar.muster.CollectionBinding;
 import me.yakar.muster.Muster;
 import me.yakar.muster.rule.BusinessRule;
@@ -133,12 +134,16 @@ record MethodAdvice(
         label, targetClass, checker, List.of(listed), List.of(excluded), transaction);
   }
 
-  /** Checks the input of a call: that its transaction is active, if it needs one, and its rules. */
-  void check(@Nullable Object input) {
+  /**
+   * Checks the input of a call: that its transaction is active, if it needs one, and its rules.
+   *
+   * @return the check, with the values its value rules left
+   */
+  Checked check(@Nullable Object input) {
     if (transaction != null) {
       transaction.requireTransaction(label);
     }
-    checker.check(input);
+    return checker.check(input);
   }
 
   /** Describes this advice for the actuator endpoint. */
@@ -165,8 +170,8 @@ record MethodAdvice(
    */
   sealed interface Checker {
 
-    /** Checks the input of a call. */
-    void check(@Nullable Object input);
+    /** Checks the input of a call, and returns the values its value rules left. */
+    Checked check(@Nullable Object input);
 
     /** Returns the type of the input, or of the elements of a collection. */
     Class<?> inputType();
@@ -181,8 +186,8 @@ record MethodAdvice(
     record OfInput(Class<?> inputType, Binding<Object> binding) implements Checker {
 
       @Override
-      public void check(@Nullable Object input) {
-        binding.check(requireNonNull(input, "input"));
+      public Checked check(@Nullable Object input) {
+        return binding.check(requireNonNull(input, "input"));
       }
 
       @Override
@@ -201,8 +206,8 @@ record MethodAdvice(
 
       @Override
       @SuppressWarnings("unchecked")
-      public void check(@Nullable Object input) {
-        binding.check((Collection<Object>) requireNonNull(input, "inputs"));
+      public Checked check(@Nullable Object input) {
+        return binding.check((Collection<Object>) requireNonNull(input, "inputs"));
       }
 
       @Override

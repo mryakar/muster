@@ -21,6 +21,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import me.yakar.muster.CheckMode;
+import me.yakar.muster.spring.CheckedValues;
 import me.yakar.muster.spring.Rules;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,11 +38,17 @@ public class VehicleService {
   private final VehicleRepository vehicles;
 
   // end::service[]
+  // tag::values[]
+  private final CheckedValues values;
+
+  // end::values[]
   private final ObjectProvider<VehicleService> self;
 
   // tag::self[]
-  public VehicleService(VehicleRepository vehicles, ObjectProvider<VehicleService> self) {
+  public VehicleService(
+      VehicleRepository vehicles, CheckedValues values, ObjectProvider<VehicleService> self) {
     this.vehicles = vehicles;
+    this.values = values; // the values that the rules of the running method left
     this.self = self; // the bean, through which a call checks the rules
   }
 
@@ -56,8 +63,10 @@ public class VehicleService {
   // tag::rename[]
   @Transactional
   @Rules(mode = CheckMode.COLLECT_ALL)
-  public void rename(@Valid RenameVehicle command) {
-    vehicles.rename(command.vehicleId(), command.name());
+  public Vehicle rename(@Valid RenameVehicle command) {
+    var vehicle = values.valueOf(VehicleExists.class); // loaded once, by the rule
+    vehicles.rename(vehicle.id(), command.name());
+    return new Vehicle(vehicle.id(), command.name(), vehicle.plate(), vehicle.owner());
   }
 
   // end::rename[]
