@@ -24,7 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -180,6 +182,22 @@ public final class RuleCatalog {
       ids.add(registered(ruleClass).id());
     }
     return Collections.unmodifiableSortedSet(ids);
+  }
+
+  /**
+   * Returns the value types of the enabled value rules, by id in the order of the ids.
+   *
+   * @return the value types by id, unmodifiable
+   */
+  public SortedMap<String, Class<?>> valueTypes() {
+    var types = new TreeMap<String, Class<?>>();
+    for (var rule : rules.values()) {
+      var valueType = rule.valueType();
+      if (valueType != null && !disabled.contains(rule.definition().ruleClass())) {
+        types.put(rule.id(), valueType);
+      }
+    }
+    return Collections.unmodifiableSortedMap(types);
   }
 
   /**

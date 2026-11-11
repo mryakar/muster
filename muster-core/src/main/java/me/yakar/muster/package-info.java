@@ -15,7 +15,7 @@
  */
 /**
  * Checking business rules: {@code Muster}, the chains and bindings it creates, how far a check
- * goes, and the exception a check throws.
+ * goes, the values a check that passes returns, and the exception a check that fails throws.
  *
  * <p>Unless a parameter is {@code @Nullable}, passing {@code null} throws a {@link
  * NullPointerException}.
