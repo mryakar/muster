@@ -87,7 +87,7 @@ Kurallarda bir sorun varsa, örneğin aynı kimliğe sahip iki kural ya da kimse
 == Adım 5: bir girdiyi kontrol edin
 
 `muster.check(input)`, girdinin türüne ait her kuralı çalıştırır.
-Hepsi geçerse hiçbir şey döndürmez; biri geçemezse link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır.
+Hepsi geçerse döner; biri geçemezse link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır.
 Küçük bir metot bunu bir değere dönüştürür, böylece sonuca bakmak kolaylaşır:
 
 [source,java]

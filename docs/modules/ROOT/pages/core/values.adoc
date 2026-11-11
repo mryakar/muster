@@ -1,10 +1,10 @@
 = Sharing values between rules
-:description: A rule that loads data leaves it for the rules that require it, so that they do not load it again.
+:description: A rule that loads data leaves it for the rules that require it and for the code that runs the check, so that neither loads it again.
 include::partial$javadoc.adoc[]
 
 A rule that checks whether a vehicle exists has loaded the vehicle by the time it passes.
 The rules that require it need the same vehicle, and without a way to share it each would load it again.
-A value rule leaves what it loaded for them.
+A value rule leaves what it loaded for them, and for the code that runs the check.
 
 == A value rule
 
@@ -42,6 +42,29 @@ A rule that requires it reads the value of an element from the context of that e
 A rule of the whole collection reads the values of its elements the same way, and the value it leaves itself from any context.
 
 A value rule that checks every element at once, as one query for the whole collection, returns the result of each element with link:{javadoc-core}/rule/RuleResult.html#ofElements(java.util.List)[`RuleResult.ofElements`]: the value of each element it found, and a violation from the context of each element it did not.
+
+[#caller]
+== Returning values to the caller
+
+The code that runs the check often needs the same data: the service renames the vehicle that `VehicleExists` loaded.
+A check that passes returns the values, as a link:{javadoc-core}/Checked.html[`Checked`]:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=checked,indent=0]
+----
+
+link:{javadoc-core}/Checked.html#valueOf(java.lang.Class)[`checked.valueOf(VehicleExists.class)`] reads the value of a value rule of the check, typed as in a rule.
+`check` and `checkAll` of a chain, of a binding and of `Muster` all return one.
+A check that fails throws, and its exception carries no value: only a check that passes has values to give.
+
+A value rule that does not always apply, through `appliesTo`, leaves no value when it does not, nor does a rule that requires it; link:{javadoc-core}/Checked.html#hasValue(java.lang.Class)[`checked.hasValue(TheRule.class)`] tells whether it ran; in a check of an empty collection, which runs no rule, no rule did.
+Reading the value of a rule that is not one of the check, such as one the chain does not list or a disabled one, or of a rule that leaves no value, fails with an `IllegalStateException` that says which.
+
+In a check of a collection, `checked.element(i).valueOf(VehicleExists.class)` reads the value of the element at position `i`, and `checked.valueOf(...)` the value that a rule of the whole collection left.
+A check whose rules leave no value returns one shared instance, so it costs nothing.
+
+With the Spring Boot starter, a method reads the values of its rules from a bean instead, as xref:spring/values.adoc[] shows.
 
 [#testing]
 == Testing a rule that reads a value

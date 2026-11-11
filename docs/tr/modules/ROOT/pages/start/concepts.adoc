@@ -55,7 +55,7 @@ Spring Boot ile starter onu sizin yerinize oluşturur.
 == Kontrol
 
 Bir *kontrol* (check), kuralları bir girdiye karşı çalıştırır.
-Her kural geçerse hiçbir şey olmaz ve kodunuz devam eder.
+Her kural geçerse kontrol döner ve kodunuz devam eder.
 Herhangi bir kural geçemezse kontrol, ihlalleri taşıyan link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] fırlatır; böylece kontrolden sonraki kod hatalı bir girdiyle asla çalışmaz.
 
 == Kural hedefi

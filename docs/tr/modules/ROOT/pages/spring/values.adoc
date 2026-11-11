@@ -1,0 +1,59 @@
+= Kuralların değerleri
+:description: Bir Spring Boot uygulamasındaki metodun, kurallarının yüklediği veriyi yeniden yüklemek yerine nasıl okuduğu.
+include::partial$javadoc.adoc[]
+
+Bir aracın var olup olmadığını kontrol eden kural, geçtiğinde aracı çoktan yüklemiştir; aracı yeniden adlandıran metodun da ona ihtiyacı vardır.
+Değer kuralı (value rule) aracı, onu gerektiren kurallar ve metot için bırakır; böylece hiçbiri aracı yeniden yüklemez.
+
+[#_a_value_rule]
+== Değer kuralı
+
+`VehicleExists` bulduğu araçla geçer; onu gerektiren `VehicleOwnedByCaller` ise sahibi bu araçtan okur:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+Bir Spring Boot uygulamasının kuralı da diğerleri gibi yazılır: değer kurallarını ve bir kuralın gerektirdiği kuralların değerlerini nasıl okuduğunu xref:core/values.adoc[] anlatır.
+
+[#_reading_the_values_in_the_method]
+== Değerleri metotta okumak
+
+Metot değerleri, starter'ın kaydettiği link:{javadoc-starter}/CheckedValues.html[`CheckedValues`] bean'inden okur:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=values,indent=0]
+
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
+----
+
+link:{javadoc-starter}/CheckedValues.html#valueOf(java.lang.Class)[`values.valueOf(VehicleExists.class)`], çalışan metodun kurallarının yüklediği aracı döndürür: yeniden adlandırma aracı iki kuralı ve kendisi için bir kez okur.
+Bean, Spring olmadan bir kontrolün döndürdüğü link:{javadoc-core}/Checked.html[`Checked`] gibi okur: `hasValue`, her zaman uygulanmayan bir değer kuralının çalışıp çalışmadığını söyler; koleksiyon alan bir metot bir elemanın değerini `values.element(i).valueOf(...)` ile okur.
+
+[#_where_the_values_are]
+== Değerlerin olduğu yer
+
+Değerler metodun tek bir çağrısına aittir; onu çağıran thread'de ve metot çalıştığı sürece vardır:
+
+* Metodun bu thread'de çağırdığı kod da onları okur; servisin bir yardımcısı gibi.
+* Çağırdığı advice'lı bir metot, dönene kadar kendi değerlerini okur; döndükten sonra metot yine kendi değerlerini okur. Kuralları değer bırakmayan advice'lı bir metodun okuyacak değeri yoktur; onu çağıran metodunkileri de okuyamaz.
+* Kurallar kontrol edilirken, kontrolden önce, metot döndükten sonra ya da başka bir thread'de (metodun çağırdığı bir `@Async` metotta olduğu gibi) değerler yoktur: orada okumak, bunu söyleyen bir `IllegalStateException` ile biter. Böyle bir koda değerin kendisini verin.
+Kuralları olan bir `@Async` metot ise onları kendisini çalıştıran thread'de kontrol eder (bunu xref:spring/transactions.adoc#_other_advice[Diğer advice'lar] anlatır) ve kendi değerlerini orada okur.
+* Geçemeyen bir kontrol değer bırakmaz: istisna fırlatır ve metot çalışmaz.
+
+Bir kural, gerektirdiği kuralların değerlerini bean'den değil, kendi bağlamından okur.
+
+[#testing]
+== Değer okuyan bir metodu test etmek
+
+Değerler, starter'ın metodun çevresinde çalıştırdığı kontrolden gelir; bu yüzden metodun testi, örneğin `@SpringBootTest` ile, uygulamaya ihtiyaç duyar: proxy'nin dışında tek başına çağrılan bir servisin okuyacak değeri yoktur.
+Örnek, deponun kaç kez okunduğunu sayar:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleServiceTest.java[tag=values-test,indent=0]
+----
+
+Değer okuyan bir kural ise, değer bağlamına verilerek tek başına test edilir; bunu xref:core/values.adoc#testing[Değer okuyan bir kuralı test etmek] gösterir.

@@ -18,6 +18,8 @@ Bir aracı yeniden adlandıran metot, komut türünün kurallarını hepsini top
 include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
 ----
 
+Yeniden adlandırma, kurallarının yüklediği aracı kontrolün değerlerinden okuyup onunla cevap verir; bunu xref:spring/values.adoc[] anlatır.
+
 `@Rules` ayrıca kural listeler; listelenen kurallar ilk sırada ve listelendikleri sırayla çalışır.
 `@Rules`, türe göre bağlanacak kuralları dışarıda da bırakabilir.
 `@Rules` konan bir public metot, yalnız bir `@Service` içinde değil, herhangi bir bean içinde de kuralları kontrol eder.

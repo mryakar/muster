@@ -1,0 +1,56 @@
+= Values of the rules
+:description: How a method of a Spring Boot application reads the data that its rules loaded, instead of loading it again.
+include::partial$javadoc.adoc[]
+
+A rule that checks whether a vehicle exists has loaded the vehicle by the time it passes, and the method that renames the vehicle needs it too.
+A value rule leaves the vehicle for the rules that require it and for the method, so that neither loads it again.
+
+== A value rule
+
+`VehicleExists` passes with the vehicle it found, and `VehicleOwnedByCaller`, which requires it, reads the owner from that vehicle:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
+----
+
+A rule of a Spring Boot application is written as any other: xref:core/values.adoc[] describes value rules, and how a rule reads the values of the rules it requires.
+
+== Reading the values in the method
+
+The method reads the values from the link:{javadoc-starter}/CheckedValues.html[`CheckedValues`] bean, which the starter registers:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=values,indent=0]
+
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
+----
+
+link:{javadoc-starter}/CheckedValues.html#valueOf(java.lang.Class)[`values.valueOf(VehicleExists.class)`] returns the vehicle that the rules of the running method loaded: the rename reads the vehicle once, for both of its rules and for itself.
+The bean reads as the link:{javadoc-core}/Checked.html[`Checked`] that a check returns without Spring: `hasValue` tells whether a value rule that does not always apply ran, and a method that takes a collection reads the value of an element with `values.element(i).valueOf(...)`.
+
+== Where the values are
+
+The values belong to one call of the method, on the thread that calls it, while it runs:
+
+* What the method calls on that thread reads them too, such as a helper of the service.
+* An advised method that it calls reads its own values until it returns, and then the method reads its own again. An advised method whose rules leave no value has none to read, not those of the method that called it.
+* They are not there while the rules are checked, before the check, after the method returns, or on any other thread, such as in an `@Async` method that the method calls: reading them there fails with an `IllegalStateException` that says so. Pass the value itself to such code.
+An `@Async` method with rules checks them on the thread that runs it, as xref:spring/transactions.adoc#_other_advice[Other advice] describes, and reads its own values there.
+* A check that fails leaves no values: it throws, and the method does not run.
+
+A rule reads the values of the rules it requires from its context, not from the bean.
+
+[#testing]
+== Testing a method that reads values
+
+The values come from the check that the starter runs around the method, so a test of the method needs the application, such as with `@SpringBootTest`; a service called on its own, outside the proxy, has no values to read.
+The example counts the reads of the repository:
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/VehicleServiceTest.java[tag=values-test,indent=0]
+----
+
+A rule that reads a value is tested on its own, with the value given to its context, as xref:core/values.adoc#testing[Testing a rule that reads a value] shows.

@@ -36,6 +36,7 @@ include::example$spring-boot/resources/responses/actuator-muster.json[]
 Uç nokta Muster'ın kipini, yapılandırmanın kapattığı kuralları ve kural kontrol eden her metodu listeler: metodun girdi türünü, kipini, listelediği ve dışarıda bıraktığı kuralları, `ruleIds` içinde de çalışan kuralları, sınıfa göre ayrılmış olarak ve çalıştıkları sırayla.
 Birçok aracı birden oluşturan metot, sınırı listelediği için önce onu çalıştırır; yeniden adlandırma ise `vehicle.exists` kuralını, onu gerektiren `vehicle.owned-by-caller` kuralından önce çalıştırır.
 `types` ve `collections` ise böyle metotların dışındaki kontroller için link:{javadoc-core}/Muster.html[`Muster`] nesnesinin türe göre bağladığı kuralları listeler; örnek uygulama böyle bir kontrol yapmaz.
+`valueTypes`, her xref:spring/values.adoc[değer kuralının] bıraktığı değerin türünü kural kimliğine göre verir.
 
 Uç nokta, Muster'ın hazırladığını okur; kendisi hiçbir şey bağlamaz.
 Final bir girdi türünün (örneğin bir record) ya da kural hedefi olmayan bir türün kuralları en baştan listelenir; diğer kural hedefi sınıflarının kuralları ise o sınıftan bir nesne kontrol edildikten sonra listelenir.

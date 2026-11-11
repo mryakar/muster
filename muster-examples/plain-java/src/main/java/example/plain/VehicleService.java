@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import me.yakar.muster.Binding;
 import me.yakar.muster.CheckMode;
+import me.yakar.muster.Checked;
 import me.yakar.muster.CollectionBinding;
 import me.yakar.muster.Muster;
 import me.yakar.muster.RuleChain;
@@ -63,10 +64,15 @@ final class VehicleService {
   }
 
   // end::check-first[]
-  void rename(RenameVehicle command) {
-    rename.check(command);
-    vehicles.rename(command.vehicleId(), command.name());
+  // tag::checked[]
+  Vehicle rename(RenameVehicle command) {
+    Checked checked = rename.check(command);
+    var vehicle = checked.valueOf(VehicleExists.class); // loaded once, by the rule
+    vehicles.rename(vehicle.id(), command.name());
+    return new Vehicle(vehicle.id(), command.name(), vehicle.plate(), vehicle.owner());
   }
+
+  // end::checked[]
 
   void createAll(List<CreateVehicle> commands) {
     createAll.check(commands);

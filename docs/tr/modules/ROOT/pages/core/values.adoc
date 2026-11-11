@@ -1,10 +1,10 @@
 = Kurallar arasında değer paylaşmak
-:description: Veri yükleyen bir kural, onu gerektiren kurallar için bu veriyi bırakır; böylece onlar aynı veriyi yeniden yüklemez.
+:description: Veri yükleyen bir kural, onu gerektiren kurallar ve kontrolü çalıştıran kod için bu veriyi bırakır; böylece hiçbiri aynı veriyi yeniden yüklemez.
 include::partial$javadoc.adoc[]
 
 Bir aracın var olup olmadığını kontrol eden kural, geçtiğinde aracı çoktan yüklemiştir.
 Onu gerektiren kurallar aynı araca ihtiyaç duyar; paylaşmanın bir yolu olmasa her biri aracı yeniden yüklerdi.
-Değer kuralı (value rule), yüklediğini bu kurallar için bırakır.
+Değer kuralı (value rule), yüklediğini bu kurallar ve kontrolü çalıştıran kod için bırakır.
 
 [#_a_value_rule]
 == Değer kuralı
@@ -45,6 +45,29 @@ Onu gerektiren bir kural, bir elemanın değerini o elemanın bağlamından okur
 Bütün koleksiyonun kuralı da elemanlarının değerlerini aynı yoldan okur; kendi bıraktığı değeri ise herhangi bir bağlamdan.
 
 Bütün elemanları tek seferde, örneğin bütün koleksiyon için tek bir sorguyla kontrol eden bir değer kuralı, her elemanın sonucunu link:{javadoc-core}/rule/RuleResult.html#ofElements(java.util.List)[`RuleResult.ofElements`] ile döndürür: bulduğu her elemanın değerini ve bulamadığı her eleman için o elemanın bağlamından bir ihlal.
+
+[#caller]
+== Değerleri çağırana döndürmek
+
+Kontrolü çalıştıran kod çoğu zaman aynı veriye ihtiyaç duyar: servis, `VehicleExists`’in yüklediği aracı yeniden adlandırır.
+Geçen bir kontrol değerleri link:{javadoc-core}/Checked.html[`Checked`] olarak döndürür:
+
+[source,java]
+----
+include::example$plain-java/java/example/plain/VehicleService.java[tag=checked,indent=0]
+----
+
+link:{javadoc-core}/Checked.html#valueOf(java.lang.Class)[`checked.valueOf(VehicleExists.class)`], kontroldeki bir değer kuralının değerini kuraldaki gibi tiplenmiş olarak okur.
+Zincirin, bağlamanın (binding) ve `Muster`’ın `check` ve `checkAll` metotlarının hepsi bunu döndürür.
+Geçemeyen bir kontrol istisna fırlatır ve istisna hiçbir değer taşımaz: yalnız geçen bir kontrolün verecek değeri vardır.
+
+`appliesTo` yüzünden her zaman uygulanmayan bir değer kuralı, uygulanmadığında değer bırakmaz; onu gerektiren bir kural da bırakmaz. link:{javadoc-core}/Checked.html#hasValue(java.lang.Class)[`checked.hasValue(TheRule.class)`] kuralın çalışıp çalışmadığını söyler; hiçbir kural çalıştırmayan boş bir koleksiyonun kontrolünde hiçbiri çalışmamıştır.
+Kontrolün kuralı olmayan bir kuralın (zincirin listelemediği ya da kapatılmış bir kural gibi) ya da değer bırakmayan bir kuralın değerini okumak, hangisi olduğunu söyleyen bir `IllegalStateException` ile biter.
+
+Koleksiyon kontrolünde `checked.element(i).valueOf(VehicleExists.class)`, `i` konumundaki elemanın değerini; `checked.valueOf(...)` ise bütün koleksiyonun kuralının bıraktığı değeri okur.
+Kuralları değer bırakmayan bir kontrol, paylaşılan tek bir nesne döndürür; bu yüzden hiçbir maliyeti yoktur.
+
+Spring Boot starter'ı ile bir metot, kurallarının değerlerini bunun yerine bir bean'den okur; bunu xref:spring/values.adoc[] gösterir.
 
 [#testing]
 == Değer okuyan bir kuralı test etmek

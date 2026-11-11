@@ -8,6 +8,7 @@ A native image itself is not tested.
 In a native image, the scan for calls through `this` has no class files to read, so the starter warns at startup that it does not look for them, as xref:spring/self-invocation.adoc[] describes.
 * *Calls the scan does not see.* A call through reflection, from a nested class of the bean, or compiled to a dynamic call, as Groovy's, checks no rules and is not reported, as xref:spring/self-invocation.adoc[] describes.
 * *`@Cacheable` and `@Async`.* A cached answer checks no rules, and an `@Async` method checks them on its own thread, where a violation does not reach the caller, as xref:spring/transactions.adoc#_other_advice[Other advice] describes.
+* *Values outside the call.* The values of the rules of a method are there while it runs, on its thread: an `@Async` method that it calls, another thread, or code after the method returns cannot read them, as xref:spring/values.adoc#_where_the_values_are[Where the values are] describes.
 * *Element types with two bounds.* For a parameter such as `List<T>` with `T extends A & B`, the elements are taken to be of `A`, the first bound.
 * *Elements of different classes.* The rule targets of one call are of one class, since rules bind to the class, and are not mixed with elements that are not rule targets; a call that breaks either fails with an `IllegalArgumentException`.
 * *Collections of collections.* In a collection whose elements are themselves collections, a rule of `Collection<?>` is always a rule of the whole collection.

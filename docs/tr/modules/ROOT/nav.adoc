@@ -8,6 +8,7 @@
 * Spring Boot ile
 ** xref:spring/getting-started.adoc[]
 ** xref:spring/methods.adoc[]
+** xref:spring/values.adoc[]
 ** xref:spring/transactions.adoc[]
 ** xref:spring/problem-details.adoc[]
 ** xref:spring/caller-and-locale.adoc[]

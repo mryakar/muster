@@ -86,7 +86,7 @@ If something is wrong with the rules, such as two rules with the same id or a ru
 == Step 5: check an input
 
 `muster.check(input)` runs every rule of the input's type.
-It returns nothing when all of them pass, and throws link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] when one fails.
+It returns when all of them pass, and throws link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`] when one fails.
 A small method turns that into a value, so that the result is easy to look at:
 
 [source,java]

@@ -55,7 +55,7 @@ With Spring Boot, the starter builds it for you.
 == Check
 
 A *check* runs rules against an input.
-If every rule passes, nothing happens and your code goes on.
+If every rule passes, the check returns and your code goes on.
 If any rule fails, the check throws link:{javadoc-core}/BusinessRuleViolationException.html[`BusinessRuleViolationException`], which holds the violations, so the code after the check never runs on a bad input.
 
 == Rule target

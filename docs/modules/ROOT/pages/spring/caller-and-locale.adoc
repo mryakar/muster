@@ -11,6 +11,7 @@ Only the owner of a vehicle may rename it:
 include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+The rule reads the vehicle that `VehicleExists` loaded, as xref:spring/values.adoc[] describes.
 The caller is the `Authentication` of the request, so `getName()` is the user name, and a rule that needs more of it casts it.
 A call that is anonymous, or not authenticated, has no caller.
 The starter reads the security context through the application's `SecurityContextHolderStrategy` bean, if it has one.

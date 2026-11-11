@@ -170,7 +170,8 @@ public final class Main {
           expectProblem(problems.problem(missing, TURKISH), 404, "99 numaralı araç yok");
           // The binding collects all, and checks the owner only of a vehicle that exists.
           expectLog(log, "rename-missing.log");
-          service.rename(new RenameVehicle(ATLAS, "Atlas II"));
+          // The service renames the vehicle that VehicleExists loaded.
+          expect(service.rename(new RenameVehicle(ATLAS, "Atlas II")).name(), "Atlas II");
         });
   }
 
