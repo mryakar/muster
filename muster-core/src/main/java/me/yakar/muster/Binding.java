@@ -58,13 +58,14 @@ public final class Binding<I> {
    * Checks an input against the rules of this binding, in its {@linkplain #mode() mode}.
    *
    * @param input the input
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws IllegalArgumentException if {@code input} is not of the binding's type, which only
    *     unchecked code can pass
    */
-  public void check(I input) {
+  public Checked check(I input) {
     RuleChain.requireInstance(input, inputType, "binding");
-    chains.of(RuleChain.chainKey(input, inputType)).run(input, mode);
+    return chains.of(RuleChain.chainKey(input, inputType)).run(input, mode);
   }
 
   /**
@@ -77,16 +78,17 @@ public final class Binding<I> {
    *
    * @param inputs the collection: rule targets of one class, or none a rule target; rules see an
    *     unmodifiable copy, taken when the check starts
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are rule targets of different classes, or rule
    *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
-  public void checkAll(Collection<? extends I> inputs) {
+  public Checked checkAll(Collection<? extends I> inputs) {
     var elements = RuleChain.elements(inputs, inputType, true, "binding");
-    if (!elements.isEmpty()) {
-      chains.of(RuleChain.chainKey(elements.getFirst(), inputType)).runAll(elements, mode);
-    }
+    return elements.isEmpty()
+        ? Checked.EMPTY
+        : chains.of(RuleChain.chainKey(elements.getFirst(), inputType)).runAll(elements, mode);
   }
 
   /**

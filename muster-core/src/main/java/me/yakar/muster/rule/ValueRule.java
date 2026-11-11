@@ -49,6 +49,9 @@ package me.yakar.muster.rule;
  * }
  * }
  *
+ * <p>The caller of the check reads the values too, from the {@link me.yakar.muster.Checked} that a
+ * check that passes returns, as in {@code checked.valueOf(VehicleExists.class)}.
+ *
  * <p>A value lives for one check: Muster keeps no value from one call to the next. In a check of a
  * collection, a rule of each element leaves a value for each element it passes. One that overrides
  * {@link #checkAll} returns the result of each element with {@link

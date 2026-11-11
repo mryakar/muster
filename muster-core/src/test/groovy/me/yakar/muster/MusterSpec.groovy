@@ -245,6 +245,28 @@ class MusterSpec extends EngineSpecification {
     thrown(UnsupportedOperationException)
   }
 
+  def 'Muster tells the value types of its enabled value rules, by id in their order, in a map that cannot be changed'() {
+    given:
+    def garage = new RuleValueSpec.Garage()
+    def types = Muster.builder()
+        .rules(new RuleValueSpec.Exists(garage), new RuleValueSpec.Driver(), new RuleValueSpec.Counted(), new NameUnique(),
+        new RuleValueSpec.ExistsAtOnce(garage))
+        .disable('vehicle.exists-at-once')
+        .build()
+        .valueTypes()
+
+    expect:
+    types == ['fleet.counted': Integer, 'vehicle.driver': String, 'vehicle.exists': RuleValueSpec.Vehicle]
+    types.keySet().toList() == ['fleet.counted', 'vehicle.driver', 'vehicle.exists']
+    Muster.builder().rules(new NameUnique()).build().valueTypes().isEmpty()
+
+    when:
+    types.clear()
+
+    then:
+    thrown(UnsupportedOperationException)
+  }
+
   def 'Muster tells its mode, which is fail-fast unless set'() {
     expect:
     Muster.builder().build().mode() == CheckMode.FAIL_FAST

@@ -75,6 +75,9 @@ public final class Muster {
   /** The ids of the disabled rules, in the order of the ids. */
   private final SortedSet<String> disabledRuleIds;
 
+  /** The value types of the enabled value rules, by id in the order of the ids. */
+  private final Map<String, Class<?>> valueTypes;
+
   /** The chains for rule targets, by the class of the input. */
   private final ClassChains targets = new ClassChains(this::bind);
 
@@ -93,6 +96,7 @@ public final class Muster {
     this.mode = mode;
     this.listener = listener;
     this.disabledRuleIds = catalog.disabledIds();
+    this.valueTypes = catalog.valueTypes();
   }
 
   /**
@@ -176,11 +180,12 @@ public final class Muster {
    * DEBUG}, or warns if no rule binds, which usually means a rule is not registered.
    *
    * @param input the input
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    */
-  public void check(RuleTarget input) {
+  public Checked check(RuleTarget input) {
     requireNonNull(input, "input");
-    targets.of(input.getClass()).run(input, mode);
+    return targets.of(input.getClass()).run(input, mode);
   }
 
   /**
@@ -188,12 +193,13 @@ public final class Muster {
    *
    * @param input the input
    * @param mode the mode of this check
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    */
-  public void check(RuleTarget input, CheckMode mode) {
+  public Checked check(RuleTarget input, CheckMode mode) {
     requireNonNull(input, "input");
     requireNonNull(mode, "mode");
-    targets.of(input.getClass()).run(input, mode);
+    return targets.of(input.getClass()).run(input, mode);
   }
 
   /**
@@ -207,12 +213,13 @@ public final class Muster {
    *
    * @param inputs the collection, whose elements are all of one class; rules see an unmodifiable
    *     copy, taken when the check starts
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes
    */
-  public void checkAll(Collection<? extends RuleTarget> inputs) {
-    runAll(inputs, mode);
+  public Checked checkAll(Collection<? extends RuleTarget> inputs) {
+    return runAll(inputs, mode);
   }
 
   /**
@@ -220,12 +227,13 @@ public final class Muster {
    *
    * @param inputs the collection, whose elements are all of one class
    * @param mode the mode of this check
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if the elements are of different classes
    */
-  public void checkAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
-    runAll(inputs, requireNonNull(mode, "mode"));
+  public Checked checkAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
+    return runAll(inputs, requireNonNull(mode, "mode"));
   }
 
   /**
@@ -235,6 +243,16 @@ public final class Muster {
    */
   public Set<String> disabledRuleIds() {
     return disabledRuleIds;
+  }
+
+  /**
+   * Returns the types of the values that the enabled {@linkplain me.yakar.muster.rule.ValueRule
+   * value rules} leave, by rule id in the order of the ids.
+   *
+   * @return the value types by rule id, unmodifiable
+   */
+  public Map<String, Class<?>> valueTypes() {
+    return valueTypes;
   }
 
   /**
@@ -259,11 +277,11 @@ public final class Muster {
     return collections.ruleIds();
   }
 
-  private void runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
+  private Checked runAll(Collection<? extends RuleTarget> inputs, CheckMode mode) {
     var elements = RuleChain.elements(inputs, RuleTarget.class, true, "Muster");
-    if (!elements.isEmpty()) {
-      collections.of(elements.getFirst().getClass()).runAll(elements, mode);
-    }
+    return elements.isEmpty()
+        ? Checked.EMPTY
+        : collections.of(elements.getFirst().getClass()).runAll(elements, mode);
   }
 
   private ClassChains.Bound bind(Class<?> type) {

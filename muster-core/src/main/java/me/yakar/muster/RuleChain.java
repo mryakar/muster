@@ -48,7 +48,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
  * gives it its own, and tells the {@link CheckListener listeners} of that {@code Muster} about
- * every check. Chains are immutable and thread-safe.
+ * every check. A check that passes returns the values its {@linkplain
+ * me.yakar.muster.rule.ValueRule value rules} left, as a {@link Checked}. Chains are immutable and
+ * thread-safe.
  *
  * @param <I> the type of input
  */
@@ -136,13 +138,14 @@ public final class RuleChain<I> {
    * a violation.
    *
    * @param input the input
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws IllegalArgumentException if {@code input} is not of the chain's type, which only
    *     unchecked code can pass
    */
-  public void check(I input) {
+  public Checked check(I input) {
     requireInstance(input, inputType, "chain");
-    run(input, mode);
+    return run(input, mode);
   }
 
   /**
@@ -156,13 +159,14 @@ public final class RuleChain<I> {
    * element. An empty collection passes without running a rule.
    *
    * @param inputs the collection; rules see an unmodifiable copy, taken when the check starts
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if an element is {@code null}
    * @throws IllegalArgumentException if an element is not of the chain's type, which only unchecked
    *     code can pass
    */
-  public void checkAll(Collection<? extends I> inputs) {
-    runAll(elements(inputs, inputType, false, "chain"), mode);
+  public Checked checkAll(Collection<? extends I> inputs) {
+    return runAll(elements(inputs, inputType, false, "chain"), mode);
   }
 
   /** Checks that an input is of the type that a chain or a binding checks. */
@@ -235,16 +239,20 @@ public final class RuleChain<I> {
    * Checks the elements of a collection, which the caller knows to be of the chain's type, in the
    * given mode, and tells the listener about it. Kept apart from {@link #run}, so that the loop of
    * a single check stays as it is.
+   *
+   * @return the check, with the values its value rules left
    */
-  void runAll(List<?> inputs, CheckMode mode) {
+  Checked runAll(List<?> inputs, CheckMode mode) {
     // An empty collection runs no rule, and a listener is not told of it: a collection checked by
     // the class of its elements has no chain without an element.
     if (inputs.isEmpty()) {
-      return;
+      return Checked.EMPTY;
     }
     var observed = observe(mode, true, inputs.size());
+    // The value each rule left: the value of each element, by position, for a rule of each element.
+    var values = valued ? new @Nullable Object[steps.size()] : null;
     try {
-      runEach(inputs, mode, observed);
+      runEach(inputs, mode, observed, values);
     } catch (Throwable e) {
       if (observed != null) {
         observed.ended(e);
@@ -254,10 +262,15 @@ public final class RuleChain<I> {
     if (observed != null) {
       observed.passed();
     }
+    return values == null ? Checked.NONE : Checked.ofCollection(steps, values, inputs.size());
   }
 
-  /** Checks the elements of a collection, which is not empty. */
-  private void runEach(List<?> inputs, CheckMode mode, @Nullable ObservedCheck observed) {
+  /** Checks the elements of a collection, which is not empty, and keeps the values in the array. */
+  private void runEach(
+      List<?> inputs,
+      CheckMode mode,
+      @Nullable ObservedCheck observed,
+      @Nullable Object @Nullable [] values) {
     var size = inputs.size();
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
@@ -270,8 +283,6 @@ public final class RuleChain<I> {
     // The positions of every element, for the rules that require none, as the first rule. The rules
     // share it: the context of a rule that checks at once copies it, and the rest only read it.
     var all = eligible(NO_RULES, passed, size);
-    // The value each rule left: the value of each element, by position, for a rule of each element.
-    var values = valued ? new @Nullable Object[steps.size()] : null;
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
       var rule = step.rule();
@@ -706,11 +717,15 @@ public final class RuleChain<I> {
    * the listener about it; without a listener it pays one null check. Small, so that the JIT
    * inlines it into its caller, which then catches the exception it throws without unwinding a
    * frame.
+   *
+   * @return the check, with the values its value rules left
    */
-  void run(Object input, CheckMode mode) {
+  Checked run(Object input, CheckMode mode) {
     var observed = observe(mode, false, 1);
+    // The value each rule left, kept only by a chain that has a value rule.
+    var values = valued ? new @Nullable Object[steps.size()] : null;
     try {
-      var found = checkRules(input, mode, observed);
+      var found = checkRules(input, mode, observed, values);
       if (found != null) {
         throw new BusinessRuleViolationException(found);
       }
@@ -723,24 +738,27 @@ public final class RuleChain<I> {
     if (observed != null) {
       observed.passed();
     }
+    return values == null ? Checked.NONE : Checked.ofInput(steps, values);
   }
 
   /**
    * Runs the rules of a single check, one loop, so that the JIT compiles the loop as a whole, and
-   * returns the violations they found, or {@code null}. The loop tests a local observer that is
-   * null without a listener. It stays one method that is too large to be inlined, and so checks
-   * results and builds contexts itself rather than through the helpers of the collection check: the
-   * loop runs faster per rule compiled on its own than inlined into the callers of {@link #run}.
+   * returns the violations they found, or {@code null}; it keeps the values in the array. The loop
+   * tests a local observer that is null without a listener. It stays one method that is too large
+   * to be inlined, and so checks results and builds contexts itself rather than through the helpers
+   * of the collection check: the loop runs faster per rule compiled on its own than inlined into
+   * the callers of {@link #run}.
    */
   private @Nullable List<Violation> checkRules(
-      Object input, CheckMode mode, @Nullable ObservedCheck observed) {
+      Object input,
+      CheckMode mode,
+      @Nullable ObservedCheck observed,
+      @Nullable Object @Nullable [] values) {
     var callCaller = caller.get();
     var callLocale = requireNonNull(locale.get(), "the locale supplier returned null");
     // Created on the first failure, so that a passing check allocates no list.
     ArrayList<Violation> found = null;
     var passed = new boolean[steps.size()];
-    // The value each rule left, kept only by a chain that has a value rule.
-    var values = valued ? new @Nullable Object[steps.size()] : null;
     for (var i = 0; i < steps.size(); i++) {
       var step = steps.get(i);
       var rule = step.rule();

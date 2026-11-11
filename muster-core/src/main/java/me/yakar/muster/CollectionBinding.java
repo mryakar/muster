@@ -77,16 +77,17 @@ public final class CollectionBinding<E> {
    *
    * @param inputs the collection: rule targets of one class, since rules bind to that class, or
    *     none a rule target; rules see an unmodifiable copy, taken when the check starts
+   * @return the check, with the values its value rules left
    * @throws BusinessRuleViolationException if a rule is violated
    * @throws NullPointerException if {@code inputs} or an element is {@code null}
    * @throws IllegalArgumentException if the elements are rule targets of different classes, or rule
    *     targets and others, or one is not of the binding's type, which only unchecked code can pass
    */
-  public void check(Collection<? extends E> inputs) {
+  public Checked check(Collection<? extends E> inputs) {
     var elements = RuleChain.elements(inputs, elementType, true, "binding");
-    if (!elements.isEmpty()) {
-      chains.of(RuleChain.chainKey(elements.getFirst(), elementType)).runAll(elements, mode);
-    }
+    return elements.isEmpty()
+        ? Checked.EMPTY
+        : chains.of(RuleChain.chainKey(elements.getFirst(), elementType)).runAll(elements, mode);
   }
 
   /**
