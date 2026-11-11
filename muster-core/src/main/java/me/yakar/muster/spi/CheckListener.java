@@ -85,8 +85,8 @@ public interface CheckListener {
   /**
    * A check that starts.
    *
-   * @param name the name of the binding, or the name of the type for a chain, a binding without a
-   *     name, or a check by type
+   * @param name the name of the binding or of the chain, or the name of the type for one without a
+   *     name, or for a check by type
    * @param inputType the type of the input, or of the elements of a checked collection
    * @param mode the mode of the check
    * @param collection whether a collection is checked

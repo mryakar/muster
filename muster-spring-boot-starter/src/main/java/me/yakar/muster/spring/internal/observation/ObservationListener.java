@@ -27,11 +27,11 @@ import me.yakar.muster.spi.CheckListener;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Opens an observation {@code muster.check} for each check, with the name of the binding, and a
- * child observation {@code muster.rule} for each of its rules, with the id of the rule; both get
- * the outcome when they end, and the exception if they end with an error. Each observation is in
- * scope while it runs, so what a rule calls is observed under it. The names and the tags are fixed;
- * an application narrows them with an {@code ObservationPredicate} of its registry.
+ * Opens an observation {@code muster.check} for each check, with the name of the check, and a child
+ * observation {@code muster.rule} for each of its rules, with the id of the rule; both get the
+ * outcome when they end, and the exception if they end with an error. Each observation is in scope
+ * while it runs, so what a rule calls is observed under it. The names and the tags are fixed; an
+ * application narrows them with an {@code ObservationPredicate} of its registry.
  *
  * <p>The listener holds the registry only; the observations of a check live in the observer of that
  * check, on the thread that checks.

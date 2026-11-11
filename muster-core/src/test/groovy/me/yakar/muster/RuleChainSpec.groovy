@@ -26,6 +26,7 @@ import me.yakar.muster.rule.Rule
 import me.yakar.muster.rule.RuleContext
 import me.yakar.muster.rule.RuleResult
 import me.yakar.muster.rule.Violation
+import me.yakar.muster.spi.CheckListener
 
 /** Checking an input with a chain: order, skipping, modes, the call context and failures. */
 class RuleChainSpec extends EngineSpecification {
@@ -217,6 +218,74 @@ class RuleChainSpec extends EngineSpecification {
     global                | own || reported
     CheckMode.COLLECT_ALL | CheckMode.FAIL_FAST || ['task.audited']
     CheckMode.FAIL_FAST   | CheckMode.COLLECT_ALL || ['task.audited', 'task.billed']
+  }
+
+  def 'a named chain tells listeners its name, and the chain it came from the name of its type'() {
+    given:
+    def checks = []
+    CheckListener listener = { check ->
+      checks << check
+      null
+    }
+    def chain = Muster.builder().rules(new TaskAudited(ran)).listener(listener).build().chain(Long, TaskAudited)
+
+    when:
+    def named = chain.withName('audit')
+    named.check(1L)
+    chain.check(1L)
+    named.checkAll([1L, 2L])
+
+    then:
+    !named.is(chain)
+    !chain.withName('audit').is(named)
+    !named.withName('audit').is(named)
+    checks*.name() == ['audit', Long.name, 'audit']
+    checks*.collection() == [false, false, true]
+    named.ruleIds() == chain.ruleIds()
+  }
+
+  def 'a chain keeps its name when its mode changes, and its mode when its name changes'() {
+    given:
+    def checks = []
+    CheckListener listener = { check ->
+      checks << check
+      null
+    }
+    def chain = Muster.builder().rules(new TaskAudited(ran)).listener(listener).build().chain(Long, TaskAudited)
+
+    when:
+    def nameFirst = chain.withName('audit').withMode(CheckMode.COLLECT_ALL)
+    def modeFirst = chain.withMode(CheckMode.COLLECT_ALL).withName('audit')
+    def renamed = nameFirst.withName('audit again')
+    nameFirst.check(1L)
+    modeFirst.check(1L)
+    renamed.check(1L)
+
+    then:
+    checks*.name() == ['audit', 'audit', 'audit again']
+    checks*.mode() == [CheckMode.COLLECT_ALL] * 3
+    chain.mode() == CheckMode.FAIL_FAST
+  }
+
+  def 'a chain rejects a null name'() {
+    when:
+    Muster.builder().build().chain(Object).withName(null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'name'
+  }
+
+  def 'a chain rejects the blank name "#name"'() {
+    when:
+    Muster.builder().build().chain(Object).withName(name)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == 'name must not be blank'
+
+    where:
+    name << ['', ' ', '\t\n']
   }
 
   def 'a chain rejects a null mode'() {
