@@ -56,6 +56,7 @@ Bu cevap, bir istemcinin aldığı cevabın aynısıdır; mesajı da uygulamanı
 == Uygulamanın tamamı
 
 Uygulamanın tamamını başlatan bir test, örneğin `@SpringBootTest` ile, kuralları production'daki gibi kontrol eder: örnek uygulamanın kendisi de başlar, kendi uç noktalarını HTTP üzerinden çağırır ve cevapları bu kılavuzun gösterdikleriyle karşılaştırır.
+Kurallarının değerlerini okuyan bir metot da bu uygulamaya ihtiyaç duyar; bunu xref:spring/values.adoc#testing[Değer okuyan bir metodu test etmek] gösterir.
 
 == Starter'ın yapılandırması
 

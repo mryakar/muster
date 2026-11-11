@@ -11,6 +11,7 @@ Bir aracı yalnızca sahibi yeniden adlandırabilir:
 include::example$spring-boot/java/example/spring/VehicleOwnedByCaller.java[tag=caller,indent=0]
 ----
 
+Kural, `VehicleExists`’in yüklediği aracı okur; bunu xref:spring/values.adoc[] anlatır.
 Çağıran, isteğin `Authentication` nesnesidir; bu yüzden `getName()` kullanıcı adını verir.
 Daha fazlasına ihtiyaç duyan bir kural onu cast eder (tür dönüşümü yapar).
 Anonim ya da kimliği doğrulanmamış bir çağrının çağıranı yoktur.

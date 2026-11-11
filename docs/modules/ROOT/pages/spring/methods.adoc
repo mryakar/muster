@@ -18,6 +18,8 @@ The method that renames a vehicle checks the rules of its type in collect-all mo
 include::example$spring-boot/java/example/spring/VehicleService.java[tag=rename,indent=0]
 ----
 
+The rename answers with the vehicle that its rules loaded, read from the values of the check, as xref:spring/values.adoc[] describes.
+
 `@Rules` also lists rules, which run first, in the order listed, and excludes rules that would bind by type.
 `@Rules` makes a public method of any bean check, not only of a `@Service`.
 For an input that is not a rule target, such as an id, the method checks the rules it lists and no others.

@@ -10,9 +10,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - A rule that loads data, such as the entity a command is about, leaves it for the rules that require it, which then do not load it again: a `ValueRule<T, V>` passes with `RuleResult.passed(value)`, and a rule that requires it, directly or through other rules, reads the value with `ctx.valueOf(TheRule.class)`. In a check of a collection, a rule of each element leaves a value for each element, and one that checks them at once gives the result of each element with `RuleResult.ofElements`. A test gives a rule the values it reads with `RuleContext.Builder.value` and `values`.
+- A check that passes returns the values its value rules left, as a `Checked`, so that the code that runs the check uses what the rules loaded instead of loading it again: `checked.valueOf(TheRule.class)`, and in a check of a collection `checked.element(i).valueOf(...)`. `hasValue` tells whether a value rule that does not always apply ran, and `Muster.valueTypes()` gives the value type of each enabled value rule.
+- With the starter, a `@Rules` method reads the values of its rules from the `CheckedValues` bean while it runs, on its own thread; the actuator endpoint lists the value type of each value rule under `valueTypes`.
 
 ### Changed
 
+- **Breaking:** `check` and `checkAll` of `RuleChain`, `Binding`, `CollectionBinding` and `Muster` return `Checked` instead of `void`. Code that calls them compiles as it is, but code compiled against 0.4.0 must be compiled again; a mock of them returns `null` until it is stubbed, and `doNothing()` no longer stubs them.
 - **Breaking:** `RuleResult.Passed` has a component, the value of a value rule, and `RuleResult` has a third kind of result, `Elements`. A record pattern `Passed()` no longer compiles, nor does a `switch` over `RuleResult` without a `default` until it handles `Elements`.
 
 ## [0.4.0] - 2026-11-06

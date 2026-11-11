@@ -8,6 +8,7 @@ Native image'ın kendisi test edilmez.
 Native image'da, `this` üzerinden çağrıları arayan taramanın okuyacağı class dosyası yoktur; bu yüzden starter açılışta bu çağrıları aramadığını bildiren bir uyarı verir: xref:spring/self-invocation.adoc[] bunu anlatır.
 * *Taramanın görmediği çağrılar.* Reflection üzerinden yapılan, bean'in iç içe (nested) bir sınıfından yapılan ya da Groovy'deki gibi dinamik çağrıya derlenmiş bir çağrı hiçbir kuralı kontrol etmez ve raporlanmaz; bunu xref:spring/self-invocation.adoc[] anlatır.
 * *`@Cacheable` ve `@Async`.* Önbellekten gelen bir cevap hiçbir kuralı kontrol etmez; bir `@Async` metot ise kuralları kendi thread'inde kontrol eder ve orada oluşan bir ihlal çağırana ulaşmaz: xref:spring/transactions.adoc#_other_advice[Diğer advice'lar] bunu anlatır.
+* *Çağrının dışındaki değerler.* Bir metodun kurallarının değerleri, metot çalışırken ve onun thread'inde vardır: metodun çağırdığı bir `@Async` metot, başka bir thread ya da metot döndükten sonra çalışan kod onları okuyamaz; bunu xref:spring/values.adoc#_where_the_values_are[Değerlerin olduğu yer] anlatır.
 * *İki sınırı (bound) olan eleman türleri.* `T extends A & B` iken `List<T>` gibi bir parametrede, elemanların ilk sınır olan `A` türünden olduğu kabul edilir.
 * *Farklı sınıflardan elemanlar.* Bir çağrıdaki kural hedefleri tek bir sınıftan olmalıdır, çünkü kurallar sınıfa bağlanır; kural hedefi olmayan elemanlarla da karıştırılamazlar.
 Bu iki koşuldan birini bozan bir çağrı `IllegalArgumentException` ile başarısız olur.

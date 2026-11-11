@@ -55,6 +55,7 @@ The answer is the one a client gets, with its message from the message source of
 == The whole application
 
 A test that starts the whole application, such as with `@SpringBootTest`, checks the rules as production does: the example itself starts, calls its own endpoints over HTTP, and compares the answers with those this guide shows.
+A method that reads the values of its rules needs that application too, as xref:spring/values.adoc#testing[Testing a method that reads values] shows.
 
 == The starter's configuration
 
