@@ -20,6 +20,7 @@ An error carries its exception; a violation is not an error.
 
 Each observation stays in scope while it runs, so what a rule calls shows up under the rule, if the application observes it, as it can a repository.
 No tag carries a code, a target or an argument, which would make every call a series of its own.
+A chain or a binding that the application builds itself is tagged `name` with the name it was given, with `RuleChain.withName` or the `name` of the builder of a binding, so that name must not come from the input either.
 The names and tags are fixed; an `ObservationPredicate` of the registry that leaves out `muster.check` leaves out the whole check.
 
 == The actuator endpoint
