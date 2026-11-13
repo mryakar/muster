@@ -26,32 +26,88 @@ include::example$plain-java/resources/example/plain/messages_tr.properties[tag=m
 
 The violation of a taken name, with `Atlas` as its client argument `name`, reads `The name Atlas is taken`, and `Atlas adı kullanılıyor` for a caller whose locale is Turkish.
 The lambda calls `ResourceBundle.getBundle` from the application's own module, which is what lets it find the bundles on the module path.
+`Locale.ENGLISH` says that the base bundle is written in English, for the numbers and dates of its messages, as <<_in_which_locale>> shows.
 
 A caller whose language has no bundle reads the base bundle, the one without a locale in its name, even on a server whose own default locale is Turkish: the example checks that a French caller reads English there.
 Without a base bundle, `ofResourceBundles` refuses the family.
 
 == Templates
 
-The value of an argument goes into the message as `String.valueOf` writes it, so the edge formats a number or a date before the message is written, as the next section shows.
+`+{name}+` writes the value of an argument as `String.valueOf` writes it; a placeholder with a type formats a number or a date, as the next section shows.
 Template text is written as it reads, apostrophes included, and `+{{+` or `+}}+` writes a brace where it would otherwise read as part of a placeholder.
 A name that the violation does not carry stays in the message as it is, and a code without a template reads as the code, so a mistake in a template shows in the answer rather than failing the call.
 
 == Formatting values
 
-A rule passes a number or a date as it is: the client gets the client arguments as data, and the edge writes the message in the caller's language.
-The edge knows the caller, so it formats the values in the caller's locale and resolves the message with them, through the `resolve` that takes a code and its arguments:
+A rule passes a number or a date as it is: the client gets the client arguments as data, and the message writes them in its own language.
+A placeholder with a type formats the value:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=format,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=format,indent=0]
+----
+
+With `1500` as its client argument `limit`, the message reads `At most 1,500 vehicles at once`, and `Bir seferde en fazla 1.500 araç` for a Turkish caller.
+The client arguments of the answer keep their values, so a client still reads `1500` as a number.
+
+[cols="2,5"]
+|===
+|Placeholder |Writes
+
+|`+{amount,number}+` |A number. A `BigDecimal` keeps its scale, so `12.50` reads `12.50`; other numbers get at most three fraction digits.
+|`+{count,number,integer}+` |A number rounded to a whole one.
+|`+{rate,number,percent}+` |A number as a percentage: `0.15` reads `15%`.
+|`+{when,date}+` |A `LocalDate`, or the date of a `LocalDateTime`, `ZonedDateTime` or `OffsetDateTime`.
+|`+{at,time}+` |A `LocalTime` or an `OffsetTime`, or the time of a date and time.
+|`+{at,datetime}+` |A `LocalDateTime`, `ZonedDateTime` or `OffsetDateTime`.
+|===
+
+A date or a time takes a style after its type, `short`, `medium`, `long` or `full`, as in `+{when,date,short}+`; without one it is `medium`.
+The long and full styles of a time, or of a date and time, write the name of its zone, so they take a `ZonedDateTime`.
+An `Instant` or a `java.util.Date` has no date until it is given a zone, so a rule passes a `ZonedDateTime` instead.
+
+A value that its placeholder cannot format, such as a text in `+{limit,number}+` or a `BigDecimal` with more than 1,000 digits before or after its point, is written as `String.valueOf` writes it and logged at DEBUG, and a type or a style that Muster does not know stays in the message as it is: as with an unknown name, a mistake shows in the answer rather than failing the call.
+The types and styles are those of `java.text.MessageFormat`, without its currencies, patterns and choices, and with `datetime` added.
+
+=== In which locale
+
+The values are formatted in the locale of the template that was found, so that the numbers of a sentence read as its language writes them.
+A template in the caller's language is formatted in the caller's locale, region included, whether it comes from the bundle of that language or from a base bundle written in it: in the example, whose base bundle is English, a British caller gets `12/11/2026` for a short date, and an American one `11/12/26`.
+A template from the base bundle that a caller of another language reads is formatted in the locale that `ofResourceBundles` is given for the base bundle, so a German caller, who has no bundle, reads `At most 1,500 vehicles at once` rather than an English sentence with the German `1.500`.
+Without that locale, the base bundle is formatted in the root locale, which belongs to no language and writes `1,500` and `2026-11-12` for every caller it answers.
+
+=== At the edge
+
+An edge that wants the values in the caller's locale whatever the language of the template, or a format that placeholders do not have, such as an amount in a currency, formats the values itself and resolves the message with them through the `resolve` that takes a code and its arguments:
 
 [source,java]
 ----
 include::example$plain-java/java/example/plain/Problems.java[tag=format,indent=0]
 ----
 
-The client arguments of the answer keep their values, so a client reads `1500` as a number and the message as `1.500` in Turkish or `1,500` in English.
-The Spring Boot starter writes the values as they are; an application that wants them formatted defines a `MessageResolver` bean that formats the arguments before it fills the template.
+The template of such a message has no types, since its values are already text:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=edge,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=edge,indent=0]
+----
+
+The Spring Boot starter formats the values in the caller's locale, since a message source does not tell the locale of the message it found, as xref:spring/problem-details.adoc#_messages[Messages] describes.
 
 == From elsewhere
 
 Templates kept in a database table, or in the message source of a framework, reach Muster through link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver.ofTemplates`], which asks for the template of a code in a locale and fills it in the same way.
+Such a lookup does not tell the locale of the template it found, so the values are formatted in the caller's locale.
 An application with its own way of writing messages implements `MessageResolver` itself.
 
 == Client and internal arguments
