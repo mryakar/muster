@@ -35,6 +35,7 @@ include::example$spring-boot/resources/messages_tr.properties[tag=messages,inden
 ----
 
 `+{name}+` takes the client argument of that name, and a code without a message reads as the code.
+A placeholder with a type, such as `+{limit,number}+`, formats the value as xref:core/messages.adoc#_formatting_values[Formatting values] describes, in the caller's locale: a message source does not tell in which language it found a message, so a sentence of `messages.properties` gets the numbers of a Turkish caller too.
 Spring Boot's message source falls back to the default locale of the JVM, so a server whose default locale is Turkish would answer a French client in Turkish.
 The example answers it from `messages.properties` instead:
 

@@ -26,6 +26,7 @@ include::example$plain-java/resources/example/plain/messages_tr.properties[tag=m
 
 `name` istemci argümanı `Atlas` olan alınmış ad ihlali `The name Atlas is taken` diye, yerel ayarı Türkçe olan bir çağıran için ise `Atlas adı kullanılıyor` diye okunur.
 Lambda, `ResourceBundle.getBundle`’ı uygulamanın kendi modülünden çağırır; bundle'ları modül yolunda (module path) bulabilmesini sağlayan da budur.
+`Locale.ENGLISH`, temel bundle'ın İngilizce yazıldığını söyler; mesajlarındaki sayılar ve tarihler için gereklidir, <<_in_which_locale>> bunu gösterir.
 
 Dili için bundle bulunmayan bir çağıran, temel bundle'ı, yani adında yerel ayar olmayan bundle'ı okur.
 Bu, sunucunun kendi varsayılan yerel ayarı Türkçe olsa bile böyledir: örnek, böyle bir sunucuda Fransızca konuşan bir çağıranın İngilizce okuduğunu kontrol eder.
@@ -33,28 +34,86 @@ Temel bundle yoksa `ofResourceBundles` bu bundle ailesini kabul etmez.
 
 == Şablonlar
 
-Bir argümanın değeri mesaja, `String.valueOf`’un yazdığı hâliyle girer.
-Bu yüzden bir sayı ya da tarih, mesaj yazılmadan önce dış katmanda biçimlendirilir; bir sonraki bölüm bunu gösterir.
+`+{name}+`, argümanın değerini `String.valueOf`’un yazdığı hâliyle yazar; türü belirtilmiş bir yer tutucu ise bir sayıyı ya da tarihi biçimlendirir, bir sonraki bölüm bunu gösterir.
 Şablon metni okunacağı gibi yazılır, kesme işaretleri de dahil.
 `+{{+` ya da `+}}+`, aksi hâlde bir yer tutucunun (placeholder) parçası gibi okunacak bir yerde süslü parantez yazar.
 İhlalin taşımadığı bir ad mesajda olduğu gibi kalır, şablonu olmayan bir kod da kodun kendisi olarak okunur; böylece şablondaki bir hata çağrıyı başarısız kılmak yerine cevapta görünür.
 
+[#_formatting_values]
 == Değerleri biçimlendirmek
 
-Bir kural, bir sayıyı ya da tarihi olduğu gibi verir: istemci argümanları istemciye veri olarak ulaşır, mesajı ise dış katman çağıranın dilinde yazar.
-Dış katman çağıranı bilir; bu yüzden değerleri çağıranın yerel ayarına göre biçimlendirir ve mesajı, kod ile argümanlarını alan `resolve` üzerinden bu değerlerle çözer:
+Bir kural, bir sayıyı ya da tarihi olduğu gibi verir: istemci argümanları istemciye veri olarak ulaşır, mesaj ise onları kendi dilinde yazar.
+Türü belirtilmiş bir yer tutucu değeri biçimlendirir:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=format,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=format,indent=0]
+----
+
+`limit` istemci argümanı `1500` olduğunda mesaj `At most 1,500 vehicles at once` diye, Türkçe bir çağıran için ise `Bir seferde en fazla 1.500 araç` diye okunur.
+Cevaptaki istemci argümanları değerlerini korur; böylece istemci `1500`’ü yine bir sayı olarak okur.
+
+[cols="2,5"]
+|===
+|Yer tutucu |Yazdığı
+
+|`+{amount,number}+` |Bir sayı. `BigDecimal` ölçeğini korur, yani `12.50` Türkçede `12,50` diye okunur; öteki sayılar en çok üç ondalık basamak alır.
+|`+{count,number,integer}+` |Tam sayıya yuvarlanmış bir sayı.
+|`+{rate,number,percent}+` |Yüzde olarak bir sayı: `0.15` Türkçede `%15` diye okunur.
+|`+{when,date}+` |Bir `LocalDate` ya da bir `LocalDateTime`, `ZonedDateTime` veya `OffsetDateTime`’ın tarihi.
+|`+{at,time}+` |Bir `LocalTime` ya da `OffsetTime` veya bir tarih-saatin saati.
+|`+{at,datetime}+` |Bir `LocalDateTime`, `ZonedDateTime` ya da `OffsetDateTime`.
+|===
+
+Tarih ve saat, türünden sonra bir stil alır: `short`, `medium`, `long` ya da `full`; örneğin `+{when,date,short}+`. Stil yazılmazsa `medium` geçerlidir.
+Saatin ya da tarih-saatin `long` ve `full` stilleri saat diliminin adını yazar, bu yüzden bir `ZonedDateTime` ister.
+Bir `Instant` ya da `java.util.Date`, bir saat dilimi verilene kadar tarihe sahip değildir; bu yüzden kural onun yerine bir `ZonedDateTime` verir.
+
+Yer tutucunun biçimlendiremediği bir değer, örneğin `+{limit,number}+` içindeki bir metin ya da noktasından önce veya sonra 1.000’den fazla basamağı olan bir `BigDecimal`, `String.valueOf`’un yazdığı hâliyle yazılır ve DEBUG seviyesinde loglanır; Muster'ın tanımadığı bir tür ya da stil ise mesajda olduğu gibi kalır.
+Tıpkı bilinmeyen bir ad gibi, böyle bir hata da çağrıyı başarısız kılmak yerine cevapta görünür.
+Türler ve stiller `java.text.MessageFormat`’ınkilerdir; para birimi, kalıp (pattern) ve seçim (choice) biçimleri hariçtir, `datetime` ise eklenmiştir.
+
+[#_in_which_locale]
+=== Hangi yerel ayarda
+
+Değerler, bulunan şablonun yerel ayarında biçimlendirilir; böylece bir cümledeki sayılar, cümlenin dilinin yazdığı gibi okunur.
+Çağıranın dilindeki bir şablon, ister o dilin bundle'ından ister o dilde yazılmış temel bundle'dan gelsin, çağıranın bölgesi de dahil olmak üzere yerel ayarında biçimlendirilir: temel bundle'ı İngilizce olan örnekte İngiltere'deki bir çağıran kısa tarihi `12/11/2026`, ABD'deki bir çağıran ise `11/12/26` diye görür.
+Başka dilde bir çağıranın okuduğu temel bundle şablonu, `ofResourceBundles`’a temel bundle için verilen yerel ayarda biçimlendirilir.
+Bu yüzden bundle'ı olmayan Almanca bir çağıran, İngilizce cümlede Almancadaki `1.500`’ü değil, `At most 1,500 vehicles at once` metnini okur.
+Bu yerel ayar verilmezse temel bundle, hiçbir dile ait olmayan kök yerel ayarda (root locale) biçimlendirilir ve cevap verdiği her çağıran için `1,500` ile `2026-11-12` yazar.
+
+=== Dış katmanda
+
+Değerleri şablonun dili ne olursa olsun çağıranın yerel ayarında isteyen ya da yer tutucuların bilmediği bir biçime, örneğin bir para birimindeki tutara ihtiyaç duyan bir dış katman, değerleri kendisi biçimlendirir ve mesajı, kod ile argümanlarını alan `resolve` üzerinden bu değerlerle çözer:
 
 [source,java]
 ----
 include::example$plain-java/java/example/plain/Problems.java[tag=format,indent=0]
 ----
 
-Cevaptaki istemci argümanları değerlerini korur; böylece istemci `1500`’ü bir sayı olarak, mesajı ise Türkçede `1.500`, İngilizcede `1,500` olarak okur.
-Spring Boot starter'ı değerleri olduğu gibi yazar; onları biçimlendirmek isteyen bir uygulama, şablonu doldurmadan önce argümanları biçimlendiren bir `MessageResolver` bean'i tanımlar.
+Böyle bir mesajın şablonunda tür yoktur, çünkü değerleri zaten metindir:
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages.properties[tag=edge,indent=0]
+----
+
+[source,properties]
+----
+include::example$plain-java/resources/example/plain/messages_tr.properties[tag=edge,indent=0]
+----
+
+Spring Boot starter'ı değerleri çağıranın yerel ayarında biçimlendirir, çünkü bir message source bulduğu mesajın yerel ayarını söylemez; xref:spring/problem-details.adoc#_messages[Mesajlar] bunu anlatır.
 
 == Başka kaynaklardan
 
 Bir veritabanı tablosunda ya da bir framework'ün message source'unda tutulan şablonlar, Muster'a link:{javadoc-core}/spi/MessageResolver.html[`MessageResolver.ofTemplates`] üzerinden ulaşır; bu metot, bir kodun bir yerel ayardaki şablonunu ister ve onu aynı şekilde doldurur.
+Böyle bir kaynak bulduğu şablonun yerel ayarını söylemez, bu yüzden değerler çağıranın yerel ayarında biçimlendirilir.
 Mesaj yazmanın kendine özgü bir yolu olan bir uygulama, `MessageResolver`’ı kendisi uygular.
 
 == İstemci argümanları ve iç argümanlar

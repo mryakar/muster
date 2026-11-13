@@ -67,7 +67,10 @@ final class Problems {
   // end::problem[]
 
   // tag::format[]
-  /** Resolves the message of a violation with its numbers written as the caller writes them. */
+  /**
+   * Resolves the message of a violation whose template has no types, with its numbers written as
+   * the caller writes them.
+   */
   String message(Violation violation, Locale locale) {
     var numbers = NumberFormat.getNumberInstance(locale);
     var args = new LinkedHashMap<String, Object>(violation.clientArgs());

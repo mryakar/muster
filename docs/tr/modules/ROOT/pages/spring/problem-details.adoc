@@ -36,6 +36,7 @@ include::example$spring-boot/resources/messages_tr.properties[tag=messages,inden
 ----
 
 `+{name}+`, aynı adı taşıyan istemci argümanının değerini alır; mesajı olmayan bir kod, kodun kendisi olarak görünür.
+`+{limit,number}+` gibi türü belirtilmiş bir yer tutucu, değeri xref:core/messages.adoc#_formatting_values[Değerleri biçimlendirmek] bölümündeki gibi çağıranın yerel ayarında biçimlendirir: message source bir mesajı hangi dilde bulduğunu söylemez, bu yüzden `messages.properties`’teki bir cümle de Türkçe bir çağıranın sayı biçimini alır.
 Spring Boot'un message source'u, mesajı bulamadığında JVM'in varsayılan yerel ayarına geri döner; bu yüzden varsayılan yerel ayarı Türkçe olan bir sunucu, Fransızca bir istemciye Türkçe cevap verirdi.
 Örnek uygulama ise böyle bir istemciye `messages.properties` dosyasından cevap verir:
 

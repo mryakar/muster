@@ -71,7 +71,7 @@ public final class Main {
     // tag::messages[]
     var messages =
         MessageResolver.ofResourceBundles(
-            locale -> ResourceBundle.getBundle("example.plain.messages", locale));
+            locale -> ResourceBundle.getBundle("example.plain.messages", locale), Locale.ENGLISH);
     // end::messages[]
     var problems = new Problems(messages);
     var service = new VehicleService(muster, vehicles);
@@ -245,11 +245,21 @@ public final class Main {
     } finally {
       Locale.setDefault(serverLocale);
     }
-    // The edge writes a number in the language of the message.
+    // A typed placeholder writes a number in the language of the message: a German client, who has
+    // no bundle, reads the English sentence with the number as English writes it.
     var limit =
         RuleContext.forRule("vehicle.batch-limit").violation().clientArg("limit", 1500).build();
-    expect(problems.message(limit, TURKISH), "Bir seferde en fazla 1.500 araç");
-    expect(problems.message(limit, Locale.ENGLISH), "At most 1,500 vehicles at once");
+    expect(messages.resolve(limit, TURKISH), "Bir seferde en fazla 1.500 araç");
+    expect(messages.resolve(limit, Locale.ENGLISH), "At most 1,500 vehicles at once");
+    expect(messages.resolve(limit, Locale.GERMAN), "At most 1,500 vehicles at once");
+    // The edge can format the values of a template without types itself.
+    var edge =
+        RuleContext.forRule("vehicle.batch-limit")
+            .violation("vehicle.batch-limit.edge")
+            .clientArg("limit", 1500)
+            .build();
+    expect(problems.message(edge, TURKISH), "Bir seferde en fazla 1.500 araç");
+    expect(problems.message(edge, Locale.ENGLISH), "At most 1,500 vehicles at once");
   }
 
   private static void transacts(VehicleService service) {
