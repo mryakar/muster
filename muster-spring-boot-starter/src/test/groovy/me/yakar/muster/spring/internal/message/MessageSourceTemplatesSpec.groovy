@@ -18,6 +18,7 @@ package me.yakar.muster.spring.internal.message
 import static me.yakar.muster.spring.Concurrency.concurrently
 import static org.springframework.core.NestedExceptionUtils.getMostSpecificCause
 
+import java.time.LocalDate
 import me.yakar.muster.spi.MessageResolver
 import me.yakar.muster.spring.MusterAutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -67,6 +68,21 @@ class MessageSourceTemplatesSpec extends Specification {
       assert messages.resolve('vehicle.name-taken', NAME, TURKISH) == 'Atlas adı kullanımda'
       assert messages.resolve('vehicle.plate-format', [plate: '34 X'], TURKISH) == 'The plate 34 X is not valid'
     }
+  }
+
+  def 'typed placeholders format the values in the locale of the call: #locale'() {
+    expect:
+    runner.run {
+      def messages = it.getBean(MessageResolver)
+      assert messages.resolve('vehicle.batch-limit', [limit: 1500, until: LocalDate.of(2026, 11, 12)], Locale.forLanguageTag(locale)) == batch
+      assert messages.resolve('vehicle.weight-limit', [weight: new BigDecimal('1500.50')], Locale.forLanguageTag(locale)) == weight
+    }
+
+    where: 'a message source does not tell the locale of a template, so a sentence of the base bundle gets the format of the call'
+    locale || batch                                         | weight
+    'en' || 'At most 1,500 vehicles until 11/12/26'       | 'At most 1,500.50 kg'
+    'en-GB' || 'At most 1,500 vehicles until 12/11/2026'     | 'At most 1,500.50 kg'
+    'tr-TR' || '12.11.2026 tarihine kadar en çok 1.500 araç' | 'At most 1.500,50 kg'
   }
 
   def 'without a template the message is the code'() {
