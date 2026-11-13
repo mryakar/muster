@@ -39,7 +39,7 @@ class ResourceBundleTemplatesSpec extends Specification {
   static ResourceBundleTemplates messages() {
     new ResourceBundleTemplates({ Locale locale ->
       ResourceBundle.getBundle('me.yakar.muster.messages', locale)
-    })
+    }, Locale.ENGLISH)
   }
 
   def 'reads the template of #locale from the bundle of #bundle'() {
@@ -47,7 +47,9 @@ class ResourceBundleTemplatesSpec extends Specification {
     Locale.setDefault(Locale.ENGLISH)
 
     expect:
-    messages().apply('vehicle.name-taken', Locale.forLanguageTag(locale)) == Optional.of(template)
+    messages().find('vehicle.name-taken', Locale.forLanguageTag(locale)).map {
+      it.text()
+    } == Optional.of(template)
 
     where:
     locale       | bundle || template
@@ -67,11 +69,17 @@ class ResourceBundleTemplatesSpec extends Specification {
     ResourceBundle.getBundle('me.yakar.muster.messages', Locale.FRENCH).locale == TURKISH
 
     and: 'the templates come from the base bundle'
-    messages().apply('vehicle.name-taken', Locale.FRENCH) == Optional.of('The name {name} is taken')
-    messages().apply('vehicle.name-taken', Locale.forLanguageTag('fr-CA')) == Optional.of('The name {name} is taken')
+    messages().find('vehicle.name-taken', Locale.FRENCH).map {
+      it.text()
+    } == Optional.of('The name {name} is taken')
+    messages().find('vehicle.name-taken', Locale.forLanguageTag('fr-CA')).map {
+      it.text()
+    } == Optional.of('The name {name} is taken')
 
     and: 'the default locale itself still has its bundle'
-    messages().apply('vehicle.name-taken', TURKISH) == Optional.of('{name} adı kullanılıyor')
+    messages().find('vehicle.name-taken', TURKISH).map {
+      it.text()
+    } == Optional.of('{name} adı kullanılıyor')
   }
 
   def 'never falls back to the default locale #jvmLocale, which has a region, for #locale'() {
@@ -79,13 +87,15 @@ class ResourceBundleTemplatesSpec extends Specification {
     Locale.setDefault(Locale.forLanguageTag(jvmLocale))
     def templates = new ResourceBundleTemplates({ Locale requested ->
       ResourceBundle.getBundle("me.yakar.muster.$family", requested)
-    })
+    }, Locale.ROOT)
 
     expect: 'getBundle answers from the bundle of the default locale'
     ResourceBundle.getBundle("me.yakar.muster.$family", Locale.forLanguageTag(locale)).locale != Locale.ROOT
 
     and: 'the template comes from the base bundle'
-    templates.apply('vehicle.name-taken', Locale.forLanguageTag(locale)) == Optional.of('The name {name} is taken')
+    templates.find('vehicle.name-taken', Locale.forLanguageTag(locale)).map {
+      it.text()
+    } == Optional.of('The name {name} is taken')
 
     where:
     jvmLocale | family     | locale
@@ -102,8 +112,10 @@ class ResourceBundleTemplatesSpec extends Specification {
     expect:
     new ResourceBundleTemplates({ Locale requested ->
       ResourceBundle.getBundle('me.yakar.muster.regional', requested)
-    })
-    .apply('vehicle.name-taken', Locale.forLanguageTag('de-DE')) == Optional.of('Der Name {name} ist in Deutschland vergeben')
+    }, Locale.ROOT)
+    .find('vehicle.name-taken', Locale.forLanguageTag('de-DE')).map {
+      it.text()
+    } == Optional.of('Der Name {name} ist in Deutschland vergeben')
   }
 
   def 'a key that only the base bundle has is read from it'() {
@@ -111,13 +123,17 @@ class ResourceBundleTemplatesSpec extends Specification {
     Locale.setDefault(GERMAN)
 
     expect:
-    messages().apply('vehicle.owner-only', TURKISH) == Optional.of("{name}'s owner may change it")
-    messages().apply('vehicle.owner-only', Locale.FRENCH) == Optional.of("{name}'s owner may change it")
+    messages().find('vehicle.owner-only', TURKISH).map {
+      it.text()
+    } == Optional.of("{name}'s owner may change it")
+    messages().find('vehicle.owner-only', Locale.FRENCH).map {
+      it.text()
+    } == Optional.of("{name}'s owner may change it")
   }
 
   def 'a code that no bundle has has no template'() {
     expect:
-    messages().apply('vehicle.plate-format', locale) == Optional.empty()
+    messages().find('vehicle.plate-format', locale).map { it.text() } == Optional.empty()
 
     where:
     locale << [TURKISH, Locale.FRENCH, Locale.ROOT]
@@ -130,7 +146,7 @@ class ResourceBundleTemplatesSpec extends Specification {
     when:
     new ResourceBundleTemplates({ Locale locale ->
       ResourceBundle.getBundle('me.yakar.muster.nobase', locale)
-    })
+    }, Locale.ROOT)
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -148,14 +164,14 @@ class ResourceBundleTemplatesSpec extends Specification {
 
   def 'needs a function that returns a bundle'() {
     when:
-    new ResourceBundleTemplates(null)
+    new ResourceBundleTemplates(null, Locale.ROOT)
 
     then:
     def e = thrown(NullPointerException)
     e.message == 'bundles'
 
     when:
-    new ResourceBundleTemplates({ Locale locale -> null })
+    new ResourceBundleTemplates({ Locale locale -> null }, Locale.ROOT)
 
     then:
     e = thrown(NullPointerException)
@@ -167,7 +183,7 @@ class ResourceBundleTemplatesSpec extends Specification {
     def handMade = new PropertyResourceBundle(new StringReader('vehicle.name-taken=Taken'))
 
     when:
-    new ResourceBundleTemplates({ Locale locale -> handMade })
+    new ResourceBundleTemplates({ Locale locale -> handMade }, Locale.ROOT)
 
     then:
     def e = thrown(IllegalArgumentException)
@@ -177,8 +193,8 @@ class ResourceBundleTemplatesSpec extends Specification {
     def base = ResourceBundle.getBundle('me.yakar.muster.messages', Locale.ROOT)
     new ResourceBundleTemplates({ Locale locale ->
       locale == Locale.ROOT ? base : handMade
-    })
-    .apply('vehicle.name-taken', TURKISH)
+    }, Locale.ROOT)
+    .find('vehicle.name-taken', TURKISH)
 
     then:
     e = thrown(IllegalArgumentException)
@@ -190,13 +206,98 @@ class ResourceBundleTemplatesSpec extends Specification {
     def base = ResourceBundle.getBundle('me.yakar.muster.messages', Locale.ROOT)
     def templates = new ResourceBundleTemplates({ Locale locale ->
       locale == Locale.ROOT ? base : null
-    })
+    }, Locale.ROOT)
 
     when:
-    templates.apply('vehicle.name-taken', TURKISH)
+    templates.find('vehicle.name-taken', TURKISH)
 
     then:
     def e = thrown(NullPointerException)
     e.message == "the function returned no bundle for 'tr'"
+  }
+
+  def 'the values of #locale are formatted in #formatLocale, as the template comes from #bundle'() {
+    given:
+    Locale.setDefault(Locale.ENGLISH)
+
+    expect:
+    messages().find(code, Locale.forLanguageTag(locale)).map {
+      it.locale()
+    } == Optional.of(Locale.forLanguageTag(formatLocale))
+
+    where:
+    code                  | locale       | bundle || formatLocale
+    'vehicle.name-taken'  | 'tr'         | 'tr' || 'tr'
+    'vehicle.name-taken'  | 'tr-TR'      | 'tr, in the region of the call' || 'tr-TR'
+    'vehicle.name-taken'  | 'de-AT'      | 'de, in the region of the call' || 'de-AT'
+    'vehicle.turkish-only'| 'tr-TR'      | 'tr, which the base lacks' || 'tr-TR'
+    'vehicle.name-taken'  | 'fr'         | 'the base' || 'en'
+    'vehicle.name-taken'  | 'und'        | 'the base' || 'en'
+    'vehicle.owner-only'  | 'tr-TR'      | 'the base, inherited' || 'en'
+    'vehicle.same'        | 'de'         | 'de, the same as the base' || 'en'
+    'vehicle.name-taken'  | 'en'         | 'the base, in English' || 'en'
+    'vehicle.name-taken'  | 'en-GB'      | 'the base, in the region of the call' || 'en-GB'
+    'vehicle.owner-only'  | 'en-US'      | 'the base, in the region of the call' || 'en-US'
+  }
+
+  def 'the values of the base bundle are formatted in the locale it is given'() {
+    given:
+    def templates = new ResourceBundleTemplates({ Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.regional', locale)
+    }, baseLocale)
+
+    expect:
+    templates.find('vehicle.name-taken', Locale.FRENCH).map {
+      it.locale()
+    } == Optional.of(baseLocale)
+    templates.find('vehicle.name-taken', Locale.forLanguageTag('de-DE')).map {
+      it.locale()
+    } == Optional.of(Locale.forLanguageTag('de-DE'))
+
+    where:
+    baseLocale << [Locale.ROOT, Locale.ENGLISH, Locale.forLanguageTag('tr')]
+  }
+
+  def 'the values of the base bundle are formatted in its locale even when the default locale has a bundle'() {
+    given:
+    Locale.setDefault(TURKISH)
+
+    expect:
+    messages().find('vehicle.name-taken', Locale.FRENCH).map {
+      it.locale()
+    } == Optional.of(Locale.ENGLISH)
+  }
+
+  def 'needs the locale of the base bundle'() {
+    when:
+    new ResourceBundleTemplates({ Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.messages', locale)
+    }, null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'baseLocale'
+  }
+
+  def 'a base bundle in #baseLocale formats a call in #locale in #formatLocale'() {
+    given:
+    def templates = new ResourceBundleTemplates({ Locale requested ->
+      ResourceBundle.getBundle('me.yakar.muster.regional', requested)
+    }, Locale.forLanguageTag(baseLocale))
+
+    expect:
+    templates.find('vehicle.name-taken', Locale.forLanguageTag(locale)).map {
+      it.locale()
+    } == Optional.of(Locale.forLanguageTag(formatLocale))
+
+    where: 'the root locale belongs to no language, so a call is never in its language'
+    baseLocale | locale || formatLocale
+    'und'      | 'en' || 'und'
+    'und'      | 'en-GB' || 'und'
+    'en'       | 'en-GB' || 'en-GB'
+    'en-US'    | 'en-GB' || 'en-US'
+    'en-US'    | 'en-US' || 'en-US'
+    'en'       | 'fr' || 'en'
+    'en'       | 'und' || 'en'
   }
 }

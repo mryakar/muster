@@ -17,6 +17,7 @@ package me.yakar.muster.spi
 
 import static me.yakar.muster.Concurrency.concurrently
 
+import java.time.LocalDate
 import java.util.logging.Level
 import java.util.logging.LogRecord
 import me.yakar.muster.LogCapture
@@ -221,5 +222,97 @@ class MessageResolverSpec extends Specification {
     cleanup:
     Locale.setDefault(defaultLocale)
     ResourceBundle.clearCache()
+  }
+
+  static final Map<String, ?> LIMIT = [limit: 1500, until: LocalDate.of(2026, 11, 12)]
+
+  static MessageResolver bundles(Locale... baseLocale) {
+    Closure<ResourceBundle> bundles = { Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.messages', locale)
+    }
+    baseLocale ? MessageResolver.ofResourceBundles(bundles, baseLocale[0]) : MessageResolver.ofResourceBundles(bundles)
+  }
+
+  def 'formats the values of a template from a lookup in the locale of the call: #locale'() {
+    given:
+    def resolver = MessageResolver.ofTemplates { code, l ->
+      Optional.of('{limit,number} until {until,date,short}')
+    }
+
+    expect:
+    resolver.resolve('vehicle.batch-limit', LIMIT, Locale.forLanguageTag(locale)) == message
+
+    where:
+    locale || message
+    'tr' || '1.500 until 12.11.2026'
+    'en' || '1,500 until 11/12/26'
+    'en-GB' || '1,500 until 12/11/2026'
+  }
+
+  def 'formats the values of a template from the bundles in the locale of the template: #locale'() {
+    expect:
+    bundles().resolve('vehicle.batch-limit', LIMIT, Locale.forLanguageTag(locale)) == message
+
+    where:
+    locale || message
+    'tr' || '12.11.2026 tarihine kadar en çok 1.500 araç'
+    'tr-TR' || '12.11.2026 tarihine kadar en çok 1.500 araç'
+    'en-GB' || 'At most 1,500 vehicles until 2026-11-12'
+    'fr' || 'At most 1,500 vehicles until 2026-11-12'
+  }
+
+  def 'formats the values of the base bundle in the locale it is written in: #locale'() {
+    expect:
+    bundles(Locale.ENGLISH).resolve('vehicle.batch-limit', LIMIT, Locale.forLanguageTag(locale)) == message
+
+    where:
+    locale || message
+    'tr-TR' || '12.11.2026 tarihine kadar en çok 1.500 araç'
+    'en-GB' || 'At most 1,500 vehicles until 12/11/2026'
+    'de' || 'At most 1,500 vehicles until 11/12/26'
+  }
+
+  def 'ofResourceBundles needs the locale of the base bundle'() {
+    when:
+    MessageResolver.ofResourceBundles({ Locale locale ->
+      ResourceBundle.getBundle('me.yakar.muster.messages', locale)
+    }, null)
+
+    then:
+    def e = thrown(NullPointerException)
+    e.message == 'baseLocale'
+  }
+
+  def 'formats values in each locale from many threads at once'() {
+    given: 'a format shared between threads, or between locales, would mix up the scales and separators'
+    def messages = bundles(Locale.ENGLISH)
+    def limits = [new BigDecimal('1234567.5'), new BigDecimal('1234567.500'), 1234567L]
+    def numbers = [
+      'tr': ['1.234.567,5', '1.234.567,500', '1.234.567'],
+      'en': ['1,234,567.5', '1,234,567.500', '1,234,567'],
+    ]
+    def expected = { String tag, int i ->
+      tag.startsWith('tr')
+          ? "12.11.2026 tarihine kadar en çok ${numbers.tr[i]} araç".toString()
+          : "At most ${numbers.en[i]} vehicles until ${tag == 'en-GB' ? '12/11/2026' : '11/12/26'}".toString()
+    }
+    def tags = ['tr', 'tr-TR', 'en', 'en-GB', 'fr']
+
+    when:
+    def mismatches = concurrently { thread ->
+      def wrong = []
+      800.times { n ->
+        def i = (thread + n) % limits.size()
+        def tag = tags[(thread + n) % tags.size()]
+        def resolved = messages.resolve('vehicle.batch-limit', [limit: limits[i], until: LocalDate.of(2026, 11, 12)], Locale.forLanguageTag(tag))
+        if (resolved != expected(tag, i)) {
+          wrong << "$tag: $resolved"
+        }
+      }
+      wrong
+    }.flatten()
+
+    then:
+    mismatches.isEmpty()
   }
 }

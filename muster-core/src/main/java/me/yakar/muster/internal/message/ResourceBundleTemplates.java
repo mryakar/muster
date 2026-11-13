@@ -21,7 +21,6 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
@@ -29,24 +28,34 @@ import org.jspecify.annotations.Nullable;
  * Looks up message templates in a family of resource bundles, with the code as the key, and never
  * in the bundle of the JVM's default locale. A {@link ResourceBundle.Control} could prevent that
  * fallback, but {@code getBundle} rejects one in a named module, so a bundle of another locale is
- * replaced with the base bundle. Thread-safe: the only state is the function, and the JDK caches
- * the bundles.
+ * replaced with the base bundle.
+ *
+ * <p>The values of a template are formatted in the locale of the call if the template is written in
+ * its language, region included, and in the locale of the base bundle if the template comes from
+ * the base bundle and the base bundle is not in the language of the call. A bundle inherits the
+ * templates it lacks from the base bundle; a template that is the same as the base bundle's counts
+ * as the base bundle's.
+ *
+ * <p>Thread-safe: the only state is the function and the locale, and the JDK caches the bundles.
  */
-public final class ResourceBundleTemplates implements BiFunction<String, Locale, Optional<String>> {
+final class ResourceBundleTemplates implements TemplateLookup {
 
   private static final ResourceBundle.Control CONTROL =
       ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT);
 
   private final Function<Locale, ResourceBundle> bundles;
+  private final Locale baseLocale;
 
   /**
    * Creates the lookup, and checks that the family has a base bundle.
    *
    * @param bundles returns the bundle for a locale
+   * @param baseLocale the locale of the base bundle, in which its values are formatted
    * @throws IllegalArgumentException if the family has no base bundle
    */
-  public ResourceBundleTemplates(Function<Locale, ResourceBundle> bundles) {
+  ResourceBundleTemplates(Function<Locale, ResourceBundle> bundles, Locale baseLocale) {
     this.bundles = requireNonNull(bundles, "bundles");
+    this.baseLocale = requireNonNull(baseLocale, "baseLocale");
     ResourceBundle base;
     try {
       base = bundle(Locale.ROOT);
@@ -68,12 +77,35 @@ public final class ResourceBundleTemplates implements BiFunction<String, Locale,
   }
 
   @Override
-  public Optional<String> apply(String code, Locale locale) {
+  public Optional<LocalizedTemplate> find(String code, Locale locale) {
     var bundle = bundle(locale);
     if (!CONTROL.getCandidateLocales("", locale).contains(bundle.getLocale())) {
       bundle = bundle(Locale.ROOT);
     }
-    return bundle.containsKey(code) ? Optional.of(bundle.getString(code)) : Optional.empty();
+    if (!bundle.containsKey(code)) {
+      return Optional.empty();
+    }
+    var text = bundle.getString(code);
+    return Optional.of(new LocalizedTemplate(text, formatLocale(bundle, code, text, locale)));
+  }
+
+  private Locale formatLocale(ResourceBundle bundle, String code, String text, Locale locale) {
+    if (!isBase(bundle, code, text)) {
+      return locale;
+    }
+    // A base bundle in the language of the call takes the region of the call too.
+    var sameLanguage =
+        !baseLocale.equals(Locale.ROOT)
+            && CONTROL.getCandidateLocales("", locale).contains(baseLocale);
+    return sameLanguage ? locale : baseLocale;
+  }
+
+  private boolean isBase(ResourceBundle bundle, String code, String text) {
+    if (bundle.getLocale().equals(Locale.ROOT)) {
+      return true;
+    }
+    var base = bundle(Locale.ROOT);
+    return base.containsKey(code) && text.equals(base.getString(code));
   }
 
   private ResourceBundle bundle(Locale locale) {

@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import me.yakar.muster.internal.message.ResourceBundleTemplates;
 import me.yakar.muster.internal.message.TemplateMessageResolver;
 import me.yakar.muster.rule.Violation;
 
@@ -34,10 +33,30 @@ import me.yakar.muster.rule.Violation;
  * in which {@code {name}} stands for the client argument of that name:
  *
  * <ul>
- *   <li>The value is written with {@link String#valueOf(Object)}; a rule passes numbers and dates
- *       as they are, and the edge formats them in the locale of the call and resolves the message
- *       with {@link #resolve(String, Map, Locale)}.
- *   <li>An unknown name, braces included, and {@code {}} stay as they are.
+ *   <li>The value is written with {@link String#valueOf(Object)}.
+ *   <li>A placeholder with a type formats the value, with the names of {@link
+ *       java.text.MessageFormat} and {@code datetime} for a date and time:
+ *       <ul>
+ *         <li>{@code {amount,number}}, {@code {count,number,integer}} and {@code
+ *             {rate,number,percent}} format a {@link Number}. A {@link java.math.BigDecimal} keeps
+ *             its scale, so {@code 12.50} is written {@code 12.50}, and one with more than 1,000
+ *             digits before or after its point is not formatted; other numbers get at most three
+ *             fraction digits.
+ *         <li>{@code {when,date}}, {@code {at,time}} and {@code {at,datetime}} format a {@code
+ *             java.time} value in a style: {@code short}, {@code medium}, which is the default,
+ *             {@code long} or {@code full}, as in {@code {when,date,short}}. A date takes a {@code
+ *             LocalDate} or a date and time; a time takes a {@code LocalTime}, an {@code
+ *             OffsetTime} or a date and time; the long and full styles of a time, or of a date and
+ *             time, write the name of its zone, so they take a {@code ZonedDateTime}, not an
+ *             offset. An {@code Instant} has no date until it is given a zone.
+ *       </ul>
+ *       The values are formatted in the locale of the template that was found; where its source
+ *       does not tell that locale, as with {@link #ofTemplates}, in the locale of the call. A value
+ *       that its format cannot format is written with {@code String.valueOf}, and logged at DEBUG.
+ *       The edge can also format the values itself and resolve the message with {@link
+ *       #resolve(String, Map, Locale)}.
+ *   <li>An unknown name or format, braces included, and {@code {}} stay as they are. A placeholder
+ *       that is the whole name of an argument, commas included, stands for that argument.
  *   <li><code>&#123;&#123;</code> and <code>&#125;&#125;</code> write one brace. Other braces and
  *       apostrophes need no escaping, unlike in {@link java.text.MessageFormat}.
  * </ul>
@@ -78,7 +97,7 @@ public interface MessageResolver {
    * @return the resolver
    */
   static MessageResolver ofTemplates(BiFunction<String, Locale, Optional<String>> templates) {
-    return new TemplateMessageResolver(templates);
+    return TemplateMessageResolver.ofTemplates(templates);
   }
 
   /**
@@ -97,6 +116,11 @@ public interface MessageResolver {
    * {@code getBundle}, the resolver never uses the bundle of the JVM's default locale. The family
    * therefore needs a base bundle, and its values must be strings.
    *
+   * <p>The values of a template in the language of the call are formatted in the locale of the
+   * call, region included. Those of a template from the base bundle are formatted in the root
+   * locale, which belongs to no language; {@link #ofResourceBundles(Function, Locale)} names the
+   * language of the base bundle instead, so that a call in that language gets its own region.
+   *
    * @param bundles returns the bundle for a locale, as {@link ResourceBundle#getBundle(String,
    *     Locale)} loads it; called on every resolve, and {@code getBundle} caches the bundles
    * @return the resolver
@@ -105,6 +129,35 @@ public interface MessageResolver {
    *     a bundle of another locale that {@code getBundle} did not load
    */
   static MessageResolver ofResourceBundles(Function<Locale, ResourceBundle> bundles) {
-    return new TemplateMessageResolver(new ResourceBundleTemplates(bundles));
+    return ofResourceBundles(bundles, Locale.ROOT);
+  }
+
+  /**
+   * Creates a resolver that reads templates from a family of resource bundles, as {@link
+   * #ofResourceBundles(Function)} does, and formats the values of the templates of the base bundle
+   * in the locale it is written in.
+   *
+   * {@snippet :
+   * var messages =
+   *     MessageResolver.ofResourceBundles(
+   *         locale -> ResourceBundle.getBundle("com.example.messages", locale), Locale.ENGLISH);
+   * }
+   *
+   * <p>A template that a bundle inherits from the base bundle, or that is the same as the base
+   * bundle's, is a template of the base bundle. Its values are formatted in the locale of the call
+   * if the call is in the language of the base bundle, as an {@code en-GB} call is for an English
+   * base bundle, and in the locale of the base bundle otherwise.
+   *
+   * @param bundles returns the bundle for a locale, as {@link ResourceBundle#getBundle(String,
+   *     Locale)} loads it; called on every resolve, and {@code getBundle} caches the bundles
+   * @param baseLocale the locale the base bundle is written in, such as {@link Locale#ENGLISH}
+   * @return the resolver
+   * @throws IllegalArgumentException if the family has no base bundle, or the function returns, for
+   *     the root locale, a bundle that {@code getBundle} did not load; a resolve throws it too for
+   *     a bundle of another locale that {@code getBundle} did not load
+   */
+  static MessageResolver ofResourceBundles(
+      Function<Locale, ResourceBundle> bundles, Locale baseLocale) {
+    return TemplateMessageResolver.ofResourceBundles(bundles, baseLocale);
   }
 }
