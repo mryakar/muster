@@ -93,8 +93,10 @@ class MusterEndpointWebSpec extends Specification {
       mode: 'FAIL_FAST',
       rules: [],
       excluded: [],
+      targets: [:],
       ruleIds: [(Car.name): ['garage.plate-format', 'garage.plate-free']]
     ]
+    body.methods[0].targets == [plate: 'licensePlate', owner: 'holder']
     body.methods[4].mode == 'COLLECT_ALL'
     body.methods[4].rules == ['garage.id-known']
     body.types == [:]

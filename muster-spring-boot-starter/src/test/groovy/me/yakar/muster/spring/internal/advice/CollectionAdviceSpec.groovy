@@ -91,6 +91,18 @@ class CollectionAdviceSpec extends Specification {
     'addSome'     | { List it -> it }
   }
 
+  def 'a method renames the targets of its violations, after the position of an element, also through a meta-annotation'() {
+    expect:
+    runner.run { context ->
+      def service = context.getBean(FleetService)
+      assert violated { service.addNamed([FREE, TAKEN]) } == ['fleet.name-free [1].vehicleName']
+      assert violated { service.addOne(TAKEN) } == ['fleet.name-free vehicleName']
+      assert violated { service.addAll([FREE, TAKEN]) } == ['fleet.name-free [1].name']
+      service.addOne(FREE)
+      assert service.calls == [FREE]
+    }
+  }
+
   def 'a method checks the rules it lists for a collection, of its elements and of the whole'() {
     expect:
     runner.run { context ->

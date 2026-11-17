@@ -61,6 +61,30 @@ class TwoModes {
   void save(SaveVehicle vehicle) {}
 }
 
+/** A target to rename without the target it becomes. */
+class TargetWithoutTo {
+  @Rules(targets = 'name')
+  void save(SaveVehicle vehicle) {}
+}
+
+/** A target to rename that is blank. */
+class TargetBlankFrom {
+  @Rules(targets = ['name=vehicleName', ' =title'])
+  void save(SaveVehicle vehicle) {}
+}
+
+/** A target to rename to a blank one. */
+class TargetBlankTo {
+  @Rules(targets = 'name= ')
+  void save(SaveVehicle vehicle) {}
+}
+
+/** A target renamed twice. */
+class TargetTwice {
+  @Rules(targets = ['name=vehicleName', 'name = title'])
+  void save(SaveVehicle vehicle) {}
+}
+
 /** A rule that is not registered. */
 class UnregisteredRule {
   @Rules(me.yakar.muster.spring.fixture.other.OtherRule)

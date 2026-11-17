@@ -20,10 +20,12 @@ import static java.util.Objects.requireNonNull;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import me.yakar.muster.Binding;
 import me.yakar.muster.CheckMode;
 import me.yakar.muster.Checked;
@@ -37,7 +39,7 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * The advice of one method: the binding that checks its input, the rules the method lists and
- * excludes, and the transaction it must run in, if any.
+ * excludes, the targets it renames, and the transaction it must run in, if any.
  */
 record MethodAdvice(
     String label,
@@ -45,6 +47,7 @@ record MethodAdvice(
     Checker checker,
     List<Class<? extends BusinessRule<?>>> listed,
     List<Class<? extends BusinessRule<?>>> excluded,
+    SequencedMap<String, String> targets,
     @Nullable TransactionGuard transaction) {
 
   @SuppressWarnings("unchecked")
@@ -87,7 +90,8 @@ record MethodAdvice(
    * Prepares the advice of a method.
    *
    * @throws IllegalStateException if the method cannot be checked, see {@link
-   *     RulesPointcut#requireCheckable}, or takes a collection whose element type is not known
+   *     RulesPointcut#requireCheckable}, takes a collection whose element type is not known, or
+   *     renames a target wrongly, see {@link RulesPointcut#targets}
    */
   @SuppressWarnings("unchecked")
   static MethodAdvice of(
@@ -102,6 +106,7 @@ record MethodAdvice(
     var listed = annotation == null ? NO_RULES : annotation.value();
     var excluded = annotation == null ? NO_RULES : annotation.exclude();
     var mode = annotation == null || annotation.mode().length == 0 ? null : annotation.mode()[0];
+    var targets = RulesPointcut.targets(annotation, label);
     var parameterType = method.getParameterTypes()[0];
     Checker checker;
     if (Collection.class.isAssignableFrom(parameterType)) {
@@ -121,6 +126,7 @@ record MethodAdvice(
       if (mode != null) {
         builder.mode(mode);
       }
+      targets.forEach(builder::target);
       checker = new Checker.OfElements(elementType, builder.build());
     } else {
       var builder =
@@ -128,10 +134,17 @@ record MethodAdvice(
       if (mode != null) {
         builder.mode(mode);
       }
+      targets.forEach(builder::target);
       checker = new Checker.OfInput(parameterType, builder.build());
     }
     return new MethodAdvice(
-        label, targetClass, checker, List.of(listed), List.of(excluded), transaction);
+        label,
+        targetClass,
+        checker,
+        List.of(listed),
+        List.of(excluded),
+        Collections.unmodifiableSequencedMap(targets),
+        transaction);
   }
 
   /**
@@ -156,6 +169,7 @@ record MethodAdvice(
         checker.mode(),
         ids(listed),
         ids(excluded),
+        targets,
         checker.ruleIds());
   }
 

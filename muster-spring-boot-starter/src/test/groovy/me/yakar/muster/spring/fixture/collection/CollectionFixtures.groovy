@@ -15,6 +15,10 @@
  */
 package me.yakar.muster.spring.fixture.collection
 
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
 import java.util.concurrent.CopyOnWriteArrayList
 import me.yakar.muster.rule.BusinessRule
 import me.yakar.muster.rule.Rule
@@ -56,10 +60,26 @@ class VehicleExists implements BusinessRule<Long> {
   }
 }
 
+/** Renames the name of a fleet vehicle, as a meta-annotation. */
+@Rules(targets = 'name=vehicleName')
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+@interface VehicleNamed {}
+
 /** A service whose methods take collections. */
 @Service
 class FleetService {
   final List<Object> calls = new CopyOnWriteArrayList<>()
+
+  @Rules(targets = ' name = vehicleName ')
+  void addNamed(List<AddVehicle> vehicles) {
+    calls << vehicles
+  }
+
+  @VehicleNamed
+  void addOne(AddVehicle vehicle) {
+    calls << vehicle
+  }
 
   void addAll(List<AddVehicle> vehicles) {
     calls << vehicles

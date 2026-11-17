@@ -113,6 +113,8 @@ public final class MusterEndpoint {
      * @param rules the ids of the rules the method lists, as it lists them; {@code ruleIds} tells
      *     what runs
      * @param excluded the ids of the rules the method excludes, as it lists them
+     * @param targets the targets the method renames, each to the target its violations name
+     *     instead, in the order it gives them
      * @param ruleIds the ids of the rules of the chains bound so far, by class, each in the order
      *     they run: the chain of the input type, bound at startup, for a type that is final or not
      *     a rule target, and the chain of the class of each rule target checked so far
@@ -125,6 +127,7 @@ public final class MusterEndpoint {
         CheckMode mode,
         List<String> rules,
         List<String> excluded,
+        Map<String, String> targets,
         Map<String, List<String>> ruleIds) {
 
       /** Describes an advised method with the names of its classes. */
@@ -137,6 +140,7 @@ public final class MusterEndpoint {
             advised.mode(),
             advised.rules(),
             advised.excluded(),
+            advised.targets(),
             byName(advised.ruleIds()));
       }
     }
