@@ -23,11 +23,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import me.yakar.muster.internal.rule.ChainPlan.Selection;
 import me.yakar.muster.internal.rule.RuleCatalog;
+import me.yakar.muster.internal.rule.TargetNames;
 import org.jspecify.annotations.Nullable;
 
 /**
  * What the builders of {@link Binding} and {@link CollectionBinding} collect: the listed and the
- * excluded rules, the mode and the name. Not safe for use by multiple threads.
+ * excluded rules, the mode, the name and the names of targets. Not safe for use by multiple
+ * threads.
  */
 final class SelectionBuilder {
 
@@ -35,6 +37,7 @@ final class SelectionBuilder {
   private final Set<Class<?>> excluded = new LinkedHashSet<>();
   private @Nullable CheckMode mode;
   private @Nullable String name;
+  private TargetNames targets = TargetNames.NONE;
 
   void list(Class<?> ruleClass) {
     Muster.requireDistinct(listed, ruleClass, "listed");
@@ -56,6 +59,10 @@ final class SelectionBuilder {
     this.name = name;
   }
 
+  void target(String from, String to) {
+    targets = targets.with(from, to);
+  }
+
   /** Returns the mode set, or else the mode of the {@code Muster}. */
   CheckMode mode(Muster muster) {
     return mode == null ? muster.mode() : mode;
@@ -68,6 +75,9 @@ final class SelectionBuilder {
   Selection build(RuleCatalog catalog, Class<?> type, Consumer<Class<?>> requireListable) {
     catalog.requireSelectable(listed, excluded, requireListable);
     return new Selection(
-        List.copyOf(listed), Set.copyOf(excluded), name == null ? type.getTypeName() : name);
+        List.copyOf(listed),
+        Set.copyOf(excluded),
+        name == null ? type.getTypeName() : name,
+        targets);
   }
 }

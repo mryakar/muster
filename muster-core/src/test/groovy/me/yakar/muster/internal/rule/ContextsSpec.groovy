@@ -25,7 +25,7 @@ class ContextsSpec extends Specification {
     RuleContext.forRule('task.ready')
 
     when:
-    Contexts.register { prepared, locale, caller, reads, values -> prepared }
+    Contexts.register { prepared, locale, caller, reads, values, names -> prepared }
 
     then:
     def e = thrown(IllegalStateException)

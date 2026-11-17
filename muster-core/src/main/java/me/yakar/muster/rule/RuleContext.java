@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import me.yakar.muster.internal.rule.Contexts;
 import me.yakar.muster.internal.rule.RuleDefinition;
+import me.yakar.muster.internal.rule.TargetNames;
 import me.yakar.muster.internal.rule.ValueReads;
 import org.jspecify.annotations.Nullable;
 
@@ -55,11 +56,13 @@ public sealed class RuleContext {
   private static final int NONE = -1;
 
   static {
-    // The engine creates the contexts that read values; RuleContext is initialized before any rule
-    // is prepared, and Contexts reads nothing of this class while it is initialized.
+    // The engine creates the contexts that read values or rename targets; RuleContext is
+    // initialized
+    // before any rule is prepared, and Contexts reads nothing of this class while it is
+    // initialized.
     Contexts.register(
-        (prepared, locale, caller, reads, values) ->
-            new Extended(prepared.ruleId, caller, locale, null, NONE, reads, values));
+        (prepared, locale, caller, reads, values, names) ->
+            new Extended(prepared.ruleId, caller, locale, null, NONE, reads, values, names));
   }
 
   private final String ruleId;
@@ -122,10 +125,11 @@ public sealed class RuleContext {
 
   /**
    * Returns a builder that starts from this context: the same rule, caller and locale, the same
-   * positions of inputs or position of an element, and the same values to read. Use it to create
-   * the context of the same rule for another call. A context that Muster passes to a rule reads the
-   * values of its own check, so start the context of another call from one without them, such as
-   * {@link #forRule(Class)}.
+   * positions of inputs or position of an element, the same values to read, and the same names its
+   * chain gives the targets of violations. Use it to create the context of the same rule for
+   * another call. A context that Muster passes to a rule reads the values of its own check and
+   * renames the targets as its chain does, so start the context of another call from one without
+   * them, such as {@link #forRule(Class)}.
    *
    * @return the builder
    */
@@ -202,7 +206,7 @@ public sealed class RuleContext {
       }
       position = positions[index];
     }
-    return new Extended(ruleId, caller, locale, null, position, reads(), values());
+    return new Extended(ruleId, caller, locale, null, position, reads(), values(), names());
   }
 
   /**
@@ -320,7 +324,7 @@ public sealed class RuleContext {
    */
   public Violation.Builder violation() {
     // A constant position, so that escape analysis can remove the builder of a single check.
-    return new Violation.Builder(ruleId, NONE);
+    return new Violation.Builder(ruleId, NONE, TargetNames.NONE);
   }
 
   /**
@@ -333,7 +337,7 @@ public sealed class RuleContext {
    *     format characters, or unpaired surrogates
    */
   public Violation.Builder violation(String code) {
-    return new Violation.Builder(ruleId, code, NONE);
+    return new Violation.Builder(ruleId, code, NONE, TargetNames.NONE);
   }
 
   /**
@@ -370,6 +374,7 @@ public sealed class RuleContext {
     private int element = NONE;
     private @Nullable ValueReads reads;
     private @Nullable Object @Nullable [] values;
+    private TargetNames names = TargetNames.NONE;
 
     /**
      * The values a test gave, by rule class: a value, a list with the value of each input, or the
@@ -390,6 +395,7 @@ public sealed class RuleContext {
       if (context instanceof Extended extended) {
         positions = extended.positions;
         element = extended.element;
+        names = extended.names;
         var readable = extended.reads;
         var those = extended.values;
         if (readable != null && readable.given()) {
@@ -557,9 +563,10 @@ public sealed class RuleContext {
         }
         builtReads = ValueReads.given(rules, perElement);
       }
-      return positions == null && element == NONE && builtReads == null
+      return positions == null && element == NONE && builtReads == null && names.isEmpty()
           ? new RuleContext(ruleId, caller, locale)
-          : new Extended(ruleId, caller, locale, positions, element, builtReads, builtValues);
+          : new Extended(
+              ruleId, caller, locale, positions, element, builtReads, builtValues, names);
     }
 
     /** The values of each element that a context built before placed at their positions. */
@@ -615,11 +622,16 @@ public sealed class RuleContext {
     return this instanceof Extended extended ? extended.values : null;
   }
 
+  /** The names the chain gives the targets of violations. */
+  private TargetNames names() {
+    return this instanceof Extended extended ? extended.names : TargetNames.NONE;
+  }
+
   /**
-   * The context of a collection whose inputs have positions, of one of its elements, or of a rule
-   * that reads values. Only these carry more, so that the context of a rule in a single check that
-   * reads no value keeps three fields and stays as small as it can be: each rule of a check gets
-   * its own.
+   * The context of a collection whose inputs have positions, of one of its elements, of a rule that
+   * reads values, or of a chain that renames targets. Only these carry more, so that the context of
+   * a rule in a single check that reads no value keeps three fields and stays as small as it can
+   * be: each rule of a check gets its own.
    */
   private static final class Extended extends RuleContext {
 
@@ -641,6 +653,9 @@ public sealed class RuleContext {
      */
     private final @Nullable Object @Nullable [] values;
 
+    /** The names the chain gives the targets of violations. */
+    private final TargetNames names;
+
     private Extended(
         String ruleId,
         @Nullable Principal caller,
@@ -648,22 +663,24 @@ public sealed class RuleContext {
         int @Nullable [] positions,
         int element,
         @Nullable ValueReads reads,
-        @Nullable Object @Nullable [] values) {
+        @Nullable Object @Nullable [] values,
+        TargetNames names) {
       super(ruleId, caller, locale);
       this.positions = positions;
       this.element = element;
       this.reads = reads;
       this.values = values;
+      this.names = names;
     }
 
     @Override
     public Violation.Builder violation() {
-      return new Violation.Builder(ruleId(), element);
+      return new Violation.Builder(ruleId(), element, names);
     }
 
     @Override
     public Violation.Builder violation(String code) {
-      return new Violation.Builder(ruleId(), code, element);
+      return new Violation.Builder(ruleId(), code, element, names);
     }
   }
 }

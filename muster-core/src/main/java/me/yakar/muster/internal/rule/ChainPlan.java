@@ -269,16 +269,18 @@ public final class ChainPlan {
   }
 
   /**
-   * The rules a binding lists and excludes, and the name it logs under.
+   * The rules a binding lists and excludes, the name it logs under and the names it gives targets.
    *
    * @param listed the listed rules, registered and in the order they should run
    * @param excluded the excluded rules, registered
    * @param name the name of the binding, or {@code null} to name a chain after its class
+   * @param targets the names the binding gives the targets the rules report
    */
-  public record Selection(List<Class<?>> listed, Set<Class<?>> excluded, @Nullable String name) {
+  public record Selection(
+      List<Class<?>> listed, Set<Class<?>> excluded, @Nullable String name, TargetNames targets) {
 
     /** No listed and no excluded rules, as for {@code Muster.check}. */
-    public static final Selection NONE = new Selection(List.of(), Set.of(), null);
+    public static final Selection NONE = new Selection(List.of(), Set.of(), null, TargetNames.NONE);
 
     /**
      * Returns the name of the binding, or else the name of a type.
@@ -291,8 +293,8 @@ public final class ChainPlan {
     }
 
     /**
-     * Describes the listed rules, in their order, and the excluded ones, in the order of their ids,
-     * for the description of a binding.
+     * Describes the listed rules, in their order, the excluded ones, in the order of their ids, and
+     * the names of targets, if any, in the order they were given, for the description of a binding.
      *
      * @param catalog the registered rules
      * @return the description
@@ -301,7 +303,8 @@ public final class ChainPlan {
       return "rules="
           + catalog.ids(listed)
           + ", excluded="
-          + catalog.ids(excluded).stream().sorted().toList();
+          + catalog.ids(excluded).stream().sorted().toList()
+          + (targets.isEmpty() ? "" : ", targets=" + targets);
     }
   }
 }

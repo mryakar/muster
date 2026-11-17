@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import me.yakar.muster.internal.rule.Contexts;
 import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.Step;
+import me.yakar.muster.internal.rule.TargetNames;
 import me.yakar.muster.internal.rule.ValueReads;
 import me.yakar.muster.rule.RuleContext;
 import me.yakar.muster.rule.RuleResult;
@@ -48,9 +49,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A chain checks in the mode of the {@code Muster} that created it, unless {@link #withMode}
  * gives it its own, and tells the {@link CheckListener listeners} of that {@code Muster} about
- * every check, under the name of its input type unless {@link #withName} gives it its own. A check
- * that passes returns the values its {@linkplain me.yakar.muster.rule.ValueRule value rules} left,
- * as a {@link Checked}. Chains are immutable and thread-safe.
+ * every check, under the name of its input type unless {@link #withName} gives it its own. The
+ * targets of its violations are the ones the rules report, unless {@link #withTarget} renames them.
+ * A check that passes returns the values its {@linkplain me.yakar.muster.rule.ValueRule value
+ * rules} left, as a {@link Checked}. Chains are immutable and thread-safe.
  *
  * @param <I> the type of input
  */
@@ -87,6 +89,9 @@ public final class RuleChain<I> {
   private final CheckMode mode;
   private final @Nullable CheckListener listener;
 
+  /** The names this chain gives the targets the rules report. */
+  private final TargetNames names;
+
   RuleChain(
       String name,
       Class<?> inputType,
@@ -94,7 +99,8 @@ public final class RuleChain<I> {
       Supplier<? extends @Nullable Principal> caller,
       Supplier<Locale> locale,
       CheckMode mode,
-      @Nullable CheckListener listener) {
+      @Nullable CheckListener listener,
+      TargetNames names) {
     this.name = name;
     this.inputType = inputType;
     this.steps = List.copyOf(steps);
@@ -111,6 +117,7 @@ public final class RuleChain<I> {
     this.locale = locale;
     this.mode = mode;
     this.listener = listener;
+    this.names = names;
   }
 
   /**
@@ -122,7 +129,7 @@ public final class RuleChain<I> {
    */
   public RuleChain<I> withMode(CheckMode mode) {
     return new RuleChain<>(
-        name, inputType, steps, caller, locale, requireNonNull(mode, "mode"), listener);
+        name, inputType, steps, caller, locale, requireNonNull(mode, "mode"), listener, names);
   }
 
   /**
@@ -144,7 +151,31 @@ public final class RuleChain<I> {
     if (name.isBlank()) {
       throw new IllegalArgumentException("name must not be blank");
     }
-    return new RuleChain<>(name, inputType, steps, caller, locale, mode, listener);
+    return new RuleChain<>(name, inputType, steps, caller, locale, mode, listener, names);
+  }
+
+  /**
+   * Returns a chain with the same rules, mode and name whose violations name a target {@code to}
+   * where a rule reports the target {@code from}, as a rule written for a shared interface reports
+   * {@code name} of an input that calls it {@code vehicleName}. This chain is not changed.
+   *
+   * <p>A target inside {@code from} is renamed too: with {@code address} renamed to {@code
+   * shippingAddress}, {@code address.street} becomes {@code shippingAddress.street} and {@code
+   * lines} renamed to {@code orderLines} makes {@code lines[2].sku} {@code orderLines[2].sku}.
+   * Where more than one name matches, the longest {@code from} wins. Names are not chained: with
+   * {@code a} renamed to {@code b} and {@code b} to {@code c}, {@code a} becomes {@code b}. In a
+   * check of a collection the position of the element stays in front, as in {@code
+   * [3].vehicleName}. A target that no name matches stays as it is.
+   *
+   * @param from the target a rule reports
+   * @param to the target the violation names instead
+   * @return the chain that renames the target
+   * @throws IllegalArgumentException if {@code from} or {@code to} is blank, or this chain renames
+   *     {@code from} already
+   */
+  public RuleChain<I> withTarget(String from, String to) {
+    return new RuleChain<>(
+        name, inputType, steps, caller, locale, mode, listener, names.with(from, to));
   }
 
   /**
@@ -328,7 +359,7 @@ public final class RuleChain<I> {
         }
         continue;
       }
-      var ctx = context(rule, callLocale, callCaller, step.collectionReads(), values);
+      var ctx = context(rule, callLocale, callCaller, step.collectionReads(), values, names);
       if (!rule.instance().appliesTo(ctx)) {
         if (observed != null) {
           observed.ruleSkipped();
@@ -651,9 +682,10 @@ public final class RuleChain<I> {
       Locale locale,
       @Nullable Principal caller,
       @Nullable ValueReads reads,
-      @Nullable Object @Nullable [] values) {
-    if (reads != null) {
-      return Contexts.create(rule.context(), locale, caller, reads, requireNonNull(values));
+      @Nullable Object @Nullable [] values,
+      TargetNames names) {
+    if (reads != null || !names.isEmpty()) {
+      return Contexts.create(rule.context(), locale, caller, reads, values, names);
     }
     var context = rule.context().toBuilder().locale(locale);
     if (caller != null) {
@@ -798,7 +830,7 @@ public final class RuleChain<I> {
       }
       RuleContext ctx;
       var reads = step.reads();
-      if (reads == null) {
+      if (reads == null && names.isEmpty()) {
         // From the context prepared with the rule, so that the rule id is not checked again.
         var context = rule.context().toBuilder().locale(callLocale);
         if (callCaller != null) {
@@ -806,8 +838,7 @@ public final class RuleChain<I> {
         }
         ctx = context.build();
       } else {
-        ctx =
-            Contexts.create(rule.context(), callLocale, callCaller, reads, requireNonNull(values));
+        ctx = Contexts.create(rule.context(), callLocale, callCaller, reads, values, names);
       }
       if (!rule.instance().appliesTo(ctx)) {
         if (observed != null) {
@@ -864,6 +895,7 @@ public final class RuleChain<I> {
         + mode
         + ", rules="
         + ruleIds()
+        + (names.isEmpty() ? "" : ", targets=" + names)
         + "]";
   }
 
