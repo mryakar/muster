@@ -10,6 +10,7 @@
       "mode": "FAIL_FAST",
       "rules": [],
       "excluded": [],
+      "targets": {},
       "ruleIds": {
         "example.spring.CreateVehicle": ["vehicle.name-unique", "vehicle.plate-format"]
       }
@@ -22,12 +23,26 @@
       "mode": "FAIL_FAST",
       "rules": ["vehicle.batch-limit"],
       "excluded": [],
+      "targets": {},
       "ruleIds": {
         "example.spring.CreateVehicle": [
           "vehicle.batch-limit",
           "vehicle.name-unique",
           "vehicle.plate-format"
         ]
+      }
+    },
+    {
+      "method": "VehicleService.importVehicle(ImportVehicle)",
+      "target": "example.spring.VehicleService",
+      "input": "example.spring.ImportVehicle",
+      "collection": false,
+      "mode": "FAIL_FAST",
+      "rules": [],
+      "excluded": [],
+      "targets": {"name": "vehicleName"},
+      "ruleIds": {
+        "example.spring.ImportVehicle": ["vehicle.name-unique"]
       }
     },
     {
@@ -38,6 +53,7 @@
       "mode": "COLLECT_ALL",
       "rules": [],
       "excluded": [],
+      "targets": {},
       "ruleIds": {
         "example.spring.RenameVehicle": [
           "vehicle.exists",

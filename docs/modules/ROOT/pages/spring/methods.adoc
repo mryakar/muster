@@ -27,6 +27,33 @@ For an input that is not a rule target, such as an id, the method checks the rul
 `@Rules` can sit on an interface method that the service implements, or on an annotation of your own that stands for a set of rules, just as `@Transactional` can.
 The proxy only sees calls of public instance methods it can override, so the starter refuses `@Rules` on a static, final or non-public method rather than ignore it.
 
+== Renaming targets
+
+`VehicleNameUnique` checks `VehicleFields` and reports the target `name`.
+A vehicle imported from another fleet comes with a command that calls the field `vehicleName`:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/ImportVehicle.java[tag=command,indent=0]
+----
+
+The method that imports it renames the target with `targets`, so that the problem details name the field the client sent:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=import,indent=0]
+----
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/ImportVehicleTest.java[tag=import-test,indent=0]
+----
+
+Each entry is `from=to`, and spaces around either side do not count.
+A target inside a renamed one is renamed too, as `address.street` becomes `shippingAddress.street`, and in a collection the position of the element stays in front, as in `[3].vehicleName`; xref:core/checking.adoc#_renaming_targets[Renaming targets] tells more.
+An entry without `=`, with a blank side, or that renames a target twice stops the application.
+The xref:spring/observability.adoc[actuator endpoint] lists the targets each method renames.
+
 == Collections
 
 A method that takes a collection of rule targets checks the rules of each element and the rules of the whole collection, in one call, before it runs:

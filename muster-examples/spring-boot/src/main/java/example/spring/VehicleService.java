@@ -81,6 +81,14 @@ public class VehicleService {
   }
 
   // end::create-all[]
+  // tag::import[]
+  @Transactional
+  @Rules(targets = "name=vehicleName") // the violations of VehicleNameUnique name vehicleName
+  public Vehicle importVehicle(@Valid ImportVehicle command) {
+    return vehicles.add(command.vehicleName(), command.plate(), owner());
+  }
+
+  // end::import[]
   // tag::name-after-plate[]
   /** Names a vehicle after its plate, as renaming it would, with the rules of a rename. */
   @Transactional

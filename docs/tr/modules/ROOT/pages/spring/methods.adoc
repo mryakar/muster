@@ -28,6 +28,33 @@ Girdi kural hedefi değilse, örneğin bir kimlikse (id), metot yalnızca listel
 `@Rules`, tıpkı `@Transactional` gibi, servisin uyguladığı bir arayüz metodunun üzerine ya da bir kural kümesini temsil eden, sizin tanımladığınız bir anotasyonun üzerine konabilir.
 Proxy yalnızca override edebildiği public instance metotlarına yapılan çağrıları görür; bu yüzden starter, static, final ya da public olmayan bir metottaki `@Rules`’u görmezden gelmek yerine reddeder.
 
+== Hedefleri yeniden adlandırmak
+
+`VehicleNameUnique`, `VehicleFields`’ı kontrol eder ve ihlalin hedefini `name` diye bildirir.
+Başka bir filodan aktarılan araç, bu alanı `vehicleName` diye adlandıran bir komutla gelir:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/ImportVehicle.java[tag=command,indent=0]
+----
+
+Aracı aktaran metot hedefi `targets` ile yeniden adlandırır; böylece problem ayrıntıları istemcinin gönderdiği alanı adlandırır:
+
+[source,java]
+----
+include::example$spring-boot/java/example/spring/VehicleService.java[tag=import,indent=0]
+----
+
+[source,java]
+----
+include::example$spring-boot-test/java/example/spring/ImportVehicleTest.java[tag=import-test,indent=0]
+----
+
+`targets` içindeki her öğe `from=to` biçimindedir; iki yanındaki boşluklar sayılmaz.
+Yeniden adlandırılan bir hedefin içindeki hedefler de yeniden adlandırılır (`address.street`, `shippingAddress.street` olur) ve bir koleksiyonda elemanın konumu önde kalır: `[3].vehicleName`; ayrıntısı xref:core/checking.adoc#_renaming_targets[Hedefleri yeniden adlandırmak] bölümündedir.
+`=` içermeyen, bir yanı boş olan ya da bir hedefi iki kez yeniden adlandıran bir öğe uygulamayı durdurur.
+xref:spring/observability.adoc[Actuator uç noktası], her metodun yeniden adlandırdığı hedefleri listeler.
+
 == Koleksiyonlar
 
 Kural hedeflerinden oluşan bir koleksiyon alan metot, çalışmadan önce tek bir çağrıda hem her elemanın kurallarını hem de koleksiyonun bütününün kurallarını kontrol eder:
