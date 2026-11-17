@@ -23,13 +23,14 @@ import me.yakar.muster.rule.RuleContext;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Creates the contexts through which rules read the values of a check. Only the engine creates
- * them, so the public API of {@link RuleContext} does not offer it: the class registers how, when
- * it is initialized, which happens before any rule is prepared.
+ * Creates the contexts through which rules read the values of a check, or report violations whose
+ * targets their chain renames. Only the engine creates them, so the public API of {@link
+ * RuleContext} does not offer it: the class registers how, when it is initialized, which happens
+ * before any rule is prepared.
  */
 public final class Contexts {
 
-  /** Creates a context that reads the values of a check. */
+  /** Creates a context that reads the values of a check, or renames the targets of violations. */
   @FunctionalInterface
   public interface Factory {
 
@@ -39,16 +40,18 @@ public final class Contexts {
      * @param prepared the context prepared with the rule
      * @param locale the locale of the call
      * @param caller the caller, or {@code null}
-     * @param reads the values the rule may read
-     * @param values the values of the check, by slot
+     * @param reads the values the rule may read, or {@code null} if it reads none
+     * @param values the values of the check, by slot, or {@code null} if it keeps none
+     * @param names the names the chain gives the targets of violations
      * @return the context
      */
     RuleContext create(
         RuleContext prepared,
         Locale locale,
         @Nullable Principal caller,
-        ValueReads reads,
-        @Nullable Object[] values);
+        @Nullable ValueReads reads,
+        @Nullable Object @Nullable [] values,
+        TargetNames names);
   }
 
   /** Set once, while {@link RuleContext} is initialized. */
@@ -57,8 +60,9 @@ public final class Contexts {
   private Contexts() {}
 
   /**
-   * Registers how contexts that read values are created. Called once, by the static initializer of
-   * {@link RuleContext}, which touches no other class whose initializer reads this one.
+   * Registers how contexts that read values or rename targets are created. Called once, by the
+   * static initializer of {@link RuleContext}, which touches no other class whose initializer reads
+   * this one.
    *
    * @param created the factory
    * @throws IllegalStateException if a factory is registered already
@@ -72,22 +76,26 @@ public final class Contexts {
   }
 
   /**
-   * Creates the context of a rule that may read values, for one call. A prepared rule holds a
-   * context, so {@link RuleContext} is initialized before this is called.
+   * Creates the context of a rule that may read values, or whose chain renames targets, for one
+   * call. A prepared rule holds a context, so {@link RuleContext} is initialized before this is
+   * called.
    *
    * @param prepared the context prepared with the rule
    * @param locale the locale of the call
    * @param caller the caller, or {@code null}
-   * @param reads the values the rule may read
-   * @param values the values of the check, by slot
+   * @param reads the values the rule may read, or {@code null} if it reads none
+   * @param values the values of the check, by slot, or {@code null} if it keeps none
+   * @param names the names the chain gives the targets of violations
    * @return the context
    */
   public static RuleContext create(
       RuleContext prepared,
       Locale locale,
       @Nullable Principal caller,
-      ValueReads reads,
-      @Nullable Object[] values) {
-    return requireNonNull(factory, "factory").create(prepared, locale, caller, reads, values);
+      @Nullable ValueReads reads,
+      @Nullable Object @Nullable [] values,
+      TargetNames names) {
+    return requireNonNull(factory, "factory")
+        .create(prepared, locale, caller, reads, values, names);
   }
 }

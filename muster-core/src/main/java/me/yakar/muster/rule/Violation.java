@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SequencedMap;
+import me.yakar.muster.internal.rule.TargetNames;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -205,7 +206,7 @@ public final class Violation implements Serializable {
   @Serial
   private Object readResolve() throws ObjectStreamException {
     try {
-      var builder = new Builder(requireRuleId(ruleId), code, -1);
+      var builder = new Builder(requireRuleId(ruleId), code, -1, TargetNames.NONE);
       clientArgs.forEach(builder::clientArg);
       if (target != null) {
         builder.target(target);
@@ -243,17 +244,22 @@ public final class Violation implements Serializable {
     /** The position of the element the violation is about, or a negative number for none. */
     private final int element;
 
+    /** The names the chain gives the targets the rule reports. */
+    private final TargetNames names;
+
     // The constructors get a rule id that is already checked, and a valid rule id is a valid code.
-    Builder(String ruleId, int element) {
+    Builder(String ruleId, int element, TargetNames names) {
       this.ruleId = ruleId;
       this.code = ruleId;
       this.element = element;
+      this.names = names;
     }
 
-    Builder(String ruleId, String code, int element) {
+    Builder(String ruleId, String code, int element, TargetNames names) {
       this.ruleId = ruleId;
       this.code = requireKey(code, "code");
       this.element = element;
+      this.names = names;
     }
 
     /**
@@ -308,7 +314,8 @@ public final class Violation implements Serializable {
      * Sets the field of the input the violation is about. A violation about an element of a
      * collection, created from {@link RuleContext#element(int)}, gets the position of the element
      * in front of it: {@code name} becomes {@code [3].name}, and {@code [0]} becomes {@code
-     * [3][0]}. Without a target, its target is the position alone, {@code [3]}.
+     * [3][0]}. Without a target, its target is the position alone, {@code [3]}. A chain or a
+     * binding that renames targets renames it first, as {@code name} becomes {@code vehicleName}.
      *
      * @param target the field, such as {@code name}
      * @return this builder
@@ -341,14 +348,15 @@ public final class Violation implements Serializable {
     }
 
     private @Nullable String prefixedTarget() {
+      var named = target == null ? null : names.rename(target);
       if (element < 0) {
-        return target;
+        return named;
       }
       var position = "[" + element + "]";
-      if (target == null) {
+      if (named == null) {
         return position;
       }
-      return target.startsWith("[") ? position + target : position + "." + target;
+      return named.startsWith("[") ? position + named : position + "." + named;
     }
   }
 }

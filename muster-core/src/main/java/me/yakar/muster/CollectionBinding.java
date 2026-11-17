@@ -113,8 +113,8 @@ public final class CollectionBinding<E> {
   }
 
   /**
-   * Describes this binding for developers and logs: its name, element type, mode, and the ids of
-   * its listed and excluded rules.
+   * Describes this binding for developers and logs: its name, element type, mode, the ids of its
+   * listed and excluded rules, and the targets it renames, if any.
    *
    * @return the description
    */
@@ -201,6 +201,26 @@ public final class CollectionBinding<E> {
      */
     public Builder<E> name(String name) {
       selection.name(name);
+      return this;
+    }
+
+    /**
+     * Makes the violations of the binding name a target {@code to} where a rule reports the target
+     * {@code from}, as a rule written for a shared interface reports {@code name} of an input that
+     * calls it {@code vehicleName}. A target inside {@code from} is renamed too, as {@code
+     * address.street} becomes {@code shippingAddress.street}, and the longest {@code from} that
+     * matches wins; {@link RuleChain#withTarget} tells more. In a check of the collection the
+     * position of the element stays in front, as in {@code [3].vehicleName}. A target that no name
+     * matches stays as it is.
+     *
+     * @param from the target a rule reports
+     * @param to the target the violation names instead
+     * @return this builder
+     * @throws IllegalArgumentException if {@code from} or {@code to} is blank, or {@code from} is
+     *     renamed already
+     */
+    public Builder<E> target(String from, String to) {
+      selection.target(from, to);
       return this;
     }
 

@@ -36,6 +36,7 @@ import me.yakar.muster.internal.rule.PreparedRule;
 import me.yakar.muster.internal.rule.RuleCatalog;
 import me.yakar.muster.internal.rule.RuleDefinition;
 import me.yakar.muster.internal.rule.RuleGraph;
+import me.yakar.muster.internal.rule.TargetNames;
 import me.yakar.muster.rule.BusinessRule;
 import me.yakar.muster.rule.RuleTarget;
 import me.yakar.muster.spi.CheckListener;
@@ -136,7 +137,14 @@ public final class Muster {
     var plan = ChainPlan.listed(catalog, wrapped.getTypeName(), listed);
     plan.log();
     return new RuleChain<>(
-        wrapped.getTypeName(), wrapped, plan.steps(), caller, locale, mode, listener);
+        wrapped.getTypeName(),
+        wrapped,
+        plan.steps(),
+        caller,
+        locale,
+        mode,
+        listener,
+        TargetNames.NONE);
   }
 
   /**
@@ -319,7 +327,14 @@ public final class Muster {
       ChainPlan plan, Selection selection, Class<?> type, CheckMode chainMode) {
     return new ClassChains.Bound(
         new RuleChain<>(
-            selection.nameOr(type), type, plan.steps(), caller, locale, chainMode, listener),
+            selection.nameOr(type),
+            type,
+            plan.steps(),
+            caller,
+            locale,
+            chainMode,
+            listener,
+            selection.targets()),
         plan);
   }
 
