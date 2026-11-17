@@ -83,6 +83,23 @@ include::example$plain-java/java/example/plain/VehicleService.java[tag=binding,i
 The name shows in logs and listeners, and the mode is the subject of xref:core/modes.adoc[].
 A binding can also leave out a rule that would bind by type, with `exclude`.
 
+== Renaming targets
+
+A rule written for a shared interface reports the target as the interface calls it, such as `name`, while an input may call that field otherwise: a record imported from another fleet calls it `vehicleName`.
+A binding renames the targets of its violations, so that the caller hears about the field it sent:
+
+[source,java]
+----
+Binding<ImportVehicle> imports = muster.binding(ImportVehicle.class)
+    .target("name", "vehicleName")
+    .build();
+----
+
+A target inside a renamed one is renamed too: with `address` renamed to `shippingAddress`, `address.street` becomes `shippingAddress.street`, and where more than one name fits, the longest wins.
+In a check of a collection the position of the element stays in front, as in `[3].vehicleName`.
+A target that no name fits stays as it is, and a target renamed twice, or a blank one, is rejected.
+A `CollectionBinding` renames targets the same way, and a chain with link:{javadoc-core}/RuleChain.html#withTarget(java.lang.String,java.lang.String)[`withTarget`], which returns a new chain as `withMode` and `withName` do.
+
 == Rules that require other rules
 
 Both rules below check any command about a vehicle that must exist, which carries the id of the vehicle:

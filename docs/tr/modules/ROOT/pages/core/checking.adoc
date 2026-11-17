@@ -86,6 +86,24 @@ include::example$plain-java/java/example/plain/VehicleService.java[tag=binding,i
 Ad, loglarda ve dinleyicilerde görünür; kip (mode) ise xref:core/modes.adoc[] sayfasının konusudur.
 Bir bağlama, türe göre bağlanacak bir kuralı `exclude` ile dışarıda da bırakabilir.
 
+[#_renaming_targets]
+== Hedefleri yeniden adlandırmak
+
+Ortak bir arayüz için yazılmış bir kural, ihlalin hedefini arayüzün verdiği adla bildirir, örneğin `name`; girdi ise o alana başka bir ad vermiş olabilir: başka bir filodan aktarılan bir kayıt onu `vehicleName` diye adlandırır.
+Bağlama, ihlallerinin hedeflerini yeniden adlandırır; böylece çağıran, kendi gönderdiği alanı duyar:
+
+[source,java]
+----
+Binding<ImportVehicle> imports = muster.binding(ImportVehicle.class)
+    .target("name", "vehicleName")
+    .build();
+----
+
+Yeniden adlandırılan bir hedefin içindeki hedefler de yeniden adlandırılır: `address`, `shippingAddress` olunca `address.street` de `shippingAddress.street` olur; birden fazla ad uyarsa en uzunu kazanır.
+Bir koleksiyonun kontrolünde elemanın konumu önde kalır: `[3].vehicleName`.
+Hiçbir adın uymadığı hedef olduğu gibi kalır; iki kez yeniden adlandırılan ya da boş bir hedef reddedilir.
+`CollectionBinding` hedefleri aynı biçimde, bir zincir de link:{javadoc-core}/RuleChain.html#withTarget(java.lang.String,java.lang.String)[`withTarget`] ile yeniden adlandırır; `withTarget`, `withMode` ve `withName` gibi yeni bir zincir döndürür.
+
 == Başka kuralları gerektiren kurallar
 
 Aşağıdaki iki kural da var olması gereken bir araçla ilgili her komutu kontrol eder; böyle bir komut aracın kimliğini taşır:
