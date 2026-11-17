@@ -31,6 +31,10 @@ import me.yakar.muster.spring.fixture.advice.OperationsService
 import me.yakar.muster.spring.fixture.advice.RenameVehicle
 import me.yakar.muster.spring.fixture.advice.SaveVehicle
 import me.yakar.muster.spring.fixture.advice.StaticMethod
+import me.yakar.muster.spring.fixture.advice.TargetBlankFrom
+import me.yakar.muster.spring.fixture.advice.TargetBlankTo
+import me.yakar.muster.spring.fixture.advice.TargetTwice
+import me.yakar.muster.spring.fixture.advice.TargetWithoutTo
 import me.yakar.muster.spring.fixture.advice.TwoModes
 import me.yakar.muster.spring.fixture.advice.TwoParametersWithRules
 import me.yakar.muster.spring.fixture.advice.TwoParameters
@@ -250,6 +254,10 @@ class RulesAdviceSpec extends Specification {
     FinalMethod || 'FinalMethod.delete(Long) has rules but is final, so a proxy cannot check them before it runs'
     StaticMethod || 'StaticMethod.delete(Long) has rules but is static, so a proxy cannot check them before it runs'
     TwoModes || '@Rules on TwoModes.save(SaveVehicle) names 2 modes; give one, or none for the mode of Muster'
+    TargetWithoutTo || "@Rules on TargetWithoutTo.save(SaveVehicle) renames the target 'name'; write each as from=to, as in name=vehicleName"
+    TargetBlankFrom || "@Rules on TargetBlankFrom.save(SaveVehicle) renames the target ' =title'; write each as from=to, as in name=vehicleName"
+    TargetBlankTo || "@Rules on TargetBlankTo.save(SaveVehicle) renames the target 'name= '; write each as from=to, as in name=vehicleName"
+    TargetTwice || "@Rules on TargetTwice.save(SaveVehicle) renames the target 'name' twice, to 'vehicleName' and to 'title'"
   }
 
   def 'a listed rule that is not registered stops the application'() {

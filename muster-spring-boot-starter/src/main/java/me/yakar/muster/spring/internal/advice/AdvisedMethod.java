@@ -30,6 +30,8 @@ import me.yakar.muster.CheckMode;
  * @param rules the ids of the rules the method lists, as it lists them; {@code ruleIds} tells what
  *     runs
  * @param excluded the ids of the rules the method excludes, as it lists them
+ * @param targets the targets the method renames, each to the target its violations name instead, in
+ *     the order it gives them
  * @param ruleIds the ids of the rules of the chains bound so far, by class, as the binding of the
  *     method reports them
  */
@@ -41,4 +43,5 @@ public record AdvisedMethod(
     CheckMode mode,
     List<String> rules,
     List<String> excluded,
+    Map<String, String> targets,
     Map<Class<?>, List<String>> ruleIds) {}

@@ -72,4 +72,18 @@ public @interface Rules {
    * @return the mode, if any
    */
   CheckMode[] mode() default {};
+
+  /**
+   * Returns the targets the violations name instead of those the rules report, each as {@code
+   * from=to}, such as {@code "name=vehicleName"}: a rule written for a shared interface reports
+   * {@code name} of an input that calls it {@code vehicleName}. A target inside {@code from} is
+   * renamed too, as {@code address.street} becomes {@code shippingAddress.street}, the longest
+   * {@code from} that matches wins, and in a collection the position of the element stays in front,
+   * as in {@code [3].vehicleName}; {@link me.yakar.muster.RuleChain#withTarget} tells more. Spaces
+   * around either side do not count. An entry without {@code =}, with a blank side, or with a
+   * {@code from} given before stops the application.
+   *
+   * @return the targets to rename, if any
+   */
+  String[] targets() default {};
 }

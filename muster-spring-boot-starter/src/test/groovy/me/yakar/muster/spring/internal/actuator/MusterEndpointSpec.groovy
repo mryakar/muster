@@ -110,6 +110,8 @@ class MusterEndpointSpec extends Specification {
       assert report.methods()*.mode() == [CheckMode.FAIL_FAST] * 4 + [CheckMode.COLLECT_ALL, CheckMode.FAIL_FAST, CheckMode.FAIL_FAST]
       assert report.methods()*.rules() == [[], [], [], [], ['garage.id-known'], [], []]
       assert report.methods()*.excluded() == [['garage.plate-free'], [], [], [], [], [], []]
+      assert report.methods()*.targets() == [[plate: 'licensePlate', owner: 'holder'], [:], [:], [:], [:], [:], [:]]
+      assert report.methods()[0].targets().keySet() as List == ['plate', 'owner']
       assert report.methods()*.ruleIds() == [
         [(CAR): ['garage.plate-format']],
         [:],

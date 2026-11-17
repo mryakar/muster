@@ -106,7 +106,7 @@ class GarageService {
   @Rules(value = IdKnown, mode = CheckMode.COLLECT_ALL)
   void remove(Long id) {}
 
-  @Rules(exclude = PlateFree)
+  @Rules(exclude = PlateFree, targets = ['plate = licensePlate', 'owner=holder'])
   void inspect(Car car) {}
 
   void parkAll(List<Car> cars) {}

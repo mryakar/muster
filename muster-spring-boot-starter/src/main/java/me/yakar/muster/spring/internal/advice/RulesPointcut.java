@@ -21,6 +21,8 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.SequencedMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import me.yakar.muster.rule.RuleTarget;
@@ -166,6 +168,46 @@ final class RulesPointcut extends StaticMethodMatcherPointcut {
               + rules.mode().length
               + " modes; give one, or none for the mode of Muster");
     }
+  }
+
+  /**
+   * Reads the targets that {@link Rules#targets} renames, in the order given.
+   *
+   * @throws IllegalStateException if an entry has no {@code =} or a blank side, or renames a target
+   *     that an entry before it renames
+   */
+  static SequencedMap<String, String> targets(@Nullable Rules rules, String label) {
+    var targets = new LinkedHashMap<String, String>();
+    if (rules == null) {
+      return targets;
+    }
+    for (var entry : rules.targets()) {
+      var sides = entry.split("=", 2);
+      if (sides.length < 2 || sides[0].isBlank() || sides[1].isBlank()) {
+        throw new IllegalStateException(
+            "@Rules on "
+                + label
+                + " renames the target '"
+                + entry
+                + "'; write each as from=to, as in name=vehicleName");
+      }
+      var from = sides[0].strip();
+      var to = sides[1].strip();
+      var given = targets.putIfAbsent(from, to);
+      if (given != null) {
+        throw new IllegalStateException(
+            "@Rules on "
+                + label
+                + " renames the target '"
+                + from
+                + "' twice, to '"
+                + given
+                + "' and to '"
+                + to
+                + "'");
+      }
+    }
+    return targets;
   }
 
   /** Finds {@link Rules} as Spring finds {@code @Transactional}. */
